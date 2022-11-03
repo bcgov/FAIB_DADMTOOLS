@@ -9,14 +9,14 @@ updateFAIBhectaresWHSE(
   connList = faibDataManagement::get_pg_conn_list(),
   oraConnList = faibDataManagement::get_ora_conn_list(),
   cropExtent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
-  fkLookupTbl = "all_bc_res",
+  gr_skey_tbl = "all_bc_res_gr_skey",
   wrkSchema = "whse",
   rasSchema = "raster",
   templateRaster = "raster.grskey_bc_land",
   dataSourceTblName = "data_sources",
   setwd = "D:/Projects/provDataProject",
   outTifpath = "D:\\\\Projects\\\\provDataProject",
-  import2pg = FALSE
+  importrast2pg = FALSE
 )
 }
 \arguments{
@@ -26,7 +26,7 @@ updateFAIBhectaresWHSE(
 
 \item{cropExtent}{coming soon}
 
-\item{fkLookupTbl}{coming soon}
+\item{gr_skey_tbl}{coming soon}
 
 \item{wrkSchema}{coming soon}
 

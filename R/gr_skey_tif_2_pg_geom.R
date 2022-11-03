@@ -5,6 +5,7 @@
 #' @param cropExtent coming soon
 #' @param outCropTifName coming soon
 #' @param connList coming soon
+#' @param pgtblname coming soon
 #'
 #' @return coming soon
 #' @export
@@ -17,7 +18,8 @@ gr_skey_tif_2_pg_geom <- function(
     maskTif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Lands_and_Islandsincluded.tif',
     cropExtent = c(273287.5,1870587.5,367787.5,1735787.5),
     outCropTifName = 'D:\\Projects\\provDataProject\\gr_skey_cropped.tif',
-    connList = faibDataManagement::get_pg_conn_list()
+    connList = faibDataManagement::get_pg_conn_list(),
+    pgtblname = "whse.all_bc_gr_skey"
     ){
 
   #Remove ocean from gr_skey raster, write a new tif
@@ -27,29 +29,34 @@ gr_skey_tif_2_pg_geom <- function(
 
   rastList <- list(grskeyRast,landRast)
   cropList <- lapply(rastList,function(x){
-    crs(x) <-  "epsg:3005"
+    terra::crs(x) <-  "epsg:3005"
     terra::crop(x,terraExt,datatype='INT4S')})
 
   grskeyRast <- cropList[[1]]
   landRast <- cropList[[2]]
 
-  grskeyRast[landRast <= 0] <- NA
-  writeRaster(grskeyRast, outCropTifName, datatype='INT4U',overwrite=TRUE)
+  landRast[landRast <= 0] <- NA
+  grskeyRast <- terra::mask(grskeyRast,landRast,datatype='INT4S')
+  writeRaster(grskeyRast, outCropTifName, datatype='INT4S',overwrite=TRUE)
 
   #GR_SKEY_RASTER to PG
   cmd<- paste0('raster2pgsql -s 3005 -d -C -r -P -I -M -t 100x100 ',outCropTifName, ' raster.grskey_bc_land | psql')
   shell(cmd)
   #Convert gr_skey raster to point table
-  faibDataManagement::pg_rast_2_centroid('raster.grskey_bc_land','whse.all_bc_gr_skey','gr_skey',connList)
-  #Create a non spatial table for every gr_skey raster pixel.  Table has a filed for gr_skey and ogc_fid
-  sendSQLstatement("drop table if exists whse.all_bc_res",connList)
-  sendSQLstatement("create table whse.all_bc_res as select gr_skey from whse.all_bc_gr_skey ;",connList)
-  sendSQLstatement("ALTER TABLE whse.all_bc_res ADD CONSTRAINT all_bc_res_pkey PRIMARY KEY (gr_skey);",connList)
-  sendSQLstatement("drop index if exists all_bc_res_gr_skey_inx;",connList)
-  print('Creating Index')
-  sendSQLstatement(paste0("create index all_bc_res_gr_skey_inx on whse.all_bc_res(gr_skey);"),connList)
-}
+  qry <- glue("DROP table if exists {pgtblname};")
+  qry2 <- glue("CREATE TABLE {pgtblname} AS
+                    with tbl1 as  (SELECT RAST FROM raster.grskey_bc_land),
+                          tbl2 as (SELECT ST_Tile(RAST, 1,1) AS RAST FROM tbl1)
+                          SELECT public.st_pixelascentroid(rast,1,1) AS geom,
+		                      (public.ST_SummaryStats(rast)).sum AS gr_skey
+                          from tbl2 where (public.ST_SummaryStats(rast)).sum is not null;")
+  sendSQLstatement(qry,connList)
+  sendSQLstatement(qry2,connList)
+  sendSQLstatement(glue("ALTER TABLE {pgtblname} ADD CONSTRAINT all_bc_res_pkey PRIMARY KEY (gr_skey);"),connList)
+  sendSQLstatement(glue("DROP INDEX IF EXISTS grskey_inx"),connList)
+  sendSQLstatement(glue("CREATE INDEX grskey_inx ON {pgtblname} USING GIST(geom);"),connList)
 
+}
 
 
 

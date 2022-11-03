@@ -3,7 +3,7 @@
 #' @param inCSV coming soon
 #' @param connList coming soon
 #' @param cropExtent coming soon
-#' @param fkLookupTbl coming soon
+#' @param gr_skey_tbl coming soon
 #' @param wrkSchema coming soon
 #' @param rasSchema coming soon
 #' @param templateRaster coming soon
@@ -20,14 +20,14 @@ updateFAIBhectaresWHSE <- function(inCSV = 'D:\\Projects\\provDataProject\\tools
                                    connList = faibDataManagement::get_pg_conn_list(),
                                    oraConnList = faibDataManagement::get_ora_conn_list(),
                                    cropExtent = c(273287.5,1870587.5,367787.5,1735787.5),
-                                   fkLookupTbl = 'all_bc_res',
+                                   gr_skey_tbl = 'all_bc_res_gr_skey',
                                    wrkSchema = 'whse',
                                    rasSchema = 'raster',
                                    templateRaster = 'raster.grskey_bc_land',
                                    dataSourceTblName = 'data_sources',
                                    setwd='D:/Projects/provDataProject',
                                    outTifpath = 'D:\\Projects\\provDataProject',
-                                   import2pg = FALSE
+                                   importrast2pg = FALSE
                                    ){
 
   inFile <- read.csv(inCSV)
@@ -38,7 +38,7 @@ updateFAIBhectaresWHSE <- function(inCSV = 'D:\\Projects\\provDataProject\\tools
     gc()
     #Get inputs from input file
     inc <- gsub("[[:space:]]",'',tolower(inFile[row, "inc"])) ##  1 = include(i.e. will not skip) 0 = not included (i.e. will skip)
-    rslt_ind <- gsub("[[:space:]]",'',tolower(inFile[row, "rslt_ind"])) ##1 = include(i.e. will add data to provincial resultant) 0 = not included (i.e. will not add data to provincial resultant)
+    rslt_ind <- gsub("[[:space:]]",'',tolower(inFile[row, "rslt_ind"])) ##1 = include(i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
     srctype <- gsub("[[:space:]]",'',tolower(inFile[row, "srctype"])) ##format of data source i.e. gdb,oracle, postgres, geopackage, raster
     srcpath <- gsub("[[:space:]]",'',tolower(inFile[row, "srcpath"]))## path to input data. Note use bcgw for whse
     srclyr <- gsub("[[:space:]]",'',tolower(inFile[row, "srclyr"])) ## input layer name
@@ -90,7 +90,7 @@ updateFAIBhectaresWHSE <- function(inCSV = 'D:\\Projects\\provDataProject\\tools
         print("created Tiff")
 
         #Tif to PG Raster
-        if(import2pg){
+        if(importrast2pg){
         inRas <- basename(inRas)
         pgRasName <- paste0(rasSchema,'.ras_',substr(inRas,1,nchar(inRas)-4))
         cmd<-paste0('raster2pgsql -s 3005 -d -C -r -P -I -M -t 100x100 ',inRas,' ', pgRasName,' | psql -d prov_data')
@@ -100,7 +100,7 @@ updateFAIBhectaresWHSE <- function(inCSV = 'D:\\Projects\\provDataProject\\tools
 
         # #Convert postgres Raster to Non spatial table with gr_skey
         joinTbl <- glue("{wrkSchema}.{nsTblm}_gr_skey")
-        joinTbl2 <- Id(schema = wrkSchema, table = glue("{nsTblm}_gr_skey"))
+        joinTbl2 <- RPostgres::IdId(schema = wrkSchema, table = glue("{nsTblm}_gr_skey"))
         # faibDataManagement::pgRas2rows(joinTbl,pgRasName ,pk, templateRaster,connList)
         df <- tif2grskeytbl(inRas,cropExtent=cropExtent, valueColName=pk)
         faibDataManagement::df2PG(joinTbl2,df,connList)
@@ -135,12 +135,12 @@ updateFAIBhectaresWHSE <- function(inCSV = 'D:\\Projects\\provDataProject\\tools
 
 
         if(rslt_ind == 1){
-          faibDataManagement::updateFKlookupPG(joinTbl,pk,suffix,fkLookupTbl,connList)
+          faibDataManagement::updateFKlookupPG(joinTbl,pk,suffix,gr_skey_tbl,connList)
           print("created new foreign key lookup table")
 
 
           #Update Metadata tables
-          faibDataManagement::updateFKfldTablePG(joinTbl,fkLookupTbl,suffix,connList)
+          faibDataManagement::updateFKfldTablePG(joinTbl,gr_skey_tbl,suffix,connList)
 
           srcpath <- gsub("[[:space:]]",'',tolower(inFile[row, "srcpath"]))
           print('srcpath - 1')
@@ -149,7 +149,7 @@ updateFAIBhectaresWHSE <- function(inCSV = 'D:\\Projects\\provDataProject\\tools
           print("updated meta data table")
 
           faibDataManagement::sendSQLstatement(paste0("drop table if exists ",joinTbl, ";"),connList)
-          faibDataManagement::sendSQLstatement(paste0("drop table if exists ",fkLookupTbl,"_old;"),connList)
+          faibDataManagement::sendSQLstatement(paste0("drop table if exists ",gr_skey_tbl,"_old;"),connList)
           print("deleted excess tables")
           faibDataManagement::sendSQLstatement(paste0("vacuum;"),connList)
 
@@ -158,12 +158,12 @@ updateFAIBhectaresWHSE <- function(inCSV = 'D:\\Projects\\provDataProject\\tools
 
       }
       if(rslt_ind == 1){
-        fkLookupTbl <- glue("{wrkSchema}.{fkLookupTbl}")
-        faibDataManagement::updateFKlookupPG(joinTbl,pk,suffix,fkLookupTbl,connList)
+        gr_skey_tbl <- glue("{wrkSchema}.{gr_skey_tbl}")
+        faibDataManagement::updateFKlookupPG(joinTbl,pk,suffix,gr_skey_tbl,connList)
         print("created new foreign key lookup table")
 
         #Update Metadata tables
-        faibDataManagement::updateFKfldTablePG(nsTblm,fkLookupTbl,suffix,connList)
+        faibDataManagement::updateFKfldTablePG(nsTblm,gr_skey_tbl,suffix,connList)
 
         srcpath <- gsub("[[:space:]]",'',tolower(inFile[row, "srcpath"]))
         print('srcpath - 1')
@@ -172,7 +172,7 @@ updateFAIBhectaresWHSE <- function(inCSV = 'D:\\Projects\\provDataProject\\tools
         print("updated data sources table")
 
         faibDataManagement::sendSQLstatement(paste0("drop table if exists ",joinTbl, ";"),connList)
-        faibDataManagement::sendSQLstatement(paste0("drop table if exists ",fkLookupTbl,"_old;"),connList)
+        faibDataManagement::sendSQLstatement(paste0("drop table if exists ",gr_skey_tbl,"_old;"),connList)
         print("deleted excess tables")
         faibDataManagement::sendSQLstatement(paste0("vacuum;"),connList)
       }

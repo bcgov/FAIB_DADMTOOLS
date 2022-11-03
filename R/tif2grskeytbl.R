@@ -32,7 +32,10 @@ tifRast <- cropList[[1]]
 grskeyRast <- cropList[[2]]
 landRast <- cropList[[3]]
 
-tifRast[landRast <= 0] <- NA
+landRast[landRast <= 0] <- NA
+tifRast <- terra::mask(tifRast,landRast,datatype='INT4S')
+
+
 
 tifValues <- as.integer(tifRast[])
 grskeyValues <- as.integer(grskeyRast[])
