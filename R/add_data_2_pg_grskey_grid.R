@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #' Update FAIB hectares database from input dataset
 #'
 #' @param rslt_ind coming soon
@@ -10,22 +9,13 @@
 #' @param nsTblm coming soon
 #' @param query coming soon
 #' @param flds2keep coming soon
-=======
-#' Update FAIB hectares database from input csv of datasets
-#'
-#' @param inCSV coming soon
->>>>>>> 4d4bc33b907623b010db9c5c2ba86d7a04da6d64
 #' @param connList coming soon
 #' @param cropExtent coming soon
 #' @param gr_skey_tbl coming soon
 #' @param wrkSchema coming soon
 #' @param rasSchema coming soon
-<<<<<<< HEAD
 #' @param grskeyTIF coming soon
 #' @param maskTif coming soon
-=======
-#' @param templateRaster coming soon
->>>>>>> 4d4bc33b907623b010db9c5c2ba86d7a04da6d64
 #' @param dataSourceTblName coming soon
 #' @param setwd coming soon
 #'
@@ -35,7 +25,7 @@
 #'
 #' @examples coming soon
 
-<<<<<<< HEAD
+
 add_data_2_pg_grskey_grid <- function(rslt_ind,
                                       srctype,
                                       srcpath,
@@ -71,58 +61,18 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
     query <- tolower(query)  ##where clause used to filter input dataset
     flds2keep <- gsub("[[:space:]]",'',tolower(flds2keep)) ## fields to keep in non spatial table
     dataSourceTblName <- glue::glue("{wrkSchema}.{dataSourceTblName}")
-=======
-add_data_2_pg_grskey_grid <- function(inCSV = 'D:\\Projects\\provDataProject\\tools\\prov_data_resultant3.csv',
-                                   connList = faibDataManagement::get_pg_conn_list(),
-                                   oraConnList = faibDataManagement::get_ora_conn_list(),
-                                   cropExtent = c(273287.5,1870587.5,367787.5,1735787.5),
-                                   gr_skey_tbl = 'all_bc_res_gr_skey',
-                                   wrkSchema = 'whse',
-                                   rasSchema = 'raster',
-                                   templateRaster = 'raster.grskey_bc_land',
-                                   dataSourceTblName = 'data_sources',
-                                   setwd='D:/Projects/provDataProject',
-                                   outTifpath = 'D:\\Projects\\provDataProject',
-                                   importrast2pg = FALSE
-){
-  inFile <- read.csv(inCSV)
-  inFile <- inFile[inFile$inc == 1,]
-  dataSourceTblName <- glue::glue("{wrkSchema}.{dataSourceTblName}")
-
-  for (row in 1:nrow(inFile)) {
-    #Get inputs from input file
-    inc <- gsub("[[:space:]]",'',tolower(inFile[row, "inc"])) ##  1 = include(i.e. will not skip) 0 = not included (i.e. will skip)
-    rslt_ind <- gsub("[[:space:]]",'',tolower(inFile[row, "rslt_ind"])) ##1 = include(i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
-    srctype <- gsub("[[:space:]]",'',tolower(inFile[row, "srctype"])) ##format of data source i.e. gdb,oracle, postgres, geopackage, raster
-    srcpath <- gsub("[[:space:]]",'',tolower(inFile[row, "srcpath"]))## path to input data. Note use bcgw for whse
-    srclyr <- gsub("[[:space:]]",'',tolower(inFile[row, "srclyr"])) ## input layer name
-    pk <- gsub("[[:space:]]",'',tolower(inFile[row, "primarykey"])) ## primary key field that will be added to resultant table
-    suffix <- gsub("[[:space:]]",'',tolower(inFile[row, "suffix"])) ## suffix to be used in the resultant table
-    nsTblm <- gsub("[[:space:]]",'',tolower(inFile[row, "tblname"])) ## name of output non spatial table
-    query <- tolower(inFile[row, "src_query"])  ##where clause used to filter input dataset
-    flds2keep <- gsub("[[:space:]]",'',tolower(inFile[row, "fields2keep"])) ## fields to keep in non spatial table
->>>>>>> 4d4bc33b907623b010db9c5c2ba86d7a04da6d64
 
     ##convert whitespace to null when where clause is null
     if (query == '' || is.null(query) || is.na(query)) {
       # print("null is here")
       where_clause <- NULL
       query <- ''
-<<<<<<< HEAD
+
     }else
     {where_clause <- query}
 
 
     if(tolower(srctype) != 'raster'){
-=======
-    }
-    else {where_clause <- inFile[row, "src_query"]}
-
-
-    #For included rows for csv
-    if (inc == 1){
-      if(tolower(srctype) != 'raster'){
->>>>>>> 4d4bc33b907623b010db9c5c2ba86d7a04da6d64
 
         if(tolower(srctype) == 'oracle'){
           oraServer <- oraConnList["server"][[1]]
@@ -156,7 +106,7 @@ add_data_2_pg_grskey_grid <- function(inCSV = 'D:\\Projects\\provDataProject\\to
         outTifName <- glue("{nsTblm}.tif")
         inRas <- srcpath
 
-<<<<<<< HEAD
+
       }
 
       inRasbase <- basename(inRas)
@@ -175,26 +125,6 @@ add_data_2_pg_grskey_grid <- function(inCSV = 'D:\\Projects\\provDataProject\\to
       faibDataManagement::df2PG(joinTbl2,faibDataManagement::tif2grskeytbl(inRas,cropExtent=cropExtent,grskeyTIF=grskeyTIF,maskTif=maskTif, valueColName=pk),connList)
       print('created pg table from values in tif and gr_skey')
 
-=======
-        }
-
-        inRasbase <- basename(inRas)
-        #Tif to PG Raster
-        if(importrast2pg){
-          pgRasName <- paste0(rasSchema,'.ras_',substr(inRasbase,1,nchar(inRasbase)-4))
-          cmd<-paste0('raster2pgsql -s 3005 -d -C -r -P -I -M -t 100x100 ',inRas,' ', pgRasName,' | psql -d prov_data')
-          print(cmd)
-          shell(cmd)
-          print('imported tif to pg')}
-
-        # #Convert postgres Raster to Non spatial table with gr_skey
-        joinTbl <- glue("{wrkSchema}.{nsTblm}_gr_skey")
-        joinTbl2 <- RPostgres::Id(schema = wrkSchema, table = glue("{nsTblm}_gr_skey"))
-        df <- tif2grskeytbl(inRas,cropExtent=cropExtent, valueColName=pk)
-        faibDataManagement::df2PG(joinTbl2,df,connList)
-        print('created pg table from values in tif and gr_skey')
-        gc()
->>>>>>> 4d4bc33b907623b010db9c5c2ba86d7a04da6d64
 
       if(rslt_ind == 1){
         gr_skey_tbl <- glue("{wrkSchema}.{gr_skey_tbl}")
@@ -204,17 +134,11 @@ add_data_2_pg_grskey_grid <- function(inCSV = 'D:\\Projects\\provDataProject\\to
         #Update Metadata tables
         faibDataManagement::updateFKfldTablePG(nsTblm,gr_skey_tbl,suffix,connList)
 
-<<<<<<< HEAD
         srcpath <- gsub("[[:space:]]",'',srcpath)
         print('srcpath - 1')
 
         faibDataManagement::updateFKsrcTblpg(dataSourceTblName,srctype,srcpath,srclyr,pk,suffix,nsTblm,query,1,rslt_ind,flds2keep,connList)
-=======
-        srcpath <- gsub("[[:space:]]",'',tolower(inFile[row, "srcpath"]))
-        print('srcpath - 1')
 
-        faibDataManagement::updateFKsrcTblpg(dataSourceTblName,srctype,srcpath,srclyr,pk,suffix,nsTblm,query,inc,rslt_ind,flds2keep,connList)
->>>>>>> 4d4bc33b907623b010db9c5c2ba86d7a04da6d64
         print("updated data sources table")
 
         faibDataManagement::sendSQLstatement(paste0("drop table if exists ",joinTbl, ";"),connList)
@@ -222,16 +146,7 @@ add_data_2_pg_grskey_grid <- function(inCSV = 'D:\\Projects\\provDataProject\\to
         print("deleted excess tables")
         faibDataManagement::sendSQLstatement(paste0("vacuum;"),connList)
 
-<<<<<<< HEAD
+
 
       }}
-=======
-      }
 
-
-
-    }}
-}
-
-
->>>>>>> 4d4bc33b907623b010db9c5c2ba86d7a04da6d64
