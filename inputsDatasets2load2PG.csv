@@ -1,0 +1,4 @@
+srctype,srcpath,srclyr,primarykey,suffix,tblname,src_query,inc,rslt_ind,fields2keep
+gdb,W:\FOR\VIC\HTS\ANA\Workarea\PROVINCIAL\provincial.gdb,tsa_boundaries_2020,TSA_FID,tsa,tsa_boundaries_2020,,1,0,
+oracle,bcgw,WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly,objectid,bec,bec_biogeoclimatic_poly,,1,1,
+raster,D:\Projects\PSPL_2022\IAIAN_VERSION\R_SCRIPTS\inputs\raster\prov_aspect100_Shift.tif,aspect,asp,asp,aspect,,1,0,

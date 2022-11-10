@@ -36,7 +36,7 @@ from tbl2 where (public.ST_SummaryStats(rast)).sum is not null;';
 	RAISE NOTICE '%', qry;
 	EXECUTE qry;
 	EXECUTE 'ALTER TABLE '  || outTbl || ' DROP CONSTRAINT IF EXISTS all_bc_gr_skey_pkey;';
-	EXECUTE 'ALTER TABLE '  || outTbl || ' ADD CONSTRAINT all_bc_gr_skey_pkey PRIMARY KEY (ogc_fid);';
+	EXECUTE 'ALTER TABLE '  || outTbl || ' ADD CONSTRAINT all_bc_gr_skey_pkey PRIMARY KEY (gr_skey);';
 	--Create an index on the output raster
 	EXECUTE 'DROP INDEX IF EXISTS ' || outTbl ||'ind_geom;';
 	EXECUTE 'CREATE INDEX ' || indexName || ' ON ' || outTbl || ' USING GIST(geom);';
@@ -44,7 +44,7 @@ from tbl2 where (public.ST_SummaryStats(rast)).sum is not null;';
 END;
 $$ LANGUAGE plpgsql;"
   faibDataManagement::sendSQLstatement(qry,connList)
-  faibDataManagement::sendSQLstatement(qry2,,connList)
+  faibDataManagement::sendSQLstatement(qry2,connList)
   qry3 <- paste0("SELECT FAIB_CENTROID_TILED_RASTER('", outLyrName,"','",indexName,"', '",inRas,"','",outField,"')")
   print(qry3)
   faibDataManagement::sendSQLstatement(qry3,connList)
