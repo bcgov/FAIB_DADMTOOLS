@@ -6,6 +6,15 @@ Package of common faib data management functions
 library(devtools)
 install_github("bcgov/FAIB_DATA_MANAGEMENT")
 ```
+
+##Dependencies
+The following packages need to be installed for this package to work.
+ - RPostgres
+ - glue
+ - terra
+ - keyring
+ - sf
+
 ## Adding Input Data into postgres gr_skey table
 
 1.  Create gr_skey table in postgres with geom by calling  <br> 
