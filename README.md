@@ -7,7 +7,7 @@ library(devtools)
 install_github("bcgov/FAIB_DATA_MANAGEMENT")
 ```
 
-##Dependencies
+## Dependencies
 The following packages need to be installed for this package to work.
  - RPostgres
  - glue
