@@ -9,7 +9,9 @@ install_github("bcgov/FAIB_DATA_MANAGEMENT")
 ## Adding Input Data into postgres gr_skey table
 
 1.  Create gr_skey table in postgres with geom by calling  <br> 
-    ```gr_skey_tif_2_pg_geom(cropExtent = c(xmin,xmax,ymin,ymax))```<br>                                  Available option and their corresponding default values are listed below:
+    ```gr_skey_tif_2_pg_geom(cropExtent = c(xmin,xmax,ymin,ymax))```<br> 
+    
+Available option and their corresponding default values are listed below:
  - grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
  - maskTif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Lands_and_Islandsincluded.tif',
  - cropExtent = c(273287.5,1870587.5,367787.5,1735787.5),
