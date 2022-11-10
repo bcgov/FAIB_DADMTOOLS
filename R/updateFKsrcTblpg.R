@@ -20,14 +20,20 @@
 
 
 updateFKsrcTblpg <- function(outTableName,srctype,srcpath,srclyr,pk,suffix,nsTblm,query,inc,rslt_ind,fields2keep,connList ){
+
+  print(c(srctype,srcpath,srclyr,pk,suffix,nsTblm,query,inc,rslt_ind,fields2keep))
+  # valueList <- lappy(valueList,function(x){if(is.null(x) || is.na(x)){x = ''}else{x}})
+
+
+
   query <- gsub("'","''",query)
   print(query)
 
   sql <- glue::glue("CREATE TABLE IF NOT EXISTS {outTableName} (srctype varchar, srcpath varchar ,srclyr varchar,primarykey varchar,suffix varchar,tblname varchar,src_query varchar,inc integer,rslt_ind integer,fields2keep varchar);")
-  sendSQLstatement(sql,connList)
+  faibDataManagement::sendSQLstatement(sql,connList)
   print(sql)
   sql <- glue::glue("DELETE FROM {outTableName} WHERE suffix = {single_quote(suffix)};")
-  sendSQLstatement(sql,connList)
+  faibDataManagement::sendSQLstatement(sql,connList)
   print(sql)
   sql <- glue::glue("INSERT INTO {outTableName}(srctype,srcpath,srclyr,primarykey,suffix,
                             tblname,src_query,inc,rslt_ind,fields2keep)
@@ -41,7 +47,8 @@ updateFKsrcTblpg <- function(outTableName,srctype,srcpath,srclyr,pk,suffix,nsTbl
                                 {single_quote(inc)},
                                 {single_quote(rslt_ind)},
                                {single_quote(fields2keep)});")
-   sendSQLstatement(sql,connList)
+  print(sql)
+  faibDataManagement::sendSQLstatement(sql,connList)
    print(sql)
 
 
