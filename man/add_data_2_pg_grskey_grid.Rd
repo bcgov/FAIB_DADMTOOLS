@@ -2,7 +2,6 @@
 % Please edit documentation in R/add_data_2_pg_grskey_grid.R
 \name{add_data_2_pg_grskey_grid}
 \alias{add_data_2_pg_grskey_grid}
-<<<<<<< HEAD
 \title{Update FAIB hectares database from input dataset}
 \usage{
 add_data_2_pg_grskey_grid(
@@ -15,26 +14,16 @@ add_data_2_pg_grskey_grid(
   nsTblm,
   query,
   flds2keep,
-=======
-\title{Update FAIB hectares database from input csv of datasets}
-\usage{
-add_data_2_pg_grskey_grid(
-  inCSV = "D:\\\\Projects\\\\provDataProject\\\\tools\\\\prov_data_resultant3.csv",
->>>>>>> 4d4bc33b907623b010db9c5c2ba86d7a04da6d64
   connList = faibDataManagement::get_pg_conn_list(),
   oraConnList = faibDataManagement::get_ora_conn_list(),
   cropExtent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
   gr_skey_tbl = "all_bc_res_gr_skey",
   wrkSchema = "whse",
   rasSchema = "raster",
-<<<<<<< HEAD
   grskeyTIF =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\bc_01ha_gr_skey.tif",
   maskTif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Lands_and_Islandsincluded.tif",
-=======
-  templateRaster = "raster.grskey_bc_land",
->>>>>>> 4d4bc33b907623b010db9c5c2ba86d7a04da6d64
   dataSourceTblName = "data_sources",
   setwd = "D:/Projects/provDataProject",
   outTifpath = "D:\\\\Projects\\\\provDataProject",
@@ -42,7 +31,6 @@ add_data_2_pg_grskey_grid(
 )
 }
 \arguments{
-<<<<<<< HEAD
 \item{rslt_ind}{coming soon}
 
 \item{srctype}{coming soon}
@@ -60,9 +48,6 @@ add_data_2_pg_grskey_grid(
 \item{query}{coming soon}
 
 \item{flds2keep}{coming soon}
-=======
-\item{inCSV}{coming soon}
->>>>>>> 4d4bc33b907623b010db9c5c2ba86d7a04da6d64
 
 \item{connList}{coming soon}
 
@@ -74,13 +59,9 @@ add_data_2_pg_grskey_grid(
 
 \item{rasSchema}{coming soon}
 
-<<<<<<< HEAD
 \item{grskeyTIF}{coming soon}
 
 \item{maskTif}{coming soon}
-=======
-\item{templateRaster}{coming soon}
->>>>>>> 4d4bc33b907623b010db9c5c2ba86d7a04da6d64
 
 \item{dataSourceTblName}{coming soon}
 
@@ -90,11 +71,7 @@ add_data_2_pg_grskey_grid(
 no return
 }
 \description{
-<<<<<<< HEAD
 Update FAIB hectares database from input dataset
-=======
-Update FAIB hectares database from input csv of datasets
->>>>>>> 4d4bc33b907623b010db9c5c2ba86d7a04da6d64
 }
 \examples{
 coming soon
