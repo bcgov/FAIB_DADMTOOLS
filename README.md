@@ -1,6 +1,7 @@
 # FAIB_DATA_MANAGEMENT
 Package of common faib data management functions
 
+##Install Instructions
 library(devtools)
 install_github("bcgov/FAIB_DATA_MANAGEMENT")
 
