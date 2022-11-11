@@ -26,11 +26,14 @@ writeNoSpaTbl2PG <- function(src,outTblName,connList,lyr=NULL,pk=NULL,select=NUL
   else if(is.na(pk) || pk == ''){pk=NULL}
 
   if(is.null(select) ||is.na(select) || select == '' ){print('keep all attributes')
-    select <- ''}
-  else{select <- gsub(",shape", "", select)
-  select <- gsub(",geometry", "", select)
-  if (endsWith(select, ',')) {select <-  sprintf('"%s"', substr(select,1,nchar(select)-1))}
-  else{select <-  sprintf('"%s"', select)}}
+    select <- ''}else{
+      select <- gsub(",shape", "", select)
+      select <- gsub(",geometry", "", select)
+     if (endsWith(select, ',')) {select <-  substr(select,1,nchar(select)-1)}
+ ############ else{select <-  sprintf('"%s"', select)}
+      }
+
+  print(select)
 
   if(is.null(schema) || is.na(schema) || schema == '') {
     outName <- outTblName
@@ -48,6 +51,7 @@ writeNoSpaTbl2PG <- function(src,outTblName,connList,lyr=NULL,pk=NULL,select=NUL
   print(outName)
 
   if( is.null(schema) ||is.na(schema) || schema == ''){schema <- "SCHEMA=public"}else{schema <- glue("SCHEMA={schema}")}
+
 
   sf::gdal_utils("vectortranslate",src,dest,options = c('-overwrite',
                                                         '-nlt','NONE',
