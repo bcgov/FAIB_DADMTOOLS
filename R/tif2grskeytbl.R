@@ -19,22 +19,23 @@ tif2grskeytbl <- function(inTIF = 'D:\\Projects\\provDataProject\\fadm_tfl_all_s
                           valueColName = 'value'){
 
 
+
 terraExt <- terra::ext(cropExtent[1], cropExtent[2], cropExtent[3], cropExtent[4])
 tifRast <- terra::rast(inTIF)
 grskeyRast <- terra::rast(grskeyTIF)
 landRast <- terra::rast(maskTif)
 
-rastList <- list(tifRast,grskeyRast,landRast)
+rastList <- list(grskeyRast,landRast)
 cropList <- lapply(rastList,function(x){
             crs(x) <-  "epsg:3005"
             terra::crop(x,terraExt,datatype='INT4S')})
 
-tifRast <- cropList[[1]]
-grskeyRast <- cropList[[2]]
-landRast <- cropList[[3]]
+tifRast <- terra::crop(tifRast,terraExt,datatype='FLT8S')
+grskeyRast <- cropList[[1]]
+landRast <- cropList[[2]]
 
 landRast[landRast <= 0] <- NA
-tifRast <- terra::mask(tifRast,landRast,datatype='FLT4S')
+tifRast <- terra::mask(tifRast,landRast,datatype='FLT8S')
 
 
 
