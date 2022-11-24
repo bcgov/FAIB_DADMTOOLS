@@ -9,7 +9,7 @@
 #' @return returns named list of connection parameters
 #' @export
 #'
-#' @examples get_pg_conn_list(schema = 'whse', dbname = 'test')
+#' @examples get_pg_conn_list(dbname = 'postgres', keyring::key_get('dbpass', keyring = 'localpsql'))
 
 
 get_pg_conn_list<-function(driver= NULL,host=NULL,user=NULL,dbname=NULL, password=NULL,port='5432'){
