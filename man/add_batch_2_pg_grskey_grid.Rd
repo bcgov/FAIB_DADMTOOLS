@@ -9,7 +9,7 @@ add_batch_2_pg_grskey_grid(
   connList = faibDataManagement::get_pg_conn_list(),
   oraConnList = faibDataManagement::get_ora_conn_list(),
   cropExtent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
-  gr_skey_tbl = "all_bc_res_gr_skey",
+  gr_skey_tbl = "all_bc_gr_skey",
   wrkSchema = "whse",
   rasSchema = "raster",
   grskeyTIF =
