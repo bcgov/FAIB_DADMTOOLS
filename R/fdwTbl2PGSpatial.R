@@ -12,6 +12,7 @@
 
 
 fdwTbl2PGSpatial <- function(oratable,outTblName,pk,outSchema,connList,fdwSchema = 'load'){
+
   if (grepl("\\.", oratable)) {
     oraTblNameNoSchema <- unlist(strsplit(oratable, split = "[.]"))[-1]
   }else {oraTblNameNoSchema <- fdwTblName}

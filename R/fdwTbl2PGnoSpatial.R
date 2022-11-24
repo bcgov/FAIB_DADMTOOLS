@@ -14,7 +14,10 @@
 
 
 fdwTbl2PGnoSpatial <- function(foreignTable,outTblName,pk,outSchema,connList,fdwSchema = 'load', attr2keep=NULL, where = ''){
+
   if (grepl("\\.", foreignTable)) {
+
+
     oraTblNameNoSchema <- unlist(strsplit(foreignTable, split = "[.]"))[-1]
   }else {oraTblNameNoSchema <- fdwTblName}
 
@@ -26,7 +29,7 @@ fdwTbl2PGnoSpatial <- function(foreignTable,outTblName,pk,outSchema,connList,fdw
   }
 
     print(where)
-  if(is.null(attr2keep) || attr2keep == ''){
+  if(is.null(attr2keep) || attr2keep == '' || is.na(attr2keep)){
     print('keep all attributes')
     sqlstmt <- (faibDataManagement::getTableQueryPG(paste0("SELECT 'SELECT ' || array_to_string(ARRAY(SELECT 'o' || '.' || c.column_name
                                             FROM information_schema.columns As c

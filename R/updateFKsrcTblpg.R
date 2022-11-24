@@ -24,6 +24,8 @@ updateFKsrcTblpg <- function(outTableName,srctype,srcpath,srclyr,pk,suffix,nsTbl
   print(c(srctype,srcpath,srclyr,pk,suffix,nsTblm,query,inc,rslt_ind,fields2keep))
   # valueList <- lappy(valueList,function(x){if(is.null(x) || is.na(x)){x = ''}else{x}})
 
+  if(is.na(fields2keep)){fields2keep<-''}
+
 
 
   query <- gsub("'","''",query)
