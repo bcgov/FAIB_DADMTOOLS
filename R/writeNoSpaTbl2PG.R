@@ -15,6 +15,8 @@
 #' @examples coming soon
 
 writeNoSpaTbl2PG <- function(src,outTblName,connList,lyr=NULL,pk=NULL,select=NULL,where=NULL,schema=NULL){
+
+
   dbname <- connList["dbname"][[1]]
   user <- connList["user"][[1]]
   dest <- glue::glue("PG:dbname={single_quote(dbname)} user={single_quote(user)}")
@@ -52,7 +54,17 @@ writeNoSpaTbl2PG <- function(src,outTblName,connList,lyr=NULL,pk=NULL,select=NUL
 
   if( is.null(schema) ||is.na(schema) || schema == ''){schema <- "SCHEMA=public"}else{schema <- glue("SCHEMA={schema}")}
 
-
+  print(src)
+  print(dest)
+  print(lyr)
+  print(c('-overwrite',
+          '-nlt','NONE',
+          '-gt', '200000',
+          '-where', where,
+          '-select', select,
+          '-nln', outTblName,
+          '-lco', schema,
+          '-lco', 'OVERWRITE=YES'))
   sf::gdal_utils("vectortranslate",src,dest,options = c('-overwrite',
                                                         '-nlt','NONE',
                                                         '-gt', '200000',

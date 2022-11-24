@@ -12,6 +12,7 @@
 
 
 createOracleFDWpg <- function(dbserver, oraUser, oraPassword, oratable,connList){
+
   if (grepl("\\.", oratable)) {
     oraTblNameNoSchema <- unlist(strsplit(oratable, split = "[.]"))[-1]
     oraSchema <- toupper(unlist(strsplit(oratable, split = "[.]"))[1])
