@@ -16,7 +16,6 @@ getGrskeyExtent <- function(
     templateRaster = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif'){
   templateRaster<-  rast(templateRaster)
   inVect <- terra::vect(sf::st_read(dsn,layer))
-  test <- terra::crop(templateRaster,inBnd,datatype='INT4S')
-  cropExtent <- ext(terra::crop(grskeyTIF,inBnd,datatype='INT4S'))
+  cropExtent <- ext(terra::crop(templateRaster,inVect,datatype='INT4S'))
   return(c(cropExtent[1],cropExtent[2],cropExtent[3],cropExtent[4] ))
   }
