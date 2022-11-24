@@ -40,7 +40,12 @@ gr_skey_tif_2_pg_geom <- function(
   writeRaster(grskeyRast, outCropTifName, datatype='INT4S',overwrite=TRUE)
 
   #GR_SKEY_RASTER to PG
-  cmd<- paste0('raster2pgsql -s 3005 -d -C -r -P -I -M -t 100x100 ',outCropTifName, ' raster.grskey_bc_land | psql')
+  host <- connList["host"][[1]]
+  user <- connList["user"][[1]]
+  dbname <- connList["dbname"][[1]]
+  password <- connList["password"][[1]]
+  port <- connList["port"][[1]]
+  cmd<- glue('raster2pgsql -s 3005 -d -C -r -P -I -M -t 100x100 {outCropTifName} raster.grskey_bc_land | psql postgresql://{user}:{password}@{host}:{port}/{dbname}')
   shell(cmd)
   #Convert gr_skey raster to point table
   qry <- glue("DROP table if exists {pgtblname};")
