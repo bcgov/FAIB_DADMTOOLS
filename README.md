@@ -8,6 +8,7 @@ install_github("bcgov/FAIB_DATA_MANAGEMENT")
 ```
 
 ## Dependencies
+- R version 4.1.3
 The following packages need to be installed for this package to work.
  - RPostgres
  - glue
