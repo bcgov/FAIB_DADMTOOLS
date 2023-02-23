@@ -1,4 +1,4 @@
-#' Create a PG non spatial table from Foreign data wrapper table
+#' Create a PG spatial table from Foreign data wrapper table
 #'
 #' @param oratable coming soon
 #' @param outTblName coming soon

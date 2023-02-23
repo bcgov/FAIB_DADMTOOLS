@@ -4,17 +4,17 @@
 \alias{sqljoins_asstring}
 \title{Creates a string  that can be used in a sql from clause.  Uses a standard input csv to create join}
 \usage{
-sqljoins_asstring(resTbl, schema, inCSV)
+sqljoins_asstring(inPgTbl, schema, inCSV)
 }
 \arguments{
-\item{resTbl}{PG resultant Table Name}
+\item{inPgTbl}{Iput PG Table Name}
 
 \item{schema}{PG database schema}
 
-\item{inCSV}{input csv filename, note: this file must be formated in a specific manner}
+\item{inCSV}{input csv filename, note: this file must be formatted in a specific manner}
 }
 \value{
-no return
+String
 }
 \description{
 Creates a string  that can be used in a sql from clause.  Uses a standard input csv to create join

@@ -31,6 +31,8 @@ writeNoSpaTbl2PG(
 \item{dbName}{Name of PG database}
 
 \item{where_clause}{sql where clause e.g. segment = 'highway2'}
+
+\item{useGdal}{Set to TRUE if GDAL is installed on machine e.g. TRUE}
 }
 \value{
 no return

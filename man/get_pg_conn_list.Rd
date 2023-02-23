@@ -33,5 +33,5 @@ returns named list of connection parameters
 Get named list of  postgres connection parameters
 }
 \examples{
-get_pg_conn_list(schema = 'whse', dbname = 'test')
+get_pg_conn_list(dbname = 'postgres', keyring::key_get('dbpass', keyring = 'localpsql'))
 }

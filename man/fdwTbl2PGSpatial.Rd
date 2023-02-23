@@ -2,7 +2,7 @@
 % Please edit documentation in R/fdwTbl2PGSpatial.R
 \name{fdwTbl2PGSpatial}
 \alias{fdwTbl2PGSpatial}
-\title{Create a PG non spatial table from Foreign data wrapper table}
+\title{Create a PG spatial table from Foreign data wrapper table}
 \usage{
 fdwTbl2PGSpatial(
   oratable,
@@ -28,7 +28,7 @@ fdwTbl2PGSpatial(
 None
 }
 \description{
-Create a PG non spatial table from Foreign data wrapper table
+Create a PG spatial table from Foreign data wrapper table
 }
 \examples{
 coming soon
