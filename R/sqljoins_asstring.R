@@ -1,14 +1,14 @@
 #' Creates a string  that can be used in a sql from clause.  Uses a standard input csv to create join
-#' @param resTbl PG resultant Table Name
+#' @param inPgTbl Iput PG Table Name
 #' @param schema PG database schema
-#' @param inCSV input csv filename, note: this file must be formated in a specific manner
-#' @return no return
+#' @param inCSV input csv filename, note: this file must be formatted in a specific manner
+#' @return String
 #' @export
 #'
 #' @examples coming soon
 
 
-sqljoins_asstring <- function(resTbl,schema,inCSV){
+sqljoins_asstring <- function(inPgTbl,schema,inCSV){
   joinlist <- list()
   for (row in 1:nrow(inCSV)) {
     inputVect <- c()
@@ -36,7 +36,7 @@ sqljoins_asstring <- function(resTbl,schema,inCSV){
     joinlist[[length(joinlist)+1]] <- inputVect
   }
 
-  finalString <- paste0(schema,'.',resTbl, ' a ')
+  finalString <- paste0(schema,'.',inPgTbl, ' a ')
   if(is.null(incSuffixVec)){
     for(vec in joinlist){finalString <- paste(finalString,vec[2])}}
   else {for(vec in joinlist){
