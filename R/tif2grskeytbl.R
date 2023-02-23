@@ -1,10 +1,10 @@
 #' Convert tif to grskey table
 #'
-#' @param inTIF coming soon
-#' @param grskeyTIF coming soon
-#' @param maskTif coming soon
-#' @param cropExtent coming soon
-#' @param valueColName coming soon
+#' @param inTIF input TIF
+#' @param grskeyTIF TIF with gr_skey values
+#' @param maskTif TIF to mask (values that ar N/a in mask will be nulled )
+#' @param cropExtent e.g. c(273287.5,1870587.5,367787.5,1735787.5)
+#' @param valueColName name of output column
 #'
 #' @return coming soon
 #' @export
@@ -30,6 +30,7 @@ cropList <- lapply(rastList,function(x){
             crs(x) <-  "epsg:3005"
             terra::crop(x,terraExt,datatype='INT4S')})
 
+tifRast <- terra::extend(tifRast,terraExt,datatype='FLT8S')
 tifRast <- terra::crop(tifRast,terraExt,datatype='FLT8S')
 grskeyRast <- cropList[[1]]
 landRast <- cropList[[2]]

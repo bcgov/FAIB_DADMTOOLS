@@ -15,15 +15,15 @@ tif2grskeytbl(
 )
 }
 \arguments{
-\item{inTIF}{coming soon}
+\item{inTIF}{input TIF}
 
-\item{grskeyTIF}{coming soon}
+\item{grskeyTIF}{TIF with gr_skey values}
 
-\item{maskTif}{coming soon}
+\item{maskTif}{TIF to mask (values that ar N/a in mask will be nulled )}
 
-\item{cropExtent}{coming soon}
+\item{cropExtent}{e.g. c(273287.5,1870587.5,367787.5,1735787.5)}
 
-\item{valueColName}{coming soon}
+\item{valueColName}{name of output column}
 }
 \value{
 coming soon
