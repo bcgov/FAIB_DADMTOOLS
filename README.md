@@ -8,7 +8,9 @@ install_github("bcgov/FAIB_DATA_MANAGEMENT")
 ```
 
 ## Dependencies
+
  - Downloaded version of GDAL Version 3.4 or above (https://www.gisinternals.com/index.html)
+
  
  The following packages need to be installed for this package to work.
  - RPostgres
