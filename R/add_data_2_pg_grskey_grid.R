@@ -99,7 +99,7 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
         #Create tif from input
         outTifName <- glue("{nsTblm}.tif")
         print(outTifName)
-        inRas <- rasterizeSF(fklyr,pk,outTifpath = outTifpath, outTifname= outTifName,inSrc = inSrcTemp,pgConnList = pgConnTemp,vecExtent = cropExtent,nodata = 0,where=where_clause)
+        inRas <- rasterizeWithGdal(fklyr,pk,outTifpath = outTifpath, outTifname= outTifName,inSrc = inSrcTemp,pgConnList = pgConnTemp,vecExtent = cropExtent,nodata = 0,where=where_clause)
         print("created Tiff") }
 
       if(tolower(srctype) == 'raster'){
