@@ -34,7 +34,7 @@ rasterizeWithGdal <- function(
   if(!is.null(pgConnList)){
     dbname <- pgConnList["dbname"][[1]]
     user <- pgConnList["user"][[1]]
-    src <- glue::glue("PG:dbname={single_quote(dbname)} user={single_quote(user)}")
+    src <- glue::glue("\"PG:dbname={single_quote(dbname)} user={single_quote(user)}\"")
   }
   dest <- file.path(outTifpath,outTifname)
   if( !is.null(where)){where <- sprintf('-where "%s"')}else{where <- ''}
