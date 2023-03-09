@@ -120,10 +120,17 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
 
       # #Convert postgres Raster to Non spatial table with gr_skey
       joinTbl <- glue("{wrkSchema}.{nsTblm}_gr_skey")
-      joinTbl2 <- RPostgres::Id(schema = wrkSchema, table = glue("{nsTblm}_gr_skey"))
+      joinTblnoschema <- glue("{nsTblm}_gr_skey")
+      joinTbl2 <- RPostgres::Id(schema = wrkSchema, table = joinTblnoschema)
 
       faibDataManagement::df2PG(joinTbl2,faibDataManagement::tif2grskeytbl(inRas,cropExtent=cropExtent,grskeyTIF=grskeyTIF,maskTif=maskTif, valueColName=pk),connList)
       print('created pg table from values in tif and gr_skey')
+
+      #Create index on table
+      print('Creating index for grskey table')
+      faibDataManagement::sendSQLstatement(paste0("drop index if exists ", joinTblnoschema,"_grskey_inx;"),connList)
+      print('dropped index')
+      faibDataManagement::sendSQLstatement(glue::glue("create index {joinTblnoschema}_grskey_inx on {joinTbl}(gr_skey);"),connList)
 
 
       if(rslt_ind == 1){
