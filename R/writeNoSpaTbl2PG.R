@@ -57,6 +57,8 @@ writeNoSpaTbl2PG <- function(src,outTblName,connList,lyr=NULL,pk=NULL,select=NUL
   print(dest)
   print(lyr)
 
+  if (endsWith(src,'.shp')){precision <- "-lco precision=NO"}else{precision <- ''}
+
 
   select <- if(select == ''){select <-''}else{
     select <- paste('-select',select)}
@@ -72,6 +74,7 @@ writeNoSpaTbl2PG <- function(src,outTblName,connList,lyr=NULL,pk=NULL,select=NUL
               paste('-lco', schema),
               paste('-lco', 'OVERWRITE=YES'),
               '--config PG_USE_COPY YES',
+              precision,
               paste0('-f PostgreSQL PG:dbname=',dbname),
               src,
               lyr))
@@ -84,6 +87,7 @@ writeNoSpaTbl2PG <- function(src,outTblName,connList,lyr=NULL,pk=NULL,select=NUL
                                   paste('-lco', schema),
                                   paste('-lco', 'OVERWRITE=YES'),
                                   '--config PG_USE_COPY YES',
+                                  precision,
                                   paste0('-f PostgreSQL PG:dbname=',dbname),
                                   src,
                                   lyr), stderr = TRUE)))
