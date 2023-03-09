@@ -37,7 +37,7 @@ rasterizeWithGdal <- function(
     src <- glue::glue("\"PG:dbname={single_quote(dbname)} user={single_quote(user)}\"")
   }
   dest <- file.path(outTifpath,outTifname)
-  if( !is.null(where)){where <- sprintf('-where "%s"')}else{where <- ''}
+  if( !is.null(where)){where <- glue::glue('-where {glue::double_quote(where)}')}else{where <- ''}
 
   value <- paste("-a", field)
   comp <- '-co COMPRESS=LZW'
@@ -50,5 +50,5 @@ rasterizeWithGdal <- function(
   spc <- ' '
   nodata <- glue('-a_nodata ', nodata)
   print(paste('gdal_rasterize',datatype, comp,value,proj,extent_str,cellSize,inlyr,src,spc,dest,where,nodata))
-  print(system2('gdal_rasterize',args=c(datatype,comp,value,proj,extent_str,cellSize,inlyr,src,spc,dest,where,nodata), stderr = TRUE))
+  print(system2('gdal_rasterize',args=c(datatype,comp,value,proj,extent_str,cellSize,inlyr,where,nodata,src,spc,dest), stderr = TRUE))
   return(dest)}
