@@ -1,11 +1,11 @@
-#' Creates a string  that can be used in a sql from clause.  Uses a standard input csv to create join
-#' @param inPgTbl Iput PG Table Name
+#' Creates FROM clause string from the standard FAIB_DATA_MANAGEMETN input csv.  Only uses inputs where inc = 1
+#' @param inPgTbl Input master gr_Key PG Table Name (containing foreign keys)
 #' @param schema PG database schema
 #' @param inCSV input csv filename, note: this file must be formatted in a specific manner
 #' @return String
 #' @export
 #'
-#' @examples coming soon
+#' @examples sqljoins_asstring(masterTable,schema='postgres',inCSV='D:/inputs/inputCsv.csv')
 
 
 sqljoins_asstring <- function(inPgTbl,schema,inCSV){
@@ -26,11 +26,11 @@ sqljoins_asstring <- function(inPgTbl,schema,inCSV){
     if(rslt_ind == 1  &&  srctype != 'raster'){
       join <- paste0('left outer join ', schema, '.', nsTblm,' ', suffix, ' on a.', pk,'_',suffix,' = ',suffix,'.',pk)}
     else if(rslt_ind == 0  &&  srctype != 'raster'){
-      join <- paste0('left outer join ', schema, '.', nsTblm,'_ogc_fid ', suffix, '_ogc_fid on a.ogc_fid = ',suffix,'_ogc_fid.ogc_fid',
-                     ' left outer join ', schema, '.', nsTblm,' ', suffix, ' on ', suffix, '_ogc_fid.',pk,' = ',suffix,'.',pk)}
+      join <- paste0('left outer join ', schema, '.', nsTblm,'_gr_skey ', suffix, '_gr_skey on a.gr_skey = ',suffix,'_gr_skey.gr_skey',
+                     ' left outer join ', schema, '.', nsTblm,' ', suffix, ' on ', suffix, '_gr_skey.',pk,' = ',suffix,'.',pk)}
     else  if(rslt_ind == 1  &&  srctype == 'raster'){ join <- ' '}
     else  if(rslt_ind == 0  &&  srctype == 'raster'){
-      join <- paste0('left outer join ', schema, '.', nsTblm,'_ogc_fid ', suffix, '_ogc_fid on a.ogc_fid = ',suffix,'_ogc_fid.ogc_fid')}
+      join <- paste0('left outer join ', schema, '.', nsTblm,'_gr_skey ', suffix, '_gr_skey on a.gr_skey = ',suffix,'_gr_skey.gr_skey')}
 
     inputVect <- append(inputVect,join)
     joinlist[[length(joinlist)+1]] <- inputVect

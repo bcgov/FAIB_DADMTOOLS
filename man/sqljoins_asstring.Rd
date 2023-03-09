@@ -2,12 +2,12 @@
 % Please edit documentation in R/sqljoins_asstring.R
 \name{sqljoins_asstring}
 \alias{sqljoins_asstring}
-\title{Creates a string  that can be used in a sql from clause.  Uses a standard input csv to create join}
+\title{Creates FROM clause string from the standard FAIB_DATA_MANAGEMETN input csv.  Only uses inputs where inc = 1}
 \usage{
 sqljoins_asstring(inPgTbl, schema, inCSV)
 }
 \arguments{
-\item{inPgTbl}{Iput PG Table Name}
+\item{inPgTbl}{Input master gr_Key PG Table Name (containing foreign keys)}
 
 \item{schema}{PG database schema}
 
@@ -17,8 +17,8 @@ sqljoins_asstring(inPgTbl, schema, inCSV)
 String
 }
 \description{
-Creates a string  that can be used in a sql from clause.  Uses a standard input csv to create join
+Creates FROM clause string from the standard FAIB_DATA_MANAGEMETN input csv.  Only uses inputs where inc = 1
 }
 \examples{
-coming soon
+sqljoins_asstring(masterTable,schema='postgres',inCSV='D:/inputs/inputCsv.csv')
 }
