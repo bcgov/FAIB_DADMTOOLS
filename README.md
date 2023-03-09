@@ -1,25 +1,26 @@
 # FAIB_DATA_MANAGEMENT
 Package of common faib data management functions
 
-## Install Instructions
-```
-library(devtools)
-install_github("bcgov/FAIB_DATA_MANAGEMENT")
-```
-
 ## Dependencies
 
- - Downloaded version of GDAL Version 3.4 or above (https://www.gisinternals.com/index.html)
+ - Installed version of GDAL Version 3.4 or above (https://www.gisinternals.com/index.html)
 
+ - Installed version of R Version 4.0 or above (https://cran.r-project.org/bin/windows/base/)
  
- The following packages need to be installed for this package to work.
+ The following R packages need to be installed for this package to work.
  - RPostgres
  - glue
  - terra
  - keyring
  - sf
  
-## Adding Input Data into postgres gr_skey table
+## Install Instructions
+```
+library(devtools)
+install_github("bcgov/FAIB_DATA_MANAGEMENT")
+```
+ 
+## Importing Spatial Data into postgres gr_skey tables
 
 1.  Create gr_skey table in postgres with geom by calling  <br> 
     ```gr_skey_tif_2_pg_geom(cropExtent = c(xmin,xmax,ymin,ymax))```<br> 
