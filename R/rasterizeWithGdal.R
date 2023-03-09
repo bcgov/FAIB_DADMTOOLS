@@ -46,7 +46,8 @@ rasterizeWithGdal <- function(
   proj <- "-a_srs EPSG:3005"
   extent_str <- paste("-te", vecExtent[1], vecExtent[3], vecExtent[2], vecExtent[4] )
   cellSize <- "-tr 100 100"
-  inlyr <- sprintf('-l %s', inlyr)
+  if (inlyr == '' || is.null(inlyr)){inlyr <- ''}else{inlyr <- glue::glue('-l ', inlyr)}
+  print(inlyr)
   spc <- ' '
   nodata <- glue('-a_nodata ', nodata)
   print(paste('gdal_rasterize',datatype, comp,value,proj,extent_str,cellSize,inlyr,src,spc,dest,where,nodata))
