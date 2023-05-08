@@ -5,9 +5,9 @@ Package of common faib data management functions
 
  - Installed version of GDAL Version 3.4 or above (https://www.gisinternals.com/index.html)
  
- - Installed version of Oracle Instant client (see  [see installation instructions](oracle_fdw_install.md) )
+ - Installed version of Oracle Instant client (see  [installation instructions](oracle_fdw_install.md) )
  
- - Installed oracle_fdw PostgreSQL extension (see  [see installation instructions](oracle_fdw_install.md)) 
+ - Installed oracle_fdw PostgreSQL extension (see  [installation instructions](oracle_fdw_install.md)) 
 
  - Installed version of R Version 4.0 or above (https://cran.r-project.org/bin/windows/base/)
  
