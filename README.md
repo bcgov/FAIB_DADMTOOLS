@@ -4,6 +4,10 @@ Package of common faib data management functions
 ## Dependencies
 
  - Installed version of GDAL Version 3.4 or above (https://www.gisinternals.com/index.html)
+ 
+ - Installed version of Oracle Instant client (see  [installation instructions](oracle_fdw_install.md) )
+ 
+ - Installed oracle_fdw PostgreSQL extension (see  [installation instructions](oracle_fdw_install.md)) 
 
  - Installed version of R Version 4.0 or above (https://cran.r-project.org/bin/windows/base/)
  
@@ -13,12 +17,6 @@ Package of common faib data management functions
  - terra
  - keyring
  - sf
- 
- - Installed version of Oracle Instant client (see  [see installation instructions](oracle_fdw_install.md) )
- 
- - Installed oracle_fdw PostgreSQL extension (see  [see installation instructions](oracle_fdw_install.md)) 
- 
- 
  
 ## Install Instructions
 ```
