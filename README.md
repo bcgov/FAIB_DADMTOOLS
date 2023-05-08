@@ -4,6 +4,10 @@ Package of common faib data management functions
 ## Dependencies
 
  - Installed version of GDAL Version 3.4 or above (https://www.gisinternals.com/index.html)
+ 
+ - Installed version of Oracle Instant client (see  [installation instructions](oracle_fdw_install.md) )
+ 
+ - Installed oracle_fdw PostgreSQL extension (see  [installation instructions](oracle_fdw_install.md)) 
 
  - Installed version of R Version 4.0 or above (https://cran.r-project.org/bin/windows/base/)
  
@@ -33,7 +37,7 @@ Available options and their corresponding default values are listed below:
  - connList = faibDataManagement::get_pg_conn_list(),
  - pgtblname = "whse.all_bc_gr_skey
     
-2.  Fill in input csv file (i.e. [a relative link](inputsDatasets2load2PG.csv)) <br>
+2.  Fill in input csv file (i.e. [see example](inputsDatasets2load2PG.csv)) <br>
     Column names must match template above
     
 3.  Add datasets to postgres from csv input by calling <br> 
