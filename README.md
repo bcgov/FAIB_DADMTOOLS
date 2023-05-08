@@ -14,6 +14,12 @@ Package of common faib data management functions
  - keyring
  - sf
  
+ - Installed version of Oracle Instant client (see  [see installation instructions](oracle_fdw_install.md) )
+ 
+ - Installed oracle_fdw PostgreSQL extension (see  [see installation instructions](oracle_fdw_install.md)) 
+ 
+ 
+ 
 ## Install Instructions
 ```
 library(devtools)
@@ -33,7 +39,7 @@ Available options and their corresponding default values are listed below:
  - connList = faibDataManagement::get_pg_conn_list(),
  - pgtblname = "whse.all_bc_gr_skey
     
-2.  Fill in input csv file (i.e. [a relative link](inputsDatasets2load2PG.csv)) <br>
+2.  Fill in input csv file (i.e. [see example](inputsDatasets2load2PG.csv)) <br>
     Column names must match template above
     
 3.  Add datasets to postgres from csv input by calling <br> 
