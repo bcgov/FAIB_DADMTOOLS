@@ -57,6 +57,12 @@ gr_skey_tif_2_pg_geom <- function(
 		                      (public.ST_SummaryStats(rast)).sum AS gr_skey
                           from tbl2 where (public.ST_SummaryStats(rast)).sum is not null;")
   sendSQLstatement(qry,connList)
+  conn<-DBI::dbConnect(connList["driver"][[1]],
+                  host = connList["host"][[1]],
+                  user = connList["user"][[1]],
+                  dbname = connList["dbname"][[1]],
+                  password = connList["password"][[1]],
+                  port = connList["port"][[1]])
   RPostgres::dbExecute(conn, statement = qry1)
   RPostgres::dbExecute(conn, statement = qry2)
   RPostgres::dbDisconnect(conn)
