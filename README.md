@@ -2,6 +2,7 @@
 Package of common faib data management functions
 
 ## Dependencies
+ - Read/Write access to a postgreSQL database
 
  - Installed version of GDAL Version 3.4 or above (https://www.gisinternals.com/index.html)
  
