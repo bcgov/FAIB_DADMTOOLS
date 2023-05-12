@@ -49,6 +49,7 @@ gr_skey_tif_2_pg_geom <- function(
   shell(cmd)
   #Convert gr_skey raster to point table
   qry <- glue("DROP table if exists {pgtblname};")
+  qry1 <- 'SET client_min_messages TO WARNING;'
   qry2 <- glue("CREATE TABLE {pgtblname} AS
                     with tbl1 as  (SELECT RAST FROM raster.grskey_bc_land),
                           tbl2 as (SELECT ST_Tile(RAST, 1,1) AS RAST FROM tbl1)
@@ -56,7 +57,9 @@ gr_skey_tif_2_pg_geom <- function(
 		                      (public.ST_SummaryStats(rast)).sum AS gr_skey
                           from tbl2 where (public.ST_SummaryStats(rast)).sum is not null;")
   sendSQLstatement(qry,connList)
-  sendSQLstatement(qry2,connList)
+  RPostgres::dbExecute(conn, statement = qry1)
+  RPostgres::dbExecute(conn, statement = qry2)
+  RPostgres::dbDisconnect(conn)
   sendSQLstatement(glue("ALTER TABLE {pgtblname} ADD CONSTRAINT all_bc_res_pkey PRIMARY KEY (gr_skey);"),connList)
   sendSQLstatement(glue("DROP INDEX IF EXISTS grskey_inx"),connList)
   sendSQLstatement(glue("CREATE INDEX grskey_inx ON {pgtblname} USING GIST(geom);"),connList)
