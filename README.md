@@ -2,13 +2,13 @@
 Package of common faib data management functions
 
 ## Dependencies
- - Read/Write access to a postgreSQL database
+ - Read/Write access to a postgreSQL database (version 12 or above)
 
  - Installed version of GDAL Version 3.4 or above (https://www.gisinternals.com/index.html)
  
  - Installed version of Oracle Instant client (see  [installation instructions](oracle_fdw_install.md) )
  
- - Installed oracle_fdw PostgreSQL extension (see  [installation instructions](oracle_fdw_install.md)) 
+ - The following installed PostgreSQL extensions: oracle_fdw, postgis, postgis_raster (see  [installation instructions](oracle_fdw_install.md))
 
  - Installed version of R Version 4.0 or above (https://cran.r-project.org/bin/windows/base/)
  
