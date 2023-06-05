@@ -20,6 +20,7 @@ add_data_2_pg_grskey_grid(
   gr_skey_tbl = "all_bc_res_gr_skey",
   wrkSchema = "whse",
   rasSchema = "raster",
+  fdwSchema = "load",
   grskeyTIF =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\bc_01ha_gr_skey.tif",
   maskTif =

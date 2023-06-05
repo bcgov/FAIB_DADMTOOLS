@@ -4,7 +4,14 @@
 \alias{createOracleFDWpg}
 \title{Create Foreign Data Wrapper Table in Postgres}
 \usage{
-createOracleFDWpg(dbserver, oraUser, oraPassword, oratable, connList)
+createOracleFDWpg(
+  dbserver,
+  oraUser,
+  oraPassword,
+  oratable,
+  connList,
+  fdwSchema
+)
 }
 \arguments{
 \item{dbserver}{coming soon}

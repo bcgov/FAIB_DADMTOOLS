@@ -28,8 +28,8 @@ updateFKsrcTblpg <- function(outTableName,srctype,srcpath,srclyr,pk,suffix,nsTbl
 
 
 
-  query <- gsub("'","''",query)
-  print(query)
+  query <- gsub("'","\'",query)
+  # print(query)
 
   sql <- glue::glue("CREATE TABLE IF NOT EXISTS {outTableName} (srctype varchar, srcpath varchar ,srclyr varchar,primarykey varchar,suffix varchar,tblname varchar,src_query varchar,inc integer,rslt_ind integer,fields2keep varchar);")
   faibDataManagement::sendSQLstatement(sql,connList)
@@ -45,13 +45,14 @@ updateFKsrcTblpg <- function(outTableName,srctype,srcpath,srclyr,pk,suffix,nsTbl
                                 {single_quote(pk)},
                                 {single_quote(suffix)},
                                 {single_quote(nsTblm)},
-                                {single_quote(query)},
+                                E{single_quote(query)},
                                 {single_quote(inc)},
                                 {single_quote(rslt_ind)},
                                {single_quote(fields2keep)});")
   print(sql)
+  print(query)
   faibDataManagement::sendSQLstatement(sql,connList)
-   print(sql)
+   print('here')
 
 
    }

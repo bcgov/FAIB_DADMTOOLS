@@ -39,7 +39,7 @@ add_batch_2_pg_grskey_grid <- function(inCSV = 'D:\\Projects\\provDataProject\\t
     pk <- gsub("[[:space:]]",'',tolower(inFile[row, "primarykey"])) ## primary key field that will be added to resultant table
     suffix <- gsub("[[:space:]]",'',tolower(inFile[row, "suffix"])) ## suffix to be used in the resultant table
     nsTblm <- gsub("[[:space:]]",'',tolower(inFile[row, "tblname"])) ## name of output non spatial table
-    query <- tolower(inFile[row, "src_query"])  ##where clause used to filter input dataset
+    query <- inFile[row, "src_query"]  ##where clause used to filter input dataset
     flds2keep <- gsub("[[:space:]]",'',tolower(inFile[row, "fields2keep"])) ## fields to keep in non spatial table
 
 
