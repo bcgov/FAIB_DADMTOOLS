@@ -11,7 +11,7 @@
 #' @examples coming soon
 
 
-createOracleFDWpg <- function(dbserver, oraUser, oraPassword, oratable,connList){
+createOracleFDWpg <- function(dbserver, oraUser, oraPassword, oratable,connList,fdwSchema){
 
   if (grepl("\\.", oratable)) {
     oraTblNameNoSchema <- unlist(strsplit(oratable, split = "[.]"))[-1]
@@ -21,18 +21,18 @@ createOracleFDWpg <- function(dbserver, oraUser, oraPassword, oratable,connList)
     oraSchema <- ''
     oraTblNameNoSchema <- fdwTblName
   }
-  sendSQLstatement( paste0('drop foreign table if exists load.', oraTblNameNoSchema,';'),connList)
-  sendSQLstatement(  paste0('drop user mapping if exists for postgres server oradb;'),connList)
-  sendSQLstatement(  paste0('drop server if exists oradb cascade;'),connList)
-  sendSQLstatement(  paste0('drop schema if exists load cascade;'),connList)
+  sendSQLstatement(glue('drop foreign table if exists {fdwSchema}.{oraTblNameNoSchema};'),connList)
+  sendSQLstatement('drop user mapping if exists for postgres server oradb;',connList)
+  sendSQLstatement('drop server if exists oradb cascade;',connList)
+  sendSQLstatement(glue('drop schema if exists {fdwSchema} cascade;'),connList)
 
-  sendSQLstatement(  paste0('create schema if not exists load;'),connList)
+  sendSQLstatement(glue('create schema if not exists {fdwSchema};'),connList)
   sendSQLstatement(  paste0("create server oradb foreign data wrapper oracle_fdw options (dbserver '", dbserver, "' );"),connList)
   sendSQLstatement(  paste0("create user mapping for postgres server oradb options (user '", oraUser, "', password '", oraPassword,"');"),connList)
 
-  sendSQLstatement(  paste0('import foreign schema "', oraSchema,'" limit to (', oratable, ') FROM SERVER oradb INTO load;'),connList)
+  sendSQLstatement(  glue('import foreign schema "', oraSchema,'" limit to (', oratable, ') FROM SERVER oradb INTO {fdwSchema};'),connList)
   print(paste0('created fdw for ', oratable ))
-  return(glue("load.{oraTblNameNoSchema}"))
+  return(glue("{fdwSchema}.{oraTblNameNoSchema}"))
 
 
 }

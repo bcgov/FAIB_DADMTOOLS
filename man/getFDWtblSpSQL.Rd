@@ -4,7 +4,7 @@
 \alias{getFDWtblSpSQL}
 \title{Returnes a sql staement including the spatial field and primary key field of a Foreign Data Wrapper table.  Can be used in gdal rasterize statemenr}
 \usage{
-getFDWtblSpSQL(oratable, pk, connList, fdwSchema = "load")
+getFDWtblSpSQL(oratable, pk, connList, fdwSchema = "load", where = NULL)
 }
 \arguments{
 \item{oratable}{coming soon}
@@ -13,12 +13,12 @@ getFDWtblSpSQL(oratable, pk, connList, fdwSchema = "load")
 
 \item{connList}{coming soon}
 
-\item{outTblName}{coming soon}
+\item{fdwSchema}{coming soon}
 
-\item{schema}{coming soon}
+\item{where}{coming soon}
 }
 \value{
-None
+sql string
 }
 \description{
 Returnes a sql staement including the spatial field and primary key field of a Foreign Data Wrapper table.  Can be used in gdal rasterize statemenr
