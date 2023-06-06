@@ -2,6 +2,7 @@
 
 export(add_batch_2_pg_grskey_grid)
 export(add_data_2_pg_grskey_grid)
+export(createMaskFromVect)
 export(createOracleFDWpg)
 export(df2PG)
 export(dfColNames2lower)

@@ -1,4 +1,4 @@
-#' Rasterize spatial data using Terra
+#' Creates a raster mask from a vector input
 #'
 #' @param inSrc path of gdb or geopackage
 #' @param field field to be rasterized
@@ -14,7 +14,7 @@
 #'
 #' @examples coming soon
 
-rasterizeTerra <- function(
+createMaskFromVect <- function(
     inSrc,
     field,
     template,
@@ -24,10 +24,11 @@ rasterizeTerra <- function(
     outTifname = NULL,
     datatype ='INT4S'){
 
+
   dest <- file.path(outTifpath,outTifname)
 
   if( !is.null(inlyr)){
-  inVect <- terra::vect(x = inSrc,layer = inlyr)
+    inVect <- terra::vect(x = inSrc,layer = inlyr)
   }else{
     inVect <- terra::vect(x = inSrc)
 
@@ -38,15 +39,8 @@ rasterizeTerra <- function(
   if( !is.null(cropExtent)){
     rastBnd <-  terra::crop(rastBnd,cropExtent,datatype=datatype)}
 
+  rastBnd[!is.na(rastBnd)]  <- 1
+
   terra::writeRaster(rastBnd,dest,datatype=datatype,overwrite = TRUE)
   return(dest)
 }
-
-
-
-
-
-
-
-
-
