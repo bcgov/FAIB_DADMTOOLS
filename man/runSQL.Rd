@@ -4,7 +4,7 @@
 \alias{runSQL}
 \title{Run a external sql file}
 \usage{
-runSQL(sqlVar, sqlFile, pgDB)
+runSQL(sqlVar, sqlFile, pgDB, host = NULL)
 }
 \arguments{
 \item{sqlVar}{vector of variables to use in sql file e.g. c("schema='dbName',xwalkprev='inFC')}
@@ -12,6 +12,8 @@ runSQL(sqlVar, sqlFile, pgDB)
 \item{sqlFile}{path and file name of sql file}
 
 \item{pgDB}{pg database name}
+
+\item{host}{host of db e.g. 'localhost'}
 }
 \value{
 no return
