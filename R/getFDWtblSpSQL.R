@@ -35,8 +35,10 @@ getFDWtblSpSQL<- function(oratable,pk,connList,fdwSchema = 'load',where=NULL){
     if(startsWith(trimws(where), "where")){
       where <- substr(trimws(where), 6, nchar(where))
     }
-    if (where == ''){print('no where clause')}else{
-      where <- glue::glue('where {where}')}
+    if (where == ''){
+      print('no where clause')
+      where <- glue("where {geomName} <> ''" )}else{
+      where <- glue::glue("where {where} and {geomName} <> ''" )}
     print(where)
     sqlstmt <- glue::glue('{sqlstmt} {where}')
 

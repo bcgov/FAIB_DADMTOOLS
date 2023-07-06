@@ -91,7 +91,7 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
                            dbname = connList["dbname"][[1]],
                            password = connList["password"][[1]],
                            port = connList["port"][[1]])
-          inSF <- st_cast(st_read(connz, query = qry),"MULTIPOLYGON" )
+          inSF <- st_cast(st_read(connz, query = qry, crs = 3005),"MULTIPOLYGON" )
           print(nrow(inSF))
           #####################Rasterize using TERRA#########
     outTifName <- glue("{nsTblm}.tif")

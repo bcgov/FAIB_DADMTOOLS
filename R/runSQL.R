@@ -3,6 +3,7 @@
 #' @param sqlVar vector of variables to use in sql file e.g. c("schema='dbName',xwalkprev='inFC')
 #' @param sqlFile path and file name of sql file
 #' @param pgDB pg database name
+#' @param host host of db e.g. 'localhost'
 #'
 #' @return no return
 #' @export
@@ -13,8 +14,9 @@
 
 
 
-runSQL <- function(sqlVar,sqlFile,pgDB){
-  cmd <-  c("-d",pgDB,"-f",sqlFile)
+runSQL <- function(sqlVar,sqlFile,pgDB, host=NULL){
+  if (is.null(host)){host<-'localhost'}
+  cmd <-  c("-d",pgDB,"-f",sqlFile,"-h",host)
   for(i in sqlVar){
     cmd <- append(cmd,"-v")
     cmd <- append(cmd,i)
