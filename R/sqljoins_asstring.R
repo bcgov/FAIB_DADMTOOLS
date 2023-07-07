@@ -11,7 +11,7 @@
 
 sqljoins_asstring <- function(inPgTbl,schema,inDF,onlyIncRows=FALSE){
   joinlist <- list()
-  for (row in 1:nrow(inCSV)) {
+  for (row in 1:nrow(inDF)) {
     inputVect <- c()
     inc <- gsub("[[:space:]]",'',tolower(inDF[row, "inc"])) ##  1 = include(i.e. will not skip) 0 = not included (i.e. will skip)
     rslt_ind <- gsub("[[:space:]]",'',tolower(inDF[row, "rslt_ind"])) ##1 = include(i.e. will add data to provincial resultant) 0 = not included (i.e. will not add data to provincial resultant)
