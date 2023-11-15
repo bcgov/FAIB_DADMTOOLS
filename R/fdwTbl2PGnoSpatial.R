@@ -23,7 +23,8 @@ fdwTbl2PGnoSpatial <- function(foreignTable,outTblName,pk,outSchema,connList,fdw
 
   geomName <- faibDataManagement::getGeomNamePG(fdwSchema,oraTblNameNoSchema,connList)
   outNameSchema <- paste0(outSchema, ".", outTblName)
-  if(where == ''){print("no where clause")}else{
+  if(where == '' || is.null(where) || is.na(where)){print("no where clause")
+    where <- ''}else{
     where <- gsub("\'","\'\'", where)
     where <- glue("where {where}")
   }

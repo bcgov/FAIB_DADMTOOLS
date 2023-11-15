@@ -41,6 +41,7 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
                                       gr_skey_tbl = 'all_bc_res_gr_skey',
                                       wrkSchema = 'whse',
                                       rasSchema = 'raster',
+                                      fdwSchema = 'load',
                                        grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
                                        maskTif='S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Lands_and_Islandsincluded.tif',
                                       dataSourceTblName = 'data_sources',
@@ -58,7 +59,7 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
     pk <- gsub("[[:space:]]",'',tolower(pk)) ## primary key field that will be added to resultant table
     suffix <- gsub("[[:space:]]",'',tolower(suffix)) ## suffix to be used in the resultant table
     nsTblm <- gsub("[[:space:]]",'',tolower(nsTblm)) ## name of output non spatial table
-    query <- tolower(query)  ##where clause used to filter input dataset
+    query <- query  ##where clause used to filter input dataset
     flds2keep <- gsub("[[:space:]]",'',tolower(flds2keep)) ## fields to keep in non spatial table
     dataSourceTblName <- glue::glue("{wrkSchema}.{dataSourceTblName}")
 
@@ -79,7 +80,32 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
           idir <- oraConnList["user"][[1]]
           orapass <- oraConnList["password"][[1]]
           print("create Foreign Table in pG")
-          fklyr <- faibDataManagement::createOracleFDWpg(oraServer, idir, orapass, srclyr,connList)
+          fklyr <- faibDataManagement::createOracleFDWpg(oraServer, idir, orapass, srclyr,connList,fdwSchema)
+          #######Importing fdw table into r######
+          print("Importing fdw table into r")
+          qry <-  getFDWtblSpSQL(srclyr,pk,connList,fdwSchema,where=query)
+          print(qry)
+          connz<-dbConnect(connList["driver"][[1]],
+                           host = connList["host"][[1]],
+                           user = connList["user"][[1]],
+                           dbname = connList["dbname"][[1]],
+                           password = connList["password"][[1]],
+                           port = connList["port"][[1]])
+          inSF <- st_cast(st_read(connz, query = qry, crs = 3005),"MULTIPOLYGON" )
+          print(nrow(inSF))
+          #####################Rasterize using TERRA#########
+    outTifName <- glue("{nsTblm}.tif")
+    inRas <- rasterizeTerra(
+      inSrc= inSF,
+      field = pk,
+      template= grskeyTIF,
+      cropExtent = cropExtent,
+      outTifpath = outTifpath,
+      outTifname = outTifName,
+      datatype ='INT4S')
+
+          ##############################################
+
           print('write non spatial table to pg')
           faibDataManagement::fdwTbl2PGnoSpatial(fklyr, nsTblm,pk,outSchema = wrkSchema,connList=connList,attr2keep=flds2keep,where=query)
           print("wrote non spatial fdw to postgres")
@@ -94,13 +120,13 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
           faibDataManagement::writeNoSpaTbl2PG(srcpath,nsTblm,connList,pk=pk,schema =wrkSchema,lyr= srclyr,where=query,select=flds2keep)
           inSrcTemp <- srcpath
           pgConnTemp <- NULL
-          print("wrote non spatial to postgres")}
+          print("wrote non spatial to postgres")
 
         #Create tif from input
         outTifName <- glue("{nsTblm}.tif")
         print(outTifName)
         inRas <- rasterizeWithGdal(fklyr,pk,outTifpath = outTifpath, outTifname= outTifName,inSrc = inSrcTemp,pgConnList = pgConnTemp,vecExtent = cropExtent,nodata = 0,where=where_clause)
-        print("created Tiff") }
+        print("created Tiff") }}
 
       if(tolower(srctype) == 'raster'){
         outTifName <- glue("{nsTblm}.tif")

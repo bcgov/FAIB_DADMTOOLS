@@ -29,7 +29,7 @@ FDWUserMappingExists <- function(srvName, userName, pgConnList){
 }
 
 
-createOracleFDWpg <- function(dbserver, oraUser, oraPassword, oratable,connList){
+createOracleFDWpg <- function(dbserver, oraUser, oraPassword, oratable,connList,fdwSchema){
 
   if (grepl("\\.", oratable)) {
     oraTblNameNoSchema <- unlist(strsplit(oratable, split = "[.]"))[-1]
@@ -39,6 +39,7 @@ createOracleFDWpg <- function(dbserver, oraUser, oraPassword, oratable,connList)
     oraSchema <- ''
     oraTblNameNoSchema <- fdwTblName
   }
+
 
   sendSQLstatement(glue('drop foreign table if exists {fdwSchema}.{oraTblNameNoSchema};'),connList)
   sendSQLstatement(glue('create schema if not exists {fdwSchema};'),connList)
@@ -50,9 +51,19 @@ createOracleFDWpg <- function(dbserver, oraUser, oraPassword, oratable,connList)
     sendSQLstatement(  paste0("create user mapping for postgres server oradb options (user '", oraUser, "', password '", oraPassword,"');"),connList)
   }
 
-  sendSQLstatement(  paste0('import foreign schema "', oraSchema,'" limit to (', oratable, ') FROM SERVER oradb INTO load;'),connList)
+#  sendSQLstatement(glue('drop foreign table if exists {fdwSchema}.{oraTblNameNoSchema};'),connList)
+#  sendSQLstatement('drop user mapping if exists for postgres server oradb;',connList)
+#  sendSQLstatement('drop server if exists oradb cascade;',connList)
+#  sendSQLstatement(glue('drop schema if exists {fdwSchema} cascade;'),connList)
+
+#  sendSQLstatement(glue('create schema if not exists {fdwSchema};'),connList)
+#  sendSQLstatement(  paste0("create server oradb foreign data wrapper oracle_fdw options (dbserver '", dbserver, "' );"),connList)
+#  sendSQLstatement(  paste0("create user mapping for postgres server oradb options (user '", oraUser, "', password '", oraPassword,"');"),connList)
+
+
+  sendSQLstatement(  glue('import foreign schema "', oraSchema,'" limit to (', oratable, ') FROM SERVER oradb INTO {fdwSchema};'),connList)
   print(paste0('created fdw for ', oratable ))
-  return(glue("load.{oraTblNameNoSchema}"))
+  return(glue("{fdwSchema}.{oraTblNameNoSchema}"))
 
 
 }

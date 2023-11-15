@@ -4,14 +4,16 @@
 \alias{sqljoins_asstring}
 \title{Creates FROM clause string from the standard FAIB_DATA_MANAGEMETN input csv.  Only uses inputs where inc = 1}
 \usage{
-sqljoins_asstring(inPgTbl, schema, inCSV)
+sqljoins_asstring(inPgTbl, schema, inDF, onlyIncRows = FALSE)
 }
 \arguments{
 \item{inPgTbl}{Input master gr_Key PG Table Name (containing foreign keys)}
 
 \item{schema}{PG database schema}
 
-\item{inCSV}{input csv filename, note: this file must be formatted in a specific manner}
+\item{inDF}{input data frame in same format as input csv}
+
+\item{onlyIncRows}{include of rows wwhere onc field is = 1}
 }
 \value{
 String
