@@ -97,10 +97,10 @@ writeNoSpaTbl2PG <- function(src,outTblName,connList,lyr=NULL,pk=NULL,select=NUL
 
   #Create index on pk
   if( !is.null(pk)){
-    print('Creatin index for non spatial table')
+    print('Creating index for non spatial table')
     outTblNameNoPer <-  gsub("\\.", "_", outTblName)
     faibDataManagement::sendSQLstatement(paste0("drop index if exists ", outTblNameNoPer,"_grskey_inx;"),connList)
-    print('dropped index')
+    print('Dropped index')
     faibDataManagement::sendSQLstatement(paste0("create index ", outTblNameNoPer,"_grskey_inx",  " on ", outName2, "(", pk,");"),connList)
   }
   }
