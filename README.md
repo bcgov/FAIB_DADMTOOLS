@@ -1,8 +1,8 @@
 # FAIB_DATA_MANAGEMENT
-Package of common faib data management functions
+Package of common FAIB data management functions
 
 ## Dependencies
- - Read/Write access to a postgreSQL database (version 12 or above)
+ - Read/Write access to a PostgreSQL database (version 12 or above)
 
  - Installed version of GDAL Version 3.4 or above (https://www.gisinternals.com/index.html)
  
@@ -42,7 +42,23 @@ Available options and their corresponding default values are listed below:
  - pgtblname = "whse.all_bc_gr_skey
     
 2.  Fill in input csv file (i.e. [see example](inputsDatasets2load2PG.csv)) <br>
-    Column names must match template above
+    Column names must match template above. Usage:
+    - `srctype`: Type of source file. 
+        - Options: `gdb, oracle, raster`
+    - `srcpath`: Source path.
+        - When `srctype = oracle` then `bcgw`
+        - When `srctype = gdb or raster` then full path and filename
+    - `srclyr`      : Layer name
+        - When `srctype = oracle` then schema and layer name, e.g. `WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly`
+    - `primarykey`  :
+    - `suffix`      :
+    - `tblname`     :
+    - `src_query`   :
+    - `inc`         :
+    - `rslt_ind`    :
+    - `fields2keep` : By default, all fields are retained. Use this field to filter fields to keep. 
+
+
     
 3.  Add datasets to postgres from csv input by calling <br> 
     ```add_batch_2_pg_grskey_grid()```  <br>                                                                    Use the rslt_ind option to indicate if the primary key will be added to the gr_skey geometry table or as its own table with a gr_skey attibute. <br> 
