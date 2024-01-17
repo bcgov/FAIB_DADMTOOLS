@@ -7,12 +7,24 @@ Package of common FAIB data management functions
  - Installed version of GDAL Version 3.4 or above (https://www.gisinternals.com/index.html)
  
  - Installed version of Oracle Instant client (see  [installation instructions](oracle_fdw_install.md) )
- 
- - The following installed PostgreSQL extensions: oracle_fdw, postgis, postgis_raster (see  [installation instructions](oracle_fdw_install.md))
 
  - Installed version of R Version 4.0 or above (https://cran.r-project.org/bin/windows/base/)
  
- The following R packages need to be installed for this package to work.
+ ## PostgreSQL Setup
+ - Requires database with the following extensions enabled:
+ ```
+CREATE EXTENSION postgis;
+CREATE EXTENSION postgis_raster;
+CREATE EXTENSION oracle_fdw;
+ ```
+ - Requires the following schemas:
+ ```
+ CREATE SCHEMA raster;
+ CREATE SCHEMA whse;
+ ```
+
+ ## R Setup
+ - Requires the following R packages:
  ```
  install.packages("RPostgres")
  install.packages("glue")
@@ -21,13 +33,48 @@ Package of common FAIB data management functions
  install.packages("sf")
  install.packages("devtools")
  ```
- 
-## Install Instructions
+
+## R Setup Environment Variables
+Currently defaults to using variables setup with keyring lib.
+Example of two common use cases: 
+Set up environment variables to connect to "localpsql"
+```
+library(keyring)
+keyring_create("localpsql")
+key_set("dbuser", keyring = "localpsql", prompt = 'Postgres keyring dbuser:')
+key_set("dbpass", keyring = "localpsql", prompt = 'Postgres keyring password:')
+key_set("dbhost", keyring = "localpsql", prompt = 'Postgres keyring host:')
+key_set("dbname", keyring = "localpsql", prompt = 'Postgres keyring dbname:')
+```
+Set up environment variables to connect to "oracle"
+```
+keyring_create("oracle")
+key_set("dbuser", keyring = "oracle", prompt = 'Oracle keyring dbuser:')
+key_set("dbpass", keyring = "oracle", prompt = 'Oracle keyring password:')
+key_set("dbhost", keyring = "oracle", prompt = 'Oracle keyring host:')
+key_set("dbservicename", keyring = "oracle", prompt = 'Oracle keyring serviceName:')
+key_set("dbserver", keyring = "oracle", prompt = 'Oracle keyring server:')
+```
+
+Example of confirming your imputs:
+```
+key_get("dbuser", keyring = "localpsql")
+key_get("dbpass", keyring = "localpsql")
+key_get("dbhost", keyring = "localpsql")
+key_get("dbname", keyring = "localpsql")
+```
+
+## R Library Library Import Instructions
 ```
 library(devtools)
 install_github("bcgov/FAIB_DATA_MANAGEMENT")
+library(RPostgres)
+library(glue)
+library(terra)
+library(keyring)
+library(sf)
 ```
- 
+
 ## Importing Spatial Data into postgres gr_skey tables
 
 1.  Create gr_skey table in postgres with geom by calling  <br> 
