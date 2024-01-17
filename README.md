@@ -13,11 +13,14 @@ Package of common faib data management functions
  - Installed version of R Version 4.0 or above (https://cran.r-project.org/bin/windows/base/)
  
  The following R packages need to be installed for this package to work.
- - RPostgres
- - glue
- - terra
- - keyring
- - sf
+ ```
+ install.packages("RPostgres")
+ install.packages("glue")
+ install.packages("terra")
+ install.packages("keyring")
+ install.packages("sf")
+ install.packages("devtools")
+ ```
  
 ## Install Instructions
 ```
