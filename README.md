@@ -64,6 +64,7 @@ key_get("dbname", keyring = "localpsql")
 ```
 
 ## Usage
+# R library import
 ```
 library(devtools)
 install_github("bcgov/FAIB_DATA_MANAGEMENT")
@@ -78,18 +79,22 @@ library(sf)
 
 # 1. Importing Spatial Data into postgres gr_skey tables
 
-```gr_skey_tif_2_pg_geom()```
+```
+gr_skey_tif_2_pg_geom()
+```
 
 The above function creates two tables in PG database. It creates a raster table named `raster.grskey_bc_land` and an additional table (tablename specified by `pgtblname` argument, default is `whse.all_bc_gr_skey`). The second table is the raster table converted to table with a geometry field (`geom`) representing the raster centroids. Function
 
 Function takes the following inputs. Default values listed below:
-```gr_skey_tif_2_pg_geom(
-            grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-            maskTif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Lands_and_Islandsincluded.tif',
-            cropExtent = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
-            outCropTifName = 'D:\\Projects\\provDataProject\\gr_skey_cropped.tif', ## output destination tif filename
-            connList = faibDataManagement::get_pg_conn_list(),
-            pgtblname = 'whse.all_bc_gr_skey'
+
+```
+gr_skey_tif_2_pg_geom(
+    grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+    maskTif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Lands_and_Islandsincluded.tif',
+    cropExtent = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
+    outCropTifName = 'D:\\Projects\\provDataProject\\gr_skey_cropped.tif', ## output destination tif filename
+    connList = faibDataManagement::get_pg_conn_list(),
+    pgtblname = 'whse.all_bc_gr_skey'
 )
 ```
 
@@ -119,14 +124,19 @@ Function takes the following inputs. Default values listed below:
 
     
 # 3.  Add datasets to postgres from csv input by calling
-    ```add_batch_2_pg_grskey_grid()```
+
+```
+add_batch_2_pg_grskey_grid()
+```
+
 Function takes the following inputs. Default values listed below:
+
 ```
 add_batch_2_pg_grskey_grid(
     inCSV = 'D:\\Projects\\provDataProject\\tools\\prov_data_resultant3.csv',
     connList = faibDataManagement::get_pg_conn_list(),
     oraConnList = faibDataManagement::get_ora_conn_list(),
-    cropExtent = c(273287.5,1870587.5,367787.5,1735787.5),
+    cropExtent = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
     gr_skey_tbl = 'all_bc_res_gr_skey',
     wrkSchema = 'whse',
     rasSchema = 'raster',
