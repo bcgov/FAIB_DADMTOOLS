@@ -100,27 +100,27 @@ gr_skey_tif_2_pg_geom(
 
 # 2.  Fill in configuration input csv file (i.e. [see example](inputsDatasets2load2PG.csv))
 
-    Column names must match template above. Field description:
-    - `srctype`: Type of source file. 
-        - Allowable options: `gdb, oracle, raster, geopackage, shp`
-    - `srcpath`: Source path.
-        - When `srctype = oracle` then `bcgw`
-        - When `srctype = gdb or raster` then full path and filename
-    - `srclyr` : Layer name
-        - When `srctype = oracle` then schema and layer name, e.g. `WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly`
-    - `primarykey` : Required source file primary key, must be integer.
-    - `suffix` : Used in resultant columns that were kept from the data source (e.g. "vri2021")
-    - `tblname` : Postgres destination table name.
-        - E.g. `forest_harvesting_restrictions_july2023` TODO schema?
-    - `src_query` : Optional argument to filter source layer
-        - E.g. `rr_restriction is not null` OR `rr_restriction = '01_National Park'` OR `strgc_land_rsrce_plan_name like '%Klappan%'`
-    - `inc` : Required argument whether to include layer when script is ran. 
-        - E.g. 0 = exclude, 1 = include
-    - `rslt_ind` : Option to add primary key to imported PG gr_skey table
-        - 1 = include (i.e. will add primary key to gr_skey tbl)
-        - 0 = not included (i.e. will not add primary key to gr_skey table)
-    - `fields2keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
-        - E.g. `REGEN_OBLIGATION_IND,FREE_GROW_DECLARED_IND,OBJECTID`
+Column names must match template above. Field description:
+- `srctype`: Type of source file. 
+    - Allowable options: `gdb, oracle, raster, geopackage, shp`
+- `srcpath`: Source path.
+    - When `srctype = oracle` then `bcgw`
+    - When `srctype = gdb or raster` then full path and filename
+- `srclyr` : Layer name
+    - When `srctype = oracle` then schema and layer name, e.g. `WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly`
+- `primarykey` : Required source file primary key, must be integer.
+- `suffix` : Used in resultant columns that were kept from the data source (e.g. "vri2021")
+- `tblname` : Postgres destination table name.
+    - E.g. `forest_harvesting_restrictions_july2023` TODO schema?
+- `src_query` : Optional argument to filter source layer
+    - E.g. `rr_restriction is not null` OR `rr_restriction = '01_National Park'` OR `strgc_land_rsrce_plan_name like '%Klappan%'`
+- `inc` : Required argument whether to include layer when script is ran. 
+    - E.g. 0 = exclude, 1 = include
+- `rslt_ind` : Option to add primary key to imported PG gr_skey table
+    - 1 = include (i.e. will add primary key to gr_skey tbl)
+    - 0 = not included (i.e. will not add primary key to gr_skey table)
+- `fields2keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
+    - E.g. `REGEN_OBLIGATION_IND,FREE_GROW_DECLARED_IND,OBJECTID`
 
     
 # 3.  Add datasets to postgres from csv input by calling
