@@ -102,5 +102,6 @@ writeNoSpaTbl2PG <- function(src,outTblName,connList,lyr=NULL,pk=NULL,select=NUL
     faibDataManagement::sendSQLstatement(paste0("drop index if exists ", outTblNameNoPer,"_grskey_inx;"),connList)
     print('Dropped index')
     faibDataManagement::sendSQLstatement(paste0("create index ", outTblNameNoPer,"_grskey_inx",  " on ", outName2, "(", pk,");"),connList)
-  }
+    faibDataManagement::sendSQLstatement(glue("ANALYZE {outName2};"),connList)
+    }
   }
