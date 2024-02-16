@@ -3,13 +3,14 @@
 #' @param schema PG database schema
 #' @param inDF input data frame in same format as input csv
 #' @param onlyIncRows include of rows wwhere onc field is = 1
+#' @param filterSuffixVect vector of suffixes to be included in string
 #' @return String
 #' @export
 #'
 #' @examples sqljoins_asstring(masterTable,schema='postgres',inCSV='D:/inputs/inputCsv.csv')
 
 
-sqljoins_asstring <- function(inPgTbl,schema,inDF,onlyIncRows=FALSE){
+sqljoins_asstring <- function(inPgTbl,schema,inDF,onlyIncRows=FALSE,filterSuffixVect = NULL){
   joinlist <- list()
   for (row in 1:nrow(inDF)) {
     inputVect <- c()
@@ -42,10 +43,13 @@ sqljoins_asstring <- function(inPgTbl,schema,inDF,onlyIncRows=FALSE){
   if(onlyIncRows){
     for(vec in joinlist){
       if(vec[3] == 1){
-        finalString <- paste(finalString, vec[2])
+        if(is.null(filterSuffixVect) | vec[1] %in% filterSuffixVect )
+        {finalString <- paste(finalString, vec[2])}
       }}
   }else {for(vec in joinlist){
-    finalString <- paste(finalString, vec[2])
+    if(is.null(filterSuffixVect) | vec[1] %in% filterSuffixVect )
+    {
+      finalString <- paste(finalString, vec[2])}
   }}
   return(shQuote(finalString))
 }

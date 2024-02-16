@@ -2,31 +2,26 @@
 % Please edit documentation in R/createOracleFDWpg.R
 \name{createOracleFDWpg}
 \alias{createOracleFDWpg}
-\title{Create Foreign Data Wrapper Table in Postgres}
+\title{Create Oracle Foreign Data Wrapper Table in Postgres}
 \usage{
-createOracleFDWpg(
-  dbserver,
-  oraUser,
-  oraPassword,
-  oratable,
-  connList,
-  fdwSchema
-)
+createOracleFDWpg(intable, oraConnList, pgConnList, outServerName, outSchema)
 }
 \arguments{
-\item{dbserver}{coming soon}
+\item{intable}{oracle table to import (e.g. WHSE_BASEMAPPING.FWA_ASSESSMENT_WATERSHEDS_POLY )}
 
-\item{oraUser}{coming soon}
+\item{oraConnList}{named list of  oracle connection parameters (see get_ora_conn_list() function for more details)}
 
-\item{oraPassword}{coming soon}
+\item{pgConnList}{named list of  postgres connection parameters (see get_pg_conn_list() function for more details)}
 
-\item{oratable}{coming soon}
+\item{outServerName}{name of FDW Server that will be created}
+
+\item{outSchema}{name of schema where foreign table will be outputted to}
 }
 \value{
-None
+string of output foreign table (schema.intable)
 }
 \description{
-Create Foreign Data Wrapper Table in Postgres
+Create Oracle Foreign Data Wrapper Table in Postgres
 }
 \examples{
 coming soon

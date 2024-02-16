@@ -58,4 +58,5 @@ fdwTbl2PGnoSpatial <- function(foreignTable,outTblName,pk,outSchema,connList,fdw
 
   print('Creatin index for non spatial table')
   faibDataManagement::sendSQLstatement(paste0("create index ", outTblName,"_ogc_inx",  " on ", outNameSchema, "(", pk,");"),connList)
+  faibDataManagement::sendSQLstatement(glue("ANALYZE {outNameSchema};"),connList)
   }
