@@ -14,6 +14,7 @@
 #' @param gr_skey_tbl coming soon
 #' @param wrkSchema coming soon
 #' @param rasSchema coming soon
+#' @param fdwSchema coming soon
 #' @param grskeyTIF coming soon
 #' @param maskTif coming soon
 #' @param dataSourceTblName coming soon
@@ -80,7 +81,9 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
           idir <- oraConnList["user"][[1]]
           orapass <- oraConnList["password"][[1]]
           print("create Foreign Table in pG")
-          fklyr <- faibDataManagement::createOracleFDWpg(oraServer, idir, orapass, srclyr,connList,fdwSchema)
+          outServerName <- 'oradb'
+          fklyr <- createOracleFDWpg(srclyr,oraConnList,connList,outServerName,fdwSchema)
+          #fklyr <- faibDataManagement::createOracleFDWpg(oraServer, idir, orapass, srclyr,connList,fdwSchema)
           #######Importing fdw table into r######
           print("Importing fdw table into r")
           qry <-  getFDWtblSpSQL(srclyr,pk,connList,fdwSchema,where=query)
@@ -91,7 +94,16 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
                            dbname = connList["dbname"][[1]],
                            password = connList["password"][[1]],
                            port = connList["port"][[1]])
-          inSF <- st_cast(st_read(connz, query = qry, crs = 3005),"MULTIPOLYGON" )
+          on.exit(RPostgres::dbDisconnect(connz))
+          on.exit(RPostgres::dbDisconnect(connz))
+          castList <- c("MULTIPOLYGON","MULTIPOINT","MULTILINE")
+          for (i in castList){
+            #ERROR HANDLING
+            possibleError <- tryCatch(
+              inSF <- st_cast(st_read(connz, query = qry, crs = 3005),i ),
+              error=function(e) e
+            )
+            if(inherits(possibleError, "error")) next else{break}}
           print(nrow(inSF))
           #####################Rasterize using TERRA#########
     outTifName <- glue("{nsTblm}.tif")
@@ -157,7 +169,7 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
       faibDataManagement::sendSQLstatement(paste0("drop index if exists ", joinTblnoschema,"_grskey_inx;"),connList)
       print('dropped index')
       faibDataManagement::sendSQLstatement(glue::glue("create index {joinTblnoschema}_grskey_inx on {joinTbl}(gr_skey);"),connList)
-
+      faibDataManagement::sendSQLstatement(glue("ANALYZE {joinTbl};"),connList)
 
       if(rslt_ind == 1){
         gr_skey_tbl <- glue("{wrkSchema}.{gr_skey_tbl}")
@@ -178,6 +190,7 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
         faibDataManagement::sendSQLstatement(paste0("drop table if exists ",gr_skey_tbl,"_old;"),connList)
         print("deleted excess tables")
         faibDataManagement::sendSQLstatement(paste0("vacuum;"),connList)
+        faibDataManagement::sendSQLstatement(glue("ANALYZE {gr_skey_tbl};"),connList)
 
 
 

@@ -60,6 +60,8 @@ add_data_2_pg_grskey_grid(
 
 \item{rasSchema}{coming soon}
 
+\item{fdwSchema}{coming soon}
+
 \item{grskeyTIF}{coming soon}
 
 \item{maskTif}{coming soon}
