@@ -22,23 +22,34 @@ rasterizeTerra <- function(
     inlyr=NULL,
     outTifpath = NULL,
     outTifname = NULL,
-    datatype ='INT4S'){
+    datatype ='INT4S',
+    nodata = 0){
 
-  dest <- file.path(outTifpath,outTifname)
+  dest <- file.path(outTifpath, outTifname)
 
-  if( !is.null(inlyr)){
-  inVect <- terra::vect(x = inSrc,layer = inlyr)
-  }else{
+  # Check if the file exists
+  if (file.exists(dest)) {
+    # If exists, delete the file
+    file.remove(dest)
+  }
+
+  if( !is.null(inlyr)) {
+  inVect <- terra::vect(x = inSrc, layer = inlyr)
+  } else {
     inVect <- terra::vect(x = inSrc)
 
   }
 
-  templateRast <- terra::rast(template)
-  rastBnd <- terra::rasterize(inVect, templateRast, field = field ,datatype=datatype)
-  if( !is.null(cropExtent)){
-    rastBnd <-  terra::crop(rastBnd,cropExtent,datatype=datatype)}
 
-  terra::writeRaster(rastBnd,dest,datatype=datatype,overwrite = TRUE)
+  templateRast <- terra::rast(template)
+  print(glue("Rasterizing field: {field} using datatype: {datatype}"))
+  rastBnd <- terra::rasterize(inVect, templateRast, field = field, wopt = list(datatype = datatype))
+  if( !is.null(cropExtent)) {
+    rastBnd <-  terra::crop(rastBnd, cropExtent, datatype = datatype)
+    }
+  print(glue("Writing raster: {dest} using datatype: {datatype}"))
+  terra::writeRaster(rastBnd, dest, datatype = datatype, overwrite = TRUE, NAflag=nodata)
+  print('Raster created successfully.')
   return(dest)
 }
 

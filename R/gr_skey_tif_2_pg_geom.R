@@ -69,6 +69,7 @@ gr_skey_tif_2_pg_geom <- function(
   sendSQLstatement(glue("ALTER TABLE {pgtblname} ADD CONSTRAINT all_bc_res_pkey PRIMARY KEY (gr_skey);"),connList)
   sendSQLstatement(glue("DROP INDEX IF EXISTS grskey_inx"),connList)
   sendSQLstatement(glue("CREATE INDEX grskey_inx ON {pgtblname} USING GIST(geom);"),connList)
+  sendSQLstatement(glue("ANALYZE {pgtblname};"),connList)
 
 }
 

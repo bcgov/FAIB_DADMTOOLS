@@ -12,49 +12,44 @@
 #' @examples coming soon
 
 
-createOracleFDWpg <- function(intable,oraConnList,pgConnList,outServerName,outSchema){
-
+createOracleFDWpg <- function(intable, oraConnList, pgConnList, outServerName, outSchema) {
 
   oraServer <- oraConnList["server"][[1]]
   idir <- oraConnList["user"][[1]]
   orapass <- oraConnList["password"][[1]]
-  print("create Foreign Table in pG")
 
   FDWServerExists <- function(outServerName, pgConnList){
     sql <- glue('select * from information_schema.foreign_servers f where foreign_server_name = \'{outServerName}\'')
     r <- getTableQueryPG(sql, pgConnList)
-    if(nrow(r)>0){
+    if(nrow(r)>0) {
       return(TRUE)
     }
-    else{FALSE}
-  }
+      else{FALSE}
+    }
 
   if (grepl("\\.", intable)) {
     oraTblNameNoSchema <- unlist(strsplit(intable, split = "[.]"))[-1]
     oraSchema <- toupper(unlist(strsplit(intable, split = "[.]"))[1])
-
-  }else {
+  } else {
     oraSchema <- ''
     oraTblNameNoSchema <- intable
   }
 
+  
+  faibDataManagement::sendSQLstatement(glue('drop foreign table if exists {outSchema}.{oraTblNameNoSchema};'), pgConnList)
+  faibDataManagement::sendSQLstatement(glue('create schema if not exists {outSchema};'), pgConnList)
 
-  faibDataManagement::sendSQLstatement(glue('drop foreign table if exists {outSchema}.{oraTblNameNoSchema};'),pgConnList)
-  faibDataManagement::sendSQLstatement(glue('create schema if not exists {outSchema};'),pgConnList)
-
-  if(!(FDWServerExists(outServerName, pgConnList))){
+  if(!(FDWServerExists(outServerName, pgConnList))) {
     faibDataManagement::sendSQLstatement(paste0("create server ", outServerName,
-                                                " foreign data wrapper oracle_fdw options (dbserver '", oraServer, "' );"),pgConnList)
-    faibDataManagement::sendSQLstatement(paste0("create user mapping for postgres server ", outServerName," options (user '",idir,"', password '",orapass,"');"),pgConnList)
+                                                " foreign data wrapper oracle_fdw options (dbserver '", oraServer, "' );"), pgConnList)
+    faibDataManagement::sendSQLstatement(paste0("create user mapping for postgres server ", outServerName," options (user '",idir,"', password '",orapass,"');"), pgConnList)
 
-    print(paste0("create user mapping for postgres server ", outServerName," options (user '",idir,"', password '",orapass,"');"))
+    print(paste0("create user mapping for postgres server ", outServerName," options (user '",idir,"', password '" ,orapass,"');"))
 
   }
 
-
-  faibDataManagement::sendSQLstatement(glue('import foreign schema "', oraSchema,'" limit to (', oraTblNameNoSchema, ') FROM SERVER {outServerName} INTO {outSchema};'),pgConnList)
-  print(paste0('created fdw for ', intable ))
+  print(glue('Creating PG FDW table: {outSchema}.{oraTblNameNoSchema} from Oracle table: {intable}'))
+  faibDataManagement::sendSQLstatement(glue('import foreign schema "', oraSchema,'" limit to (', oraTblNameNoSchema, ') FROM SERVER {outServerName} INTO {outSchema};'), pgConnList)
   return(glue("{outSchema}.{oraTblNameNoSchema}"))
-
 
 }

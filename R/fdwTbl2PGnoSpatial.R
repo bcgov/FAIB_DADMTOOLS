@@ -13,50 +13,81 @@
 #' @examples coming soon
 
 
-fdwTbl2PGnoSpatial <- function(foreignTable,outTblName,pk,outSchema,connList,fdwSchema = 'load', attr2keep=NULL, where = ''){
+fdwTbl2PGnoSpatial <- function(foreignTable, outTblName, pk, outSchema, connList, fdwSchema = 'load', attr2keep = NULL, where = '', table_comment) {
 
   if (grepl("\\.", foreignTable)) {
-
-
     oraTblNameNoSchema <- unlist(strsplit(foreignTable, split = "[.]"))[-1]
-  }else {oraTblNameNoSchema <- fdwTblName}
+  } else {
+    oraTblNameNoSchema <- foreignTable
+  }
 
-  geomName <- faibDataManagement::getGeomNamePG(fdwSchema,oraTblNameNoSchema,connList)
-  outNameSchema <- paste0(outSchema, ".", outTblName)
-  if(where == '' || is.null(where) || is.na(where)){print("no where clause")
-    where <- ''}else{
+  geomName <- faibDataManagement::getGeomNamePG(fdwSchema, oraTblNameNoSchema, connList)
+  outNameSchema <- glue("{outSchema}.{outTblName}")
+  if(where == '' || is.null(where) || is.na(where)) {
+    where <- ''
+  } else {
     where <- gsub("\'","\'\'", where)
     where <- glue("where {where}")
   }
 
-    print(where)
-  if(is.null(attr2keep) || attr2keep == '' || is.na(attr2keep)){
-    print('keep all attributes')
-    sqlstmt <- (faibDataManagement::getTableQueryPG(paste0("SELECT 'SELECT ' || array_to_string(ARRAY(SELECT 'o' || '.' || c.column_name
-                                            FROM information_schema.columns As c
-                                            WHERE table_name = '", oraTblNameNoSchema,"'  and
-                                            table_schema = 'load'
-                                            AND  c.column_name NOT IN('", geomName,"')
-  ), ',') || ' FROM load.",oraTblNameNoSchema," As o ",where, " ' As sqlstmt"),connList))$sqlstmt
-  }else{
-    #Add apostrophe to field names to keep,remove commas at end
-    attr2keep <- paste0("'", attr2keep)
-    attr2keep <- gsub(",", "','", attr2keep)
-    if (endsWith(attr2keep, ',')) {attr2keep <- substr(attr2keep,1,nchar(attr2keep)-1)}
-    attr2keep <- paste0(attr2keep,"'")
-    print(attr2keep)
-    sqlstmt <- (faibDataManagement::getTableQueryPG(paste0("SELECT 'SELECT ' || array_to_string(ARRAY(SELECT 'o' || '.' || c.column_name
-                                            FROM information_schema.columns As c
-                                            WHERE table_name = '", oraTblNameNoSchema,"'  and
-                                            table_schema = 'load'
-                                            AND  c.column_name NOT IN('", geomName,"') and c.column_name in (",attr2keep,")
-  ), ',') || ' FROM load.",oraTblNameNoSchema, " As o ",where, " ' As sqlstmt"),connList))$sqlstmt
+  if(is.null(attr2keep) || attr2keep == '' || is.na(attr2keep)) {
+    ## Keep all attributes
+    query = glue("SELECT
+                    'SELECT ' || array_to_string(
+                                                  ARRAY(
+                                                      SELECT
+                                                        'o' || '.' || c.column_name
+                                                      FROM
+                                                        information_schema.columns As c
+                                                      WHERE
+                                                        table_name = '{oraTblNameNoSchema}'
+                                                      AND
+                                                        table_schema = 'load'
+                                                      AND
+                                                        c.column_name NOT IN ('{geomName}')
+                                                    )
+                                      , ',') || '
+                 FROM
+                  {fdwSchema}.{oraTblNameNoSchema} AS o {where} ' As sqlstmt")
+
+    sqlstmt <- (faibDataManagement::getTableQueryPG(query, connList))$sqlstmt
+  } else {
+    # Split the original string into elements
+    elements <- strsplit(attr2keep, ",")[[1]]
+
+    # Add single quotes around each element
+    quoted_elements <- paste0("'", elements, "'")
+
+    # Join the quoted elements into a new string
+    attr2keep <- paste(quoted_elements, collapse = ',')
+
+    query = glue("SELECT
+                    'SELECT ' || array_to_string(
+                                                  ARRAY(
+                                                      SELECT
+                                                        'o' || '.' || c.column_name
+                                                      FROM
+                                                        information_schema.columns As c
+                                                      WHERE
+                                                        table_name = '{oraTblNameNoSchema}'
+                                                      AND
+                                                        table_schema = 'load'
+                                                      AND
+                                                        c.column_name NOT IN ('{geomName}')
+                                                      AND
+                                                        c.column_name IN ({attr2keep})
+                                                    )
+                                      , ',') || '
+                 FROM
+                  {fdwSchema}.{oraTblNameNoSchema} AS o {where} ' As sqlstmt")
+    sqlstmt <- (faibDataManagement::getTableQueryPG(query, connList))$sqlstmt
   }
-
-  faibDataManagement::sendSQLstatement(  paste0('drop table if exists ', outSchema,'.',outTblName,  ';'),connList)
-  faibDataManagement::sendSQLstatement(  paste0('create table ', outSchema, '.',outTblName, ' as ', sqlstmt,';'),connList)
-
-  print('Creatin index for non spatial table')
-  faibDataManagement::sendSQLstatement(paste0("create index ", outTblName,"_ogc_inx",  " on ", outNameSchema, "(", pk,");"),connList)
-  faibDataManagement::sendSQLstatement(glue("ANALYZE {outNameSchema};"),connList)
+  today_date <- format(Sys.Date(), "%Y-%m-%d")
+  ## Alter the SQL statement to cast the
+  faibDataManagement::sendSQLstatement(glue('DROP TABLE IF EXISTS {outSchema}.{outTblName} CASCADE;'),connList)
+  faibDataManagement::sendSQLstatement(glue('CREATE TABLE {outSchema}.{outTblName} AS {sqlstmt};'),connList)
+  ## alter the pk type to integer
+  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {outSchema}.{outTblName} ADD COLUMN fid int GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY;"), connList)
+  faibDataManagement::sendSQLstatement(table_comment, connList)
+  faibDataManagement::sendSQLstatement(glue("ANALYZE {outSchema}.{outTblName};"),connList)
   }

@@ -9,8 +9,9 @@
 #'
 #' @examples coming soon
 
-getGeomNamePG <- function(schema, tablename, connList ){
+getGeomNamePG <- function(schema, tablename, connList ) {
   geomName <- (getTableQueryPG(paste0("select column_name
         FROM information_schema.columns As c
-            WHERE table_schema = '",schema,"' and table_name = '",tablename,"' and udt_name = 'geometry'"),connList))$column_name
-  return(geomName)}
+            WHERE table_schema = '",schema,"' and table_name = '",tablename,"' and udt_name = 'geometry'"), connList))$column_name
+  return(geomName)
+}

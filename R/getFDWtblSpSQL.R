@@ -1,4 +1,4 @@
-#' Returnes a sql staement including the spatial field and primary key field of a Foreign Data Wrapper table.  Can be used in gdal rasterize statemenr
+#' Returns a SQL statement including the spatial field and primary key field of a Foreign Data Wrapper table.  Can be used in gdal rasterize statement
 #'
 #' @param oratable coming soon
 #' @param pk coming soon
@@ -11,37 +11,48 @@
 #' @examples coming soon
 
 
-getFDWtblSpSQL<- function(oratable,pk,connList,fdwSchema = 'load',where=NULL){
+getFDWtblSpSQL<- function(dst_table_name, dst_schema_name, oratable, pk, connList, fdwSchema = 'load', where = NULL) {
   if (grepl("\\.", oratable)) {
     oraTblNameNoSchema <- unlist(strsplit(oratable, split = "[.]"))[-1]
-  }else {oraTblNameNoSchema <- fdwTblName}
-  oraTblNameNoSchema <- oraTblNameNoSchema
-  geomName <- faibDataManagement::getGeomNamePG(fdwSchema,oraTblNameNoSchema,connList)
-  con <-  DBI::dbConnect(connList["driver"][[1]])
-  sql <-  glue::glue_sql("SELECT 'SELECT ' || array_to_string(ARRAY(SELECT 'o' || '.' || c.column_name
-                                            FROM information_schema.columns As c
-                                            WHERE table_name = {oraTblNameNoSchema}  and
-                                            table_schema = {fdwSchema}
-                                            AND  c.column_name IN({geomName},{pk})  ), ',')
-                     || ' FROM load.{`oraTblNameNoSchema`} As o' As sqlstmt",.con= con)
+  } else {
+    oraTblNameNoSchema <- oratable
+  }
 
-
-
-
-  sqlstmt <- (faibDataManagement::getTableQueryPG(sql,connList))$sqlstmt
-
-  if(!is.null(where)){
-
-    if(startsWith(trimws(where), "where")){
+  ## retrieve the geometry name
+  geomName <- faibDataManagement::getGeomNamePG(fdwSchema, oraTblNameNoSchema, connList)
+    ## post process the where statement
+  if(!is.null(where)) {
+    if(startsWith(trimws(where), "where")) {
       where <- substr(trimws(where), 6, nchar(where))
     }
-    if (where == ''){
-      print('no where clause')
-      where <- glue("where {geomName} <> ''" )}else{
-      where <- glue::glue("where {where} and {geomName} <> ''" )}
-    print(where)
-    sqlstmt <- glue::glue('{sqlstmt} {where}')
-
+    if (where == '') {
+      where <- glue("WHERE {geomName} <> ''" )
+    } else {
+      where <- glue::glue("WHERE {where} AND {geomName} <> ''" )
+    }
   }
+
+
+  con <-  DBI::dbConnect(connList["driver"][[1]])
+
+  sqlstmt <- glue("
+  WITH fdw_w_geom_and_where_clause AS (
+  SELECT
+    {pk},
+    {geomName}
+  FROM
+     {fdwSchema}.{oraTblNameNoSchema}
+  {where}
+  )
+  SELECT
+    non_spatial.fid,
+    fdw_w_geom.{geomName}
+  FROM
+    {dst_schema_name}.{dst_table_name} non_spatial
+  JOIN
+    fdw_w_geom_and_where_clause fdw_w_geom
+  ON
+    fdw_w_geom.{pk}::integer = non_spatial.{pk}::integer")
+
   return(sqlstmt)
 }

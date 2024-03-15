@@ -53,17 +53,38 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
 
 {
   #Get inputs from input file
-  rslt_ind <- gsub("[[:space:]]",'',tolower(rslt_ind)) ## 1 = include(i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
-  srctype <- gsub("[[:space:]]",'',tolower(srctype)) ## format of data source i.e. gdb,oracle, postgres, geopackage, raster
-  srcpath <- gsub("[[:space:]]",'',tolower(srcpath))## path to input data. Note use bcgw for whse
-  srclyr <- gsub("[[:space:]]",'',tolower(srclyr)) ## input layer name
-  pk <- gsub("[[:space:]]",'',tolower(pk)) ## primary key field that will be added to resultant table
-  suffix <- gsub("[[:space:]]",'',tolower(suffix)) ## suffix to be used in the resultant table
-  nsTblm <- gsub("[[:space:]]",'',tolower(nsTblm)) ## name of output non spatial table
-  query <- query  ## where clause used to filter input dataset
+  rslt_ind  <- gsub("[[:space:]]",'',tolower(rslt_ind)) ## 1 = include(i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
+  srctype   <- gsub("[[:space:]]",'',tolower(srctype)) ## format of data source i.e. gdb,oracle, postgres, geopackage, raster
+  srcpath   <- gsub("[[:space:]]",'',tolower(srcpath))## path to input data. Note use bcgw for whse
+  srclyr    <- gsub("[[:space:]]",'',tolower(srclyr)) ## input layer name
+  pk        <- gsub("[[:space:]]",'',tolower(pk)) ## primary key field that will be added to resultant table
+  suffix    <- gsub("[[:space:]]",'',tolower(suffix)) ## suffix to be used in the resultant table
+  nsTblm    <- gsub("[[:space:]]",'',tolower(nsTblm)) ## name of output non spatial table
+  query     <- query  ## where clause used to filter input dataset
   flds2keep <- gsub("[[:space:]]",'',tolower(flds2keep)) ## fields to keep in non spatial table
   dataSourceTblName <- glue::glue("{wrkSchema}.{dataSourceTblName}")
 
+  dst_schema_name <- wrkSchema ## destination schema name
+  dst_table_name  <- nsTblm ## destination table name
+  dst_gr_skey_table_name <- glue("{nsTblm}_gr_skey") ## destination table gr skey name
+
+  today_date <- format(Sys.time(), "%Y-%m-%d %I:%M:%S %p")
+  dest_table_comment <- glue("COMMENT ON TABLE {dst_schema_name}.{dst_table_name} IS 'Table created by the FAIB_DATA_MANAGEMENT R package at {today_date}.
+                                            TABLE relates to {dst_schema_name}.{dst_gr_skey_table_name}
+                                            Data source details:
+                                            Source Type: {srctype}
+                                            Source Path: {srcpath}
+                                            Source Layer: {srclyr}
+                                            Source Primary key: {pk}
+                                            Source where query: {query}';")
+  dest_gr_skey_table_comment <- glue("COMMENT ON TABLE {dst_schema_name}.{dst_gr_skey_table_name} IS 'Table created by the FAIB_DATA_MANAGEMENT R package at {today_date}.
+                                            TABLE relates to {dst_schema_name}.{dst_table_name}
+                                            Data source details:
+                                            Source Type: {srctype}
+                                            Source Path: {srcpath}
+                                            Source Layer: {srclyr}
+                                            Source Primary key: {pk}
+                                            Source where query: {query}';")
   ##convert whitespace to null when where clause is null
   if (query == '' || is.null(query) || is.na(query)) {
     # print("null is here")
@@ -81,14 +102,16 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
       oraServer <- oraConnList["server"][[1]]
       idir      <- oraConnList["user"][[1]]
       orapass   <- oraConnList["password"][[1]]
-      print("Create Foreign Table in pG")
       outServerName <- 'oradb'
-      fklyr <- createOracleFDWpg(srclyr, oraConnList, connList, outServerName, fdwSchema)
 
-      ####### Importing FDW table into  r######
-      print("Importing FDW table into R")
-      qry <- getFDWtblSpSQL(srclyr, pk, connList, fdwSchema, where=query)
-      print(qry)
+      src_schema_name <- strsplit(srclyr, "\\.")[[1]][[1]]
+      src_table_name  <- strsplit(srclyr, "\\.")[[1]][[2]]
+
+      fdw_schema_name <- fdwSchema
+      fdw_table_name  <- strsplit(srclyr, "\\.")[[1]][[2]]
+      ## Create a FDW table in PG
+      fklyr <- createOracleFDWpg(srclyr, oraConnList, connList, outServerName, fdw_schema_name)
+
       connz <- dbConnect(connList["driver"][[1]],
                        host     = connList["host"][[1]],
                        user     = connList["user"][[1]],
@@ -96,7 +119,38 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
                        password = connList["password"][[1]],
                        port     = connList["port"][[1]])
       on.exit(RPostgres::dbDisconnect(connz))
+
+      # =============================================================================
+      # Create Non Spatial Table with attributes from FDW
+      # =============================================================================
+      print(glue("Creating non-spatial PG table: {dst_schema_name}.{dst_table_name} from FDW table: {fdw_schema_name}.{fdw_table_name} to PG"))
+      faibDataManagement::fdwTbl2PGnoSpatial(
+        foreignTable  = src_table_name,
+        outTblName    = dst_table_name,
+        pk            = pk,
+        outSchema     = dst_schema_name,
+        connList      = connList,
+        attr2keep     = flds2keep,
+        where         = query,
+        table_comment = dest_table_comment
+      )
+      print("Table created successfully.")
+      # =============================================================================
+      # Create GR SKEY Spatial Table
+      # =============================================================================
+
+      ## Create a SQL query including the spatial field and primary key field of a Foreign Data Wrapper table
+      qry <- getFDWtblSpSQL(dst_table_name  = dst_table_name,
+                            dst_schema_name = dst_schema_name,
+                            oratable        = srclyr,
+                            pk              = pk,
+                            connList        = connList,
+                            fdwSchema       = fdw_schema_name,
+                            where           = query
+      )
+
       castList <- c("MULTIPOLYGON","MULTIPOINT","MULTILINE")
+      print(glue('Converting SQL query which joins FDW table: {fdw_schema_name}.{fdw_table_name} and {dst_schema_name}.{dst_table_name} and WHERE query into R Simple Feature Collection'))
       for (i in castList) {
         #ERROR HANDLING
         possibleError <- tryCatch(
@@ -105,37 +159,44 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
         )
         if(inherits(possibleError, "error")) next else { break }
       }
-      print(nrow(inSF))
-      #####################Rasterize using TERRA#########
+      ##################### Rasterize using TERRA #########
       outTifName <- glue("{nsTblm}.tif")
       inRas <- rasterizeTerra(
         inSrc      = inSF,
-        field      = pk,
+        field      = "fid",
         template   = grskeyTIF,
         cropExtent = cropExtent,
         outTifpath = outTifpath,
         outTifname = outTifName,
-        datatype   ='INT4S'
+        datatype   = 'INT4U',
+        nodata     = 0
       )
 
-      ##############################################
-      print(paste("Write Non-spatial FDW table:", fklyr, "to PG"))
-      faibDataManagement::fdwTbl2PGnoSpatial(
-                                              fklyr,
-                                              nsTblm,
-                                              pk,
-                                              outSchema = wrkSchema,
-                                              connList  = connList,
-                                              attr2keep = flds2keep,
-                                              where     = query
-      )
-      print(paste("Wrote Non-spatial FDW table:", fklyr, "to PG"))
       inSrcTemp <- NULL
       pgConnTemp <- connList
     } else {
-      #Write non-spatial table to postgres
+      # =============================================================================
+      # Create Non Spatial Table with attributes from FDW
+      # =============================================================================
+      print(glue("Creating non-spatial PG table: {dst_schema_name}.{dst_table_name} from FDW table: {fdw_schema_name}.{fdw_table_name} to PG"))
+      faibDataManagement::fdwTbl2PGnoSpatial(
+        foreignTable  = src_table_name,
+        outTblName    = dst_table_name,
+        pk            = pk,
+        outSchema     = dst_schema_name,
+        connList      = connList,
+        attr2keep     = flds2keep,
+        where         = query,
+        table_comment = dest_table_comment
+      )
+      print("Table created successfully.")
+
+
+      # =============================================================================
+      # Create Non Spatial Table with attributes from FDW
+      # ============================================================================
       fklyr <- srclyr
-      print(paste("Write Non-spatial table:", fklyr, "to PG"))
+      print(glue("Write Non-spatial table: {fklyr} to PG"))
       faibDataManagement::writeNoSpaTbl2PG(
                                             srcpath,
                                             nsTblm,
@@ -148,11 +209,11 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
       )
       inSrcTemp <- srcpath
       pgConnTemp <- NULL
-      print(paste("Wrote Non-spatial table:", fklyr, "to PG"))
+      print(glue("Wrote Non-spatial table: {fklyr} to PG"))
 
       #Create tif from input
       outTifName <- glue("{nsTblm}.tif")
-      print(paste("Write tif:", outTifName))
+      print(glue("Writing raster: {outTifName}"))
       inRas <- rasterizeWithGdal(
                                   fklyr,
                                   pk,
@@ -164,7 +225,7 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
                                   nodata     = 0,
                                   where      = where_claus
       )
-      print(paste("Wrote tif:", outTifName))
+      print(glue("Raster created successfully."))
     }
   }
 
@@ -174,20 +235,19 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
   }
 
   inRasbase <- basename(inRas)
-  #Tif to PG Raster
+  ## Tif to PG Raster
   if(importrast2pg) {
     pgRasName <- paste0(rasSchema, '.ras_', substr(inRasbase, 1, nchar(inRasbase)-4))
-    cmd <- paste0('raster2pgsql -s 3005 -d -C -r -P -I -M -t 100x100 ',inRas,' ', pgRasName,' | psql -d prov_data')
+    cmd <- glue('raster2pgsql -s 3005 -d -C -r -P -I -M -t 100x100 {inRas} {pgRasName} | psql -d prov_data')
     print(cmd)
     shell(cmd)
     print('Imported tif to PG')
   }
 
   # #Convert postgres raster to Non spatial table with gr_skey
-  joinTbl <- glue("{wrkSchema}.{nsTblm}_gr_skey")
-  joinTblnoschema <- glue("{nsTblm}_gr_skey")
-  joinTbl2 <- RPostgres::Id(schema = wrkSchema, table = joinTblnoschema)
-
+  joinTbl2 <- RPostgres::Id(schema = dst_schema_name, table = dst_gr_skey_table_name)
+  print(glue('Creating PG table: {dst_schema_name}.{dst_gr_skey_table_name} from values in tif and gr_skey'))
+  faibDataManagement::sendSQLstatement(glue("DROP TABLE IF EXISTS {dst_schema_name}.{dst_gr_skey_table_name};"), connList)
   faibDataManagement::df2PG(
                             joinTbl2,
                             faibDataManagement::tif2grskeytbl(
@@ -195,21 +255,28 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
                                                               cropExtent   = cropExtent,
                                                               grskeyTIF    = grskeyTIF,
                                                               maskTif      = maskTif,
-                                                              valueColName = pk
+                                                              valueColName = "fid"
                             ),
                             connList
   )
-  print('Created PG table from values in tif and gr_skey')
+  print(glue('Created PG table: {dst_schema_name}.{dst_gr_skey_table_name} from values in tif and gr_skey'))
 
-  #Create index on table
-  print('Creating index for gr_skey table')
-  faibDataManagement::sendSQLstatement(paste0("drop index if exists ", joinTblnoschema, "_grskey_inx;"), connList)
-  print('dropped index')
-  faibDataManagement::sendSQLstatement(glue::glue("create index {joinTblnoschema}_grskey_inx on {joinTbl}(gr_skey);"),connList)
-  faibDataManagement::sendSQLstatement(glue("ANALYZE {joinTbl};"),connList)
+  ## Adding primary key to table
+  print(glue('Adding gr_skey as primary key to {dst_schema_name}.{dst_gr_skey_table_name}'))
+  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {dst_schema_name}.{dst_gr_skey_table_name} ADD PRIMARY KEY (gr_skey);"), connList)
+  ## Adding in foreign key
+  print(glue('Adding foreign key constraint to {dst_schema_name}.{dst_gr_skey_table_name} referencing {dst_schema_name}.{dst_table_name} using (fid);'))
+  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {dst_schema_name}.{dst_gr_skey_table_name} ADD CONSTRAINT {dst_gr_skey_table_name}_fkey FOREIGN KEY (fid) REFERENCES {dst_schema_name}.{dst_table_name} (fid);"), connList)
+  ## Add index on fid
+  faibDataManagement::sendSQLstatement(glue("DROP INDEX IF EXISTS {dst_gr_skey_table_name}_fid_idx;"), connList)
+  faibDataManagement::sendSQLstatement(glue("CREATE INDEX {dst_gr_skey_table_name}_fid_idx ON {dst_schema_name}.{dst_gr_skey_table_name} USING btree (fid)"), connList)
+  ## Add comment on table
+  faibDataManagement::sendSQLstatement(dest_gr_skey_table_comment, connList)
+  ## Update the query planner with the latest changes
+  faibDataManagement::sendSQLstatement(glue("ANALYZE {dst_schema_name}.{dst_gr_skey_table_name};"),connList)
 
   if(rslt_ind == 1) {
-    gr_skey_tbl <- glue("{wrkSchema}.{gr_skey_tbl}")
+    gr_skey_tbl <- glue("{dst_schema_name}.{dst_gr_skey_table_name}")
     faibDataManagement::updateFKlookupPG(
                                           joinTbl,
                                           pk,
@@ -249,7 +316,6 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
     faibDataManagement::sendSQLstatement(paste0("drop table if exists ", joinTbl, ";"), connList)
     faibDataManagement::sendSQLstatement(paste0("drop table if exists ", gr_skey_tbl, "_old;"), connList)
     print("Deleted excess tables")
-    faibDataManagement::sendSQLstatement(paste0("vacuum;"), connList)
     faibDataManagement::sendSQLstatement(glue("ANALYZE {gr_skey_tbl};"), connList)
   }
 }
