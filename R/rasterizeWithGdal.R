@@ -26,30 +26,50 @@ rasterizeWithGdal <- function(
     vecExtent = c(273287.5,1870587.5,367787.5,1735787.5),
     nodata = 0,
     where=NULL,
-    datatype='UInt32'){
+    datatype='UInt32')
+{
+    if(is.null(inSrc) && is.null(pgConnList)){
+      stop("Must have one inSrc or pgConnList populated")
+    } else if(!is.null(inSrc) && !is.null(pgConnList)){
+      stop("Must have only one inSrc or pgConnList populated")
+    }
 
-  if(is.null(inSrc) && is.null(pgConnList)){stop("Must have one inSrc or pgConnList populated")}
-  if(!is.null(inSrc) && !is.null(pgConnList)){stop("Must have only one inSrc or pgConnList populated")}
-  if(!is.null(inSrc)){ src <- inSrc}
-  if(!is.null(pgConnList)){
-    dbname <- pgConnList["dbname"][[1]]
-    user <- pgConnList["user"][[1]]
-    src <- glue::glue("\"PG:dbname={single_quote(dbname)} user={single_quote(user)}\"")
+  if(!is.null(inSrc)){
+      src <- inSrc
+    }
+
+    if(!is.null(pgConnList)){
+      dbname <- pgConnList["dbname"][[1]]
+      user <- pgConnList["user"][[1]]
+      src <- glue::glue("\"PG:dbname={single_quote(dbname)} user={single_quote(user)}\"")
+    }
+  dest <- file.path(outTifpath, outTifname)
+
+
+  if(is_blank(where)) {
+    where <- ''
+  } else {
+    where <- glue("WHERE {where}")
   }
-  dest <- file.path(outTifpath,outTifname)
-  if( !is.null(where)){where <- glue::glue('-where {glue::double_quote(where)}')}else{where <- ''}
+
 
   value <- paste("-a", field)
   comp <- '-co COMPRESS=LZW'
-  datatype <- glue("-ot ",datatype)
+  datatype <- glue("-ot ", datatype)
 
   proj <- "-a_srs EPSG:3005"
   extent_str <- paste("-te", vecExtent[1], vecExtent[3], vecExtent[2], vecExtent[4] )
   cellSize <- "-tr 100 100"
-  if (inlyr == '' || is.null(inlyr)){inlyr <- ''}else{inlyr <- glue::glue('-l ', inlyr)}
+  if (is_blank(inlyr)){
+    inlyr <- ''
+  }
   print(inlyr)
   spc <- ' '
+
+  sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT ROW_NUMBER() OVER () AS fid, * FROM {inlyr} {where}")))
   nodata <- glue('-a_nodata ', nodata)
-  print(paste('gdal_rasterize',datatype, comp,value,proj,extent_str,cellSize,inlyr,src,spc,dest,where,nodata))
-  print(system2('gdal_rasterize',args=c(datatype,comp,value,proj,extent_str,cellSize,inlyr,where,nodata,src,spc,dest), stderr = TRUE))
+  print(glue("Writing raster: {dest} using datatype: {datatype}"))
+  print(paste('gdal_rasterize',datatype, comp,value,proj,extent_str,cellSize,src,spc,dest,sql,nodata))
+  print(system2('gdal_rasterize',args=c(datatype, comp,value,proj,extent_str,cellSize,src,spc,dest,sql,nodata), stderr = TRUE))
+  print('Raster created successfully.')
   return(dest)}

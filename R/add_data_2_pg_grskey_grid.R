@@ -1,5 +1,7 @@
 #' Update FAIB hectares database from input dataset
 #'
+#'
+#'
 #' @param rslt_ind coming soon
 #' @param srctype coming soon
 #' @param srcpath coming soon
@@ -86,13 +88,11 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
                                             Source Primary key: {pk}
                                             Source where query: {query}';")
   ##convert whitespace to null when where clause is null
-  if (query == '' || is.null(query) || is.na(query)) {
-    # print("null is here")
-    where_clause <- NULL
+  if (is_blank(query)) {
+    where_claus <- NULL
     query <- ''
-
   } else {
-    where_clause <- query
+    where_claus <- query
   }
 
 
@@ -119,11 +119,10 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
                        password = connList["password"][[1]],
                        port     = connList["port"][[1]])
       on.exit(RPostgres::dbDisconnect(connz))
-
       # =============================================================================
       # Create Non Spatial Table with attributes from FDW
       # =============================================================================
-      print(glue("Creating non-spatial PG table: {dst_schema_name}.{dst_table_name} from FDW table: {fdw_schema_name}.{fdw_table_name} to PG"))
+      print(glue("Creating non-spatial PG table: {dst_schema_name}.{dst_table_name} from FDW table: {fdw_schema_name}.{fdw_table_name}"))
       faibDataManagement::fdwTbl2PGnoSpatial(
         foreignTable  = src_table_name,
         outTblName    = dst_table_name,
@@ -138,7 +137,6 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
       # =============================================================================
       # Create GR SKEY Spatial Table
       # =============================================================================
-
       ## Create a SQL query including the spatial field and primary key field of a Foreign Data Wrapper table
       qry <- getFDWtblSpSQL(dst_table_name  = dst_table_name,
                             dst_schema_name = dst_schema_name,
@@ -174,58 +172,43 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
 
       inSrcTemp <- NULL
       pgConnTemp <- connList
-    } else {
-      # =============================================================================
-      # Create Non Spatial Table with attributes from FDW
-      # =============================================================================
-      print(glue("Creating non-spatial PG table: {dst_schema_name}.{dst_table_name} from FDW table: {fdw_schema_name}.{fdw_table_name} to PG"))
-      faibDataManagement::fdwTbl2PGnoSpatial(
-        foreignTable  = src_table_name,
-        outTblName    = dst_table_name,
-        pk            = pk,
-        outSchema     = dst_schema_name,
-        connList      = connList,
-        attr2keep     = flds2keep,
-        where         = query,
-        table_comment = dest_table_comment
-      )
-      print("Table created successfully.")
 
+      return()
+    } else {
 
       # =============================================================================
       # Create Non Spatial Table with attributes from FDW
       # ============================================================================
-      fklyr <- srclyr
-      print(glue("Write Non-spatial table: {fklyr} to PG"))
+      print(glue("Creating non-spatial PG table: {dst_schema_name}.{dst_table_name} from source: {srcpath}|layername={srclyr}"))
+      print(glue('srcpath = {srcpath}'))
+      print(glue('dst_table_name = {dst_table_name}'))
+      print(glue('dst_schema_name = {dst_schema_name}'))
+      print(glue('srclyr = {srclyr}'))
       faibDataManagement::writeNoSpaTbl2PG(
-                                            srcpath,
-                                            nsTblm,
-                                            connList,
-                                            pk     = pk,
-                                            schema = wrkSchema,
-                                            lyr    = srclyr,
-                                            where  = query,
-                                            select = flds2keep
+                                            src           = srcpath,
+                                            outTblName    = dst_table_name,
+                                            connList      = connList,
+                                            pk            = pk,
+                                            outSchema     = dst_schema_name,
+                                            lyr           = srclyr,
+                                            where         = query,
+                                            select        = flds2keep,
+                                            table_comment = dest_table_comment
       )
-      inSrcTemp <- srcpath
-      pgConnTemp <- NULL
-      print(glue("Wrote Non-spatial table: {fklyr} to PG"))
-
+      print("Table created successfully.")
       #Create tif from input
       outTifName <- glue("{nsTblm}.tif")
-      print(glue("Writing raster: {outTifName}"))
       inRas <- rasterizeWithGdal(
-                                  fklyr,
-                                  pk,
+                                  inlyr      = srclyr,
+                                  field      = "fid",
                                   outTifpath = outTifpath,
                                   outTifname = outTifName,
-                                  inSrc      = inSrcTemp,
-                                  pgConnList = pgConnTemp,
+                                  inSrc      = srcpath,
+                                  pgConnList = NULL,
                                   vecExtent  = cropExtent,
                                   nodata     = 0,
                                   where      = where_claus
       )
-      print(glue("Raster created successfully."))
     }
   }
 
