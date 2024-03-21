@@ -33,7 +33,7 @@ add_data_2_pg_grskey_with_overlap <- function(
   outPGTblName,
   schema = 'whse',
   grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-  maskTif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Lands_and_Islandsincluded.tif' ,
+  maskTif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif' ,
   connList = get_pg_conn_list(),
   terraExt = terra::ext(c(273287.5,1870587.5,367787.5,1735787.5))
   )

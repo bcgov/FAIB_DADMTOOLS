@@ -19,40 +19,69 @@
 
 
 
-updateFKsrcTblpg <- function(outTableName,srctype,srcpath,srclyr,pk,suffix,nsTblm,query,inc,rslt_ind,fields2keep,connList ){
+updateFKsrcTblpg <- function(outTableName, srctype, srcpath, srclyr, pk, suffix, nsTblm, query, inc, rslt_ind, fields2keep, schema, connList) {
 
-  print(c(srctype,srcpath,srclyr,pk,suffix,nsTblm,query,inc,rslt_ind,fields2keep))
-  # valueList <- lappy(valueList,function(x){if(is.null(x) || is.na(x)){x = ''}else{x}})
-
-  if(is.na(fields2keep)){fields2keep<-''}
-
-
+  if(is_blank(fields2keep)) {
+    fields2keep <- ""
+  }
 
   query <- gsub("'","\'",query)
-  # print(query)
 
-  sql <- glue::glue("CREATE TABLE IF NOT EXISTS {outTableName} (srctype varchar, srcpath varchar ,srclyr varchar,primarykey varchar,suffix varchar,tblname varchar,src_query varchar,inc integer,rslt_ind integer,fields2keep varchar);")
-  faibDataManagement::sendSQLstatement(sql,connList)
-  print(sql)
-  sql <- glue::glue("DELETE FROM {outTableName} WHERE suffix = {single_quote(suffix)};")
-  faibDataManagement::sendSQLstatement(sql,connList)
-  print(sql)
-  sql <- glue::glue("INSERT INTO {outTableName}(srctype,srcpath,srclyr,primarykey,suffix,
-                            tblname,src_query,inc,rslt_ind,fields2keep)
-                           VALUES ({single_quote(srctype)},
-                                {single_quote(srcpath)},
-                                {single_quote(srclyr)},
-                                {single_quote(pk)},
-                                {single_quote(suffix)},
-                                {single_quote(nsTblm)},
-                                E{single_quote(query)},
-                                {single_quote(inc)},
-                                {single_quote(rslt_ind)},
-                               {single_quote(fields2keep)});")
-  print(sql)
-  print(query)
-  faibDataManagement::sendSQLstatement(sql,connList)
-   print('here')
+  outTableNameNoSchema <- strsplit(outTableName, "\\.")[[1]][[2]]
 
+  sql <- glue::glue("CREATE TABLE IF NOT EXISTS {outTableName} (
+                      srctype varchar,
+                      srcpath varchar,
+                      srclyr varchar,
+                      primarykey varchar,
+                      suffix varchar,
+                      schema varchar,
+                      tblname varchar,
+                      src_query varchar,
+                      rslt_ind integer,
+                      fields2keep varchar,
+                      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                      CONSTRAINT {outTableNameNoSchema}_unique UNIQUE (schema, tblname)
+                    );")
+  faibDataManagement::sendSQLstatement(sql, connList)
 
-   }
+  sql <- glue::glue("INSERT INTO {outTableName}
+                    (
+                     srctype,
+                     srcpath,
+                     srclyr,
+                     primarykey,
+                     suffix,
+                     schema,
+                     tblname,
+                     src_query,
+                     rslt_ind,
+                     fields2keep
+                    )
+                     VALUES
+                    (
+                    {single_quote(srctype)},
+                    {single_quote(srcpath)},
+                    {single_quote(srclyr)},
+                    {single_quote(pk)},
+                    {single_quote(suffix)},
+                    {single_quote(schema)},
+                    {single_quote(nsTblm)},
+                    {single_quote(query)},
+                    {single_quote(rslt_ind)},
+                    {single_quote(fields2keep)}
+                    )
+                    ON CONFLICT (schema, tblname) DO UPDATE
+                    SET
+                    srctype = EXCLUDED.srctype,
+                    srcpath = EXCLUDED.srcpath,
+                    srclyr = EXCLUDED.srclyr,
+                    primarykey = EXCLUDED.primarykey,
+                    suffix = EXCLUDED.suffix,
+                    src_query = EXCLUDED.src_query,
+                    rslt_ind = EXCLUDED.rslt_ind,
+                    fields2keep = EXCLUDED.fields2keep,
+                    created_at = now();")
+  print(glue("Inserting record into {outTableName} for {schema}.{nsTblm}"))
+  faibDataManagement::sendSQLstatement(sql, connList)
+}

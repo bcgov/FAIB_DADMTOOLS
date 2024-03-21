@@ -30,17 +30,26 @@ writeNoSpaTbl2PG <- function(src, outTblName, connList, lyr = NULL, pk = NULL, s
     pk <- NULL
   }
 
-  # ## Tidy up select
+
+  ## tidy up the fields to keep
   if(is_blank(select)) {
-    select <- ''
+    # ## Extract the fields from layer
+    data = read_sf(src, query = glue('SELECT * from {lyr} LIMIT 1'))
+    field_names = tolower(names(data))
+    rm(data)
+    field_names <- field_names[!(field_names %in% c("shape", "geometry", "geom", "_ogr_geometry_", "geometry_l", "geometry_length", pk))]
+    select <- paste(field_names, collapse = ",")
   } else {
-      select <- gsub(",shape", "", select)
-      select <- gsub(",geometry", "", select)
-      select <- gsub(", shape", "", select)
-      select <- gsub(", geometry", "", select)
-      if (endsWith(select, ',')) {
-        select <-  substr(select, 1, nchar(select) - 1)
-      }
+    ##remove trailing comma if exists
+    if (endsWith(select, ',')) {
+      select <-  substr(select, 1, nchar(select) - 1)
+    }
+    ## convert select into list
+    field_names <- strsplit(select, ",")[[1]]
+    ## remove geometry, length related field (unnecessary) and pk fields if exist
+    field_names <- field_names[!(field_names %in% c("shape", "geometry", "geom", "_ogr_geometry_", "geometry_l", "geometry_length", pk))]
+    ## convert back to string
+    select <- paste(field_names, collapse = ",")
   }
 
 
@@ -65,7 +74,7 @@ writeNoSpaTbl2PG <- function(src, outTblName, connList, lyr = NULL, pk = NULL, s
     precision <- ''
   }
 
-  sql <- glue::double_quote(glue("SELECT {select}, ROW_NUMBER() OVER () AS fid FROM {lyr} {where}"))
+  sql <- glue::double_quote(glue("SELECT {select}, ROW_NUMBER() OVER () AS {pk} FROM {lyr} {where}"))
   print(paste('ogr2ogr',
               '-nlt NONE',
               '-overwrite',
@@ -92,10 +101,17 @@ writeNoSpaTbl2PG <- function(src, outTblName, connList, lyr = NULL, pk = NULL, s
                                   precision,
                                   paste0('-f PostgreSQL PG:dbname=',dbname),
                                   src), stderr = TRUE)))
+  print('Import Complete, moving to post processing')
 
   # ## add harded coded fid primary key sequenctial integer
-  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {outSchema}.{outTblName} DROP CONSTRAINT {outTblName}_pkey;"), connList)
-  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {outSchema}.{outTblName} ADD PRIMARY KEY (fid);"), connList)
+  query <- glue("select concat('ALTER TABLE {outSchema}.{outTblName} DROP CONSTRAINT ', constraint_name) as my_query
+  from information_schema.table_constraints
+  where table_schema = '{outSchema}'
+  and table_name = '{outTblName}'
+  and constraint_type = 'PRIMARY KEY';")
+  sqlstmt <- (faibDataManagement::getTableQueryPG(query, connList))$my_query
+  faibDataManagement::sendSQLstatement(sqlstmt, connList)
+  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {outSchema}.{outTblName} ADD PRIMARY KEY ({pk});"), connList)
   faibDataManagement::sendSQLstatement(table_comment, connList)
   faibDataManagement::sendSQLstatement(glue("ANALYZE {outSchema}.{outTblName};"),connList)
   }

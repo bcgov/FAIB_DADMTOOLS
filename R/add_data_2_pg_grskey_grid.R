@@ -46,7 +46,7 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
                                       rasSchema = 'raster',
                                       fdwSchema = 'load',
                                       grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-                                      maskTif='S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Lands_and_Islandsincluded.tif',
+                                      maskTif='S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
                                       dataSourceTblName = 'data_sources',
                                       setwd='D:/Projects/provDataProject',
                                       outTifpath = 'D:\\Projects\\provDataProject',
@@ -69,25 +69,24 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
   dst_schema_name <- wrkSchema ## destination schema name
   dst_table_name  <- nsTblm ## destination table name
   dst_gr_skey_table_name <- glue("{nsTblm}_gr_skey") ## destination table gr skey name
-
+  pk_id = "faib_fid"
+  no_data_value = 0
   today_date <- format(Sys.time(), "%Y-%m-%d %I:%M:%S %p")
   dest_table_comment <- glue("COMMENT ON TABLE {dst_schema_name}.{dst_table_name} IS 'Table created by the FAIB_DATA_MANAGEMENT R package at {today_date}.
                                             TABLE relates to {dst_schema_name}.{dst_gr_skey_table_name}
                                             Data source details:
-                                            Source Type: {srctype}
-                                            Source Path: {srcpath}
-                                            Source Layer: {srclyr}
-                                            Source Primary key: {pk}
+                                            Source type: {srctype}
+                                            Source path: {srcpath}
+                                            Source layer: {srclyr}
                                             Source where query: {query}';")
   dest_gr_skey_table_comment <- glue("COMMENT ON TABLE {dst_schema_name}.{dst_gr_skey_table_name} IS 'Table created by the FAIB_DATA_MANAGEMENT R package at {today_date}.
                                             TABLE relates to {dst_schema_name}.{dst_table_name}
                                             Data source details:
-                                            Source Type: {srctype}
-                                            Source Path: {srcpath}
-                                            Source Layer: {srclyr}
-                                            Source Primary key: {pk}
+                                            Source type: {srctype}
+                                            Source path: {srcpath}
+                                            Source layer: {srclyr}
                                             Source where query: {query}';")
-  ##convert whitespace to null when where clause is null
+  ## convert whitespace to null when where clause is null
   if (is_blank(query)) {
     where_claus <- NULL
     query <- ''
@@ -126,7 +125,7 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
       faibDataManagement::fdwTbl2PGnoSpatial(
         foreignTable  = src_table_name,
         outTblName    = dst_table_name,
-        pk            = pk,
+        pk            = pk_id,
         outSchema     = dst_schema_name,
         connList      = connList,
         attr2keep     = flds2keep,
@@ -134,14 +133,16 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
         table_comment = dest_table_comment
       )
       print("Table created successfully.")
+
       # =============================================================================
       # Create GR SKEY Spatial Table
       # =============================================================================
+
       ## Create a SQL query including the spatial field and primary key field of a Foreign Data Wrapper table
       qry <- getFDWtblSpSQL(dst_table_name  = dst_table_name,
                             dst_schema_name = dst_schema_name,
                             oratable        = srclyr,
-                            pk              = pk,
+                            pk              = pk_id,
                             connList        = connList,
                             fdwSchema       = fdw_schema_name,
                             where           = query
@@ -155,60 +156,95 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
           inSF <- st_cast(st_read(connz, query = qry, crs = 3005),i ),
           error=function(e) e
         )
-        if(inherits(possibleError, "error")) next else { break }
+        if(inherits(possibleError, "error")) next else {
+          break
+        }
       }
-      ##################### Rasterize using TERRA #########
+      ## Rasterize using TERRA
       outTifName <- glue("{nsTblm}.tif")
       inRas <- rasterizeTerra(
         inSrc      = inSF,
-        field      = "fid",
+        field      = pk_id,
         template   = grskeyTIF,
         cropExtent = cropExtent,
         outTifpath = outTifpath,
         outTifname = outTifName,
         datatype   = 'INT4U',
-        nodata     = 0
+        nodata     = no_data_value
       )
 
       inSrcTemp <- NULL
       pgConnTemp <- connList
-
-      return()
     } else {
+      # =============================================================================
+      # Copy layer to local directory.
+      # This is done as the created ID field is created on the fly first for ogr2ogr
+      # and second for the gdal_rasterize command. There is a small chance that the
+      # file will be modified between the first & second command which will impact
+      # change the order of the on the fly ID field creation. To prevent this, the
+      # file is copied to a outTifpath directory.
+      # =============================================================================
+      print(glue("Copying {srcpath} to {outTifpath}"))
+      if (srctype %in% c("shapefile", "shp")) {
+        files <- list.files(path = dirname(srcpath), pattern = paste0("^", tools::file_path_sans_ext(basename(srcpath)), "\\..*"), ignore.case = TRUE)
+        for (file in files) {
+          file.copy(file.path(dirname(srcpath), file), file.path(outTifpath, file), overwrite = TRUE)
+        }
+      } else {
+        file.copy(from = srcpath, to = outTifpath, overwrite = TRUE, recursive = TRUE, copy.mode = TRUE)
+      }
+
+      old_src_path <- srcpath
+      srcpath <- file.path(outTifpath, basename(srcpath))
 
       # =============================================================================
       # Create Non Spatial Table with attributes from FDW
-      # ============================================================================
+      # =============================================================================
       print(glue("Creating non-spatial PG table: {dst_schema_name}.{dst_table_name} from source: {srcpath}|layername={srclyr}"))
-      print(glue('srcpath = {srcpath}'))
-      print(glue('dst_table_name = {dst_table_name}'))
-      print(glue('dst_schema_name = {dst_schema_name}'))
-      print(glue('srclyr = {srclyr}'))
       faibDataManagement::writeNoSpaTbl2PG(
                                             src           = srcpath,
                                             outTblName    = dst_table_name,
                                             connList      = connList,
-                                            pk            = pk,
+                                            pk            = pk_id,
                                             outSchema     = dst_schema_name,
                                             lyr           = srclyr,
                                             where         = query,
                                             select        = flds2keep,
                                             table_comment = dest_table_comment
       )
+
       print("Table created successfully.")
       #Create tif from input
       outTifName <- glue("{nsTblm}.tif")
       inRas <- rasterizeWithGdal(
                                   inlyr      = srclyr,
-                                  field      = "fid",
+                                  field      = pk_id,
                                   outTifpath = outTifpath,
                                   outTifname = outTifName,
                                   inSrc      = srcpath,
                                   pgConnList = NULL,
                                   vecExtent  = cropExtent,
-                                  nodata     = 0,
+                                  nodata     = no_data_value,
                                   where      = where_claus
       )
+      # =============================================================================
+      # Remove locally created layer from outTifpath
+      # =============================================================================
+      print(glue("Removing {basename(srcpath)} from {outTifpath}"))
+
+      if (srctype %in% c("shapefile", "shp")) {
+        files <- list.files(path = dirname(srcpath), pattern = paste0("^", tools::file_path_sans_ext(basename(srcpath)), "\\..*"), ignore.case = TRUE)
+        for (file in files) {
+          file.remove(file.path(outTifpath, file))
+        }
+      } else if (srctype == 'gdb') {
+        ## file.remove consistently ran into permission issues when ran on a gdb
+        ## switched to gdalmanage
+        print(system2('gdalmanage',args=c("delete", srcpath), stderr = TRUE))
+      } else {
+        file.remove(srcpath, recursive = TRUE)
+      }
+
     }
   }
 
@@ -221,7 +257,7 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
   ## Tif to PG Raster
   if(importrast2pg) {
     pgRasName <- paste0(rasSchema, '.ras_', substr(inRasbase, 1, nchar(inRasbase)-4))
-    cmd <- glue('raster2pgsql -s 3005 -d -C -r -P -I -M -t 100x100 {inRas} {pgRasName} | psql -d prov_data')
+    cmd <- glue('raster2pgsql -s 3005 -d -C -r -P -I -M -N {no_data_value} -t 100x100 {inRas} {pgRasName} | psql -d prov_data')
     print(cmd)
     shell(cmd)
     print('Imported tif to PG')
@@ -231,6 +267,12 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
   joinTbl2 <- RPostgres::Id(schema = dst_schema_name, table = dst_gr_skey_table_name)
   print(glue('Creating PG table: {dst_schema_name}.{dst_gr_skey_table_name} from values in tif and gr_skey'))
   faibDataManagement::sendSQLstatement(glue("DROP TABLE IF EXISTS {dst_schema_name}.{dst_gr_skey_table_name};"), connList)
+  if (tolower(srctype) == 'raster') {
+    ## currently the only time pk is used
+    band_field_name <- pk
+  } else {
+    band_field_name <- pk_id
+  }
   faibDataManagement::df2PG(
                             joinTbl2,
                             faibDataManagement::tif2grskeytbl(
@@ -238,7 +280,7 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
                                                               cropExtent   = cropExtent,
                                                               grskeyTIF    = grskeyTIF,
                                                               maskTif      = maskTif,
-                                                              valueColName = "fid"
+                                                              valueColName = band_field_name
                             ),
                             connList
   )
@@ -247,59 +289,55 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
   ## Adding primary key to table
   print(glue('Adding gr_skey as primary key to {dst_schema_name}.{dst_gr_skey_table_name}'))
   faibDataManagement::sendSQLstatement(glue("ALTER TABLE {dst_schema_name}.{dst_gr_skey_table_name} ADD PRIMARY KEY (gr_skey);"), connList)
-  ## Adding in foreign key
-  print(glue('Adding foreign key constraint to {dst_schema_name}.{dst_gr_skey_table_name} referencing {dst_schema_name}.{dst_table_name} using (fid);'))
-  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {dst_schema_name}.{dst_gr_skey_table_name} ADD CONSTRAINT {dst_gr_skey_table_name}_fkey FOREIGN KEY (fid) REFERENCES {dst_schema_name}.{dst_table_name} (fid);"), connList)
-  ## Add index on fid
-  faibDataManagement::sendSQLstatement(glue("DROP INDEX IF EXISTS {dst_gr_skey_table_name}_fid_idx;"), connList)
-  faibDataManagement::sendSQLstatement(glue("CREATE INDEX {dst_gr_skey_table_name}_fid_idx ON {dst_schema_name}.{dst_gr_skey_table_name} USING btree (fid)"), connList)
+
+  if (tolower(srctype) != 'raster') {
+    ## Adding in foreign key
+    print(glue('Adding foreign key constraint to {dst_schema_name}.{dst_gr_skey_table_name} referencing {dst_schema_name}.{dst_table_name} using ({pk_id});'))
+    faibDataManagement::sendSQLstatement(glue("ALTER TABLE {dst_schema_name}.{dst_gr_skey_table_name} ADD CONSTRAINT {dst_gr_skey_table_name}_fkey FOREIGN KEY ({pk_id}) REFERENCES {dst_schema_name}.{dst_table_name} ({pk_id});"), connList)
+    ## Add index on fid
+    faibDataManagement::sendSQLstatement(glue("DROP INDEX IF EXISTS {dst_gr_skey_table_name}_{pk_id}_idx;"), connList)
+    faibDataManagement::sendSQLstatement(glue("CREATE INDEX {dst_gr_skey_table_name}_{pk_id}_idx ON {dst_schema_name}.{dst_gr_skey_table_name} USING btree ({pk_id})"), connList)
+
+  }
   ## Add comment on table
   faibDataManagement::sendSQLstatement(dest_gr_skey_table_comment, connList)
   ## Update the query planner with the latest changes
   faibDataManagement::sendSQLstatement(glue("ANALYZE {dst_schema_name}.{dst_gr_skey_table_name};"),connList)
 
   if(rslt_ind == 1) {
-    gr_skey_tbl <- glue("{dst_schema_name}.{dst_gr_skey_table_name}")
     faibDataManagement::updateFKlookupPG(
-                                          joinTbl,
-                                          pk,
-                                          suffix,
-                                          gr_skey_tbl,
-                                          connList
+                                          inLayer     = glue("{dst_schema_name}.{dst_gr_skey_table_name}"),
+                                          pk          = pk_id,
+                                          suffix      = suffix,
+                                          fkTBlName   = gr_skey_tbl,
+                                          connList    = connList
     )
-    print("Created new foreign key lookup table")
+
+
 
     #Update Metadata tables
     faibDataManagement::updateFKfldTablePG(
-                                          nsTblm,
+                                          glue("{dst_schema_name}.{dst_table_name}"),
                                           gr_skey_tbl,
                                           suffix,
                                           connList
     )
 
-    srcpath <- gsub("[[:space:]]",'',srcpath)
-    print('srcpath - 1')
-
-    faibDataManagement::updateFKsrcTblpg(
-                                          dataSourceTblName,
-                                          srctype,
-                                          srcpath,
-                                          srclyr,
-                                          pk,
-                                          suffix,
-                                          nsTblm,
-                                          query,
-                                          1,
-                                          rslt_ind,
-                                          flds2keep,
-                                          connList
-    )
-
-    print("Updated data sources table")
-    faibDataManagement::sendSQLstatement(paste0("drop table if exists ", joinTbl, ";"), connList)
-    faibDataManagement::sendSQLstatement(paste0("drop table if exists ", gr_skey_tbl, "_old;"), connList)
-    print("Deleted excess tables")
-    faibDataManagement::sendSQLstatement(glue("ANALYZE {gr_skey_tbl};"), connList)
   }
+
+  faibDataManagement::updateFKsrcTblpg(
+    outTableName = dataSourceTblName,
+    srctype      = srctype,
+    srcpath      = srcpath,
+    srclyr       = srclyr,
+    pk           = pk_id,
+    suffix       = suffix,
+    nsTblm       = nsTblm,
+    query        = query,
+    rslt_ind     = rslt_ind,
+    fields2keep  = flds2keep,
+    schema       = wrkSchema,
+    connList     = connList
+  )
 }
 

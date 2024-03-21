@@ -11,35 +11,46 @@
 #' @examples coming soon
 
 
-updateFKlookupPG  <- function(inLayer,pk,suffix,fkTBlName,connList,joinFld='gr_skey'){
+updateFKlookupPG  <- function(inLayer, pk, suffix, fkTBlName, connList, joinFld = 'gr_skey'){
+  print("Performing rslt_ind foreign key lookup table update...")
   if (grepl("\\.", fkTBlName)) {
-    fkTBlNameNoSchema <- unlist(strsplit(fkTBlName, split = "[.]"))[-1]
-    schema <- unlist(strsplit(fkTBlName, split = "[.]"))[1]
-
+    fkTBlNameNoSchema <- strsplit(fkTBlName, "\\.")[[1]][[2]]
+    schema <- strsplit(fkTBlName, "\\.")[[1]][[1]]
+  } else {
+    schema <- 'public'
+   fkTBlNameNoSchema <- fkTBlName
   }
-  else{schema <- 'public'
-  fkTBlNameNoSchema <- fkTBlName }
-
-  pkOut <- paste0(pk,"_", suffix)
-  resCols <- getTableQueryPG(paste0(" select column_name
-                              from information_schema.columns
-                              where table_schema = '",schema,"' and  table_name = '", fkTBlNameNoSchema,"' and column_name like '%_", suffix,"';"),connList)
-
-  if(is.data.frame(resCols) && nrow(resCols)> 0){
+  ## retrieve any columns in the foreign key lookup table that have the current suffix and then remove them
+  ## this is to be able to overwrite any relevant fields
+  pkOut <- glue("{pk}_{suffix}")
+  resCols <- getTableQueryPG(glue("SELECT
+                                    column_name
+                                  FROM
+                                    information_schema.columns
+                                  WHERE
+                                    table_schema = '{schema}'
+                                  AND
+                                    table_name = '{fkTBlNameNoSchema}'
+                                  AND
+                                    column_name LIKE '%_{suffix}';"), connList)
+  if(is.data.frame(resCols) && nrow(resCols)> 0) {
     for (i in 1:length(resCols$column_name)){
       val <- resCols$column_name[i]
-      print(val)
-      sendSQLstatement(paste0("alter table ", fkTBlName," drop column ", val,";"),connList)
+      print(glue("Dropping column: {val} from table: {fkTBlName}"))
+      sendSQLstatement(glue("ALTER TABLE {fkTBlName} DROP COLUMN {val};"),connList)
     }
   }
 
-  sendSQLstatement(glue("drop table if exists {fkTBlName}_{joinFld};"),connList)
-  sendSQLstatement(glue("create table {fkTBlName}_{joinFld} as
-                   select a.*,b.{pk} as {pkOut}
-                   from {fkTBlName} a
-                   left outer join  {inLayer} b on a.{joinFld} = b.{joinFld};"),connList)
-  sendSQLstatement(glue("drop table if exists {fkTBlName}_old cascade;"),connList)
-  sendSQLstatement(glue("ALTER TABLE {fkTBlName} RENAME TO {fkTBlNameNoSchema}_old;"),connList)
+  sendSQLstatement(glue("DROP TABLE IF EXISTS {fkTBlName}_{joinFld};"),connList)
+  sendSQLstatement(glue("CREATE TABLE {fkTBlName}_{joinFld} AS
+                        SELECT
+                          a.*,
+                          b.{pk} as {pkOut}
+                        FROM
+                          {fkTBlName} a
+                        LEFT JOIN {inLayer} b USING ({joinFld});"),connList)
+  sendSQLstatement(glue("DROP TABLE IF EXISTS {fkTBlName};"),connList)
   sendSQLstatement(glue("ALTER TABLE {fkTBlName}_{joinFld} RENAME TO {fkTBlNameNoSchema};"),connList)
-  sendSQLstatement(glue("ALTER TABLE {fkTBlName} ADD PRIMARY KEY ({joinFld});"),connList)
+  sendSQLstatement(glue("ALTER TABLE {fkTBlName} ADD PRIMARY KEY (gr_skey);"),connList)
+  print("Foreign key lookup table updated.")
 }

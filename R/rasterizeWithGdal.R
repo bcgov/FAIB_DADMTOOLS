@@ -53,9 +53,9 @@ rasterizeWithGdal <- function(
   }
 
 
-  value <- paste("-a", field)
+  value <- glue("-a {field}")
   comp <- '-co COMPRESS=LZW'
-  datatype <- glue("-ot ", datatype)
+  datatype <- glue("-ot {datatype}")
 
   proj <- "-a_srs EPSG:3005"
   extent_str <- paste("-te", vecExtent[1], vecExtent[3], vecExtent[2], vecExtent[4] )
@@ -63,13 +63,15 @@ rasterizeWithGdal <- function(
   if (is_blank(inlyr)){
     inlyr <- ''
   }
-  print(inlyr)
-  spc <- ' '
 
-  sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT ROW_NUMBER() OVER () AS fid, * FROM {inlyr} {where}")))
+
+  sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT ROW_NUMBER() OVER () AS {field}, * FROM {inlyr} {where}")))
   nodata <- glue('-a_nodata ', nodata)
   print(glue("Writing raster: {dest} using datatype: {datatype}"))
-  print(paste('gdal_rasterize',datatype, comp,value,proj,extent_str,cellSize,src,spc,dest,sql,nodata))
-  print(system2('gdal_rasterize',args=c(datatype, comp,value,proj,extent_str,cellSize,src,spc,dest,sql,nodata), stderr = TRUE))
+  print(paste('gdal_rasterize',datatype, comp,value,proj,extent_str,cellSize,src,dest,sql,nodata))
+  print(system2('gdal_rasterize',args=c(datatype, comp,value,proj,extent_str,cellSize,src,dest,sql,nodata), stderr = TRUE))
+
   print('Raster created successfully.')
-  return(dest)}
+  return(dest)
+
+}

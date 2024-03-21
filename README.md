@@ -90,7 +90,7 @@ Function takes the following inputs. Default values listed below:
 ```
 gr_skey_tif_2_pg_geom(
     grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-    maskTif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Lands_and_Islandsincluded.tif',
+    maskTif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
     cropExtent = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
     outCropTifName = 'D:\\Projects\\provDataProject\\gr_skey_cropped.tif', ## output destination tif filename
     connList = faibDataManagement::get_pg_conn_list(),
@@ -109,7 +109,7 @@ Column names must match template above. Field description:
 - `srclyr` : Layer name
     - When `srctype = oracle` then schema and layer name, e.g. `WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly`
 - `primarykey` : Required source file primary key, must be integer.
-- `suffix` : Used in resultant columns that were kept from the data source (e.g. "vri2021")
+- `suffix` : When rslt_ind = 1, suffix used for column name creation in foreign table lookup, e.g. `faib_fid_<suffix>`
 - `tblname` : Postgres destination table name.
     - E.g. `forest_harvesting_restrictions_july2023` TODO schema?
 - `src_query` : Optional argument to filter source layer
@@ -141,7 +141,7 @@ add_batch_2_pg_grskey_grid(
     wrkSchema = 'whse',
     rasSchema = 'raster',
     grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-    maskTif='S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Lands_and_Islandsincluded.tif',
+    maskTif='S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
     dataSourceTblName = 'data_sources',
     setwd='D:/Projects/provDataProject',
     outTifpath = 'D:\\Projects\\provDataProject',

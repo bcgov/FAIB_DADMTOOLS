@@ -38,21 +38,21 @@ getFDWtblSpSQL<- function(dst_table_name, dst_schema_name, oratable, pk, connLis
   sqlstmt <- glue("
   WITH fdw_w_geom_and_where_clause AS (
   SELECT
-    {pk},
+    objectid,
     {geomName}
   FROM
      {fdwSchema}.{oraTblNameNoSchema}
   {where}
   )
   SELECT
-    non_spatial.fid,
+    non_spatial.{pk},
     fdw_w_geom.{geomName}
   FROM
     {dst_schema_name}.{dst_table_name} non_spatial
   JOIN
     fdw_w_geom_and_where_clause fdw_w_geom
   ON
-    fdw_w_geom.{pk}::integer = non_spatial.{pk}::integer")
+    fdw_w_geom.objectid::integer = non_spatial.objectid::integer")
 
   return(sqlstmt)
 }
