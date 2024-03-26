@@ -12,11 +12,9 @@
 #' @examples df2PG('pgTableName',myDF,'postgres','myDB','mypassword',5432,'prod','T','F')
 
 
-df2PG<-function(pgTblName, inDF, connList, overwrite=T, append=F){
+df2PG<-function(pgTblName, inDF, connList, overwrite = TRUE, append = FALSE){
   inDF <- dfColNames2lower(inDF)
-  column_names <- colnames(inDF)
-  inDF[[column_names[column_names != "gr_skey"]]] <- as.integer(inDF[[column_names[column_names != "gr_skey"]]])
-  conn<-dbConnect(connList["driver"][[1]],
+  conn <- dbConnect(connList["driver"][[1]],
                   host = connList["host"][[1]],
                   user = connList["user"][[1]],
                   dbname = connList["dbname"][[1]],

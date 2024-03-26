@@ -2,25 +2,25 @@
 #'
 #'
 #'
-#' @param rslt_ind coming soon
-#' @param srctype coming soon
-#' @param srcpath coming soon
-#' @param srclyr coming soon
-#' @param pk coming soon
-#' @param suffix coming soon
-#' @param nsTblm coming soon
-#' @param query coming soon
-#' @param flds2keep coming soon
-#' @param connList coming soon
-#' @param cropExtent coming soon
-#' @param gr_skey_tbl coming soon
-#' @param wrkSchema coming soon
-#' @param rasSchema coming soon
-#' @param fdwSchema coming soon
-#' @param grskeyTIF coming soon
-#' @param maskTif coming soon
+#' @param rslt_ind Used in combination with gr_skey_tbl and suffix arguments. 1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
+#' @param srctype Format of data source, options: gdb, oracle, postgres, geopackage, raster, shp
+#' @param srcpath Path to input data. Note use bcgw for whse oracle layers
+#' @param srclyr Input layer name
+#' @param suffix Use in combination with rslt_ind and gr_skey_tbl. Suffix to be added to the primary key field name in the gr_skey table
+#' @param nsTblm Name of output non spatial table
+#' @param query Where clause used to filter input dataset, Eg. fire_year = 2023 and BURN_SEVERITY_RATING in ('High','Medium')
+#' @param flds2keep Fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name
+#' @param connList Keyring object of Postgres credentials
+#' @param cropExtent Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005
+#' @param gr_skey_tbl Pre-existing table that contains gr_skey field
+#' @param wrkSchema Schema to insert the new gr_skey and non spatial table
+#' @param rasSchema If importrast2pg set to TRUE, the import schema for the raster
+#' @param fdwSchema If srctype=oracle, the schema to load the foreign data wrapper table
+#' @param grskeyTIF The file path to the gr_skey geotiff
+#' @param maskTif The file path to the geotiff to be used as a mask
 #' @param dataSourceTblName coming soon
-#' @param setwd coming soon
+#' @param outTifpath Directory where output tif if exported and where vector is temporally stored prior to import
+#' @param importrast2pg If TRUE, raster is imported into database in rasSchema
 #'
 #'
 #' @return no return
@@ -33,7 +33,6 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
                                       srctype,
                                       srcpath,
                                       srclyr,
-                                      pk,
                                       suffix,
                                       nsTblm,
                                       query,
@@ -48,18 +47,19 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
                                       grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
                                       maskTif='S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
                                       dataSourceTblName = 'data_sources',
-                                      setwd='D:/Projects/provDataProject',
                                       outTifpath = 'D:\\Projects\\provDataProject',
                                       importrast2pg = FALSE
 )
 
 {
-  #Get inputs from input file
-  rslt_ind  <- gsub("[[:space:]]",'',tolower(rslt_ind)) ## 1 = include(i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
-  srctype   <- gsub("[[:space:]]",'',tolower(srctype)) ## format of data source i.e. gdb,oracle, postgres, geopackage, raster
+  print(paste(rep("*", 80), collapse=""))
+  print(glue("Importing {srcpath} | layername={srclyr}..."))
+  print(paste(rep("*", 80), collapse=""))
+  ## Get inputs from input file
+  rslt_ind  <- gsub("[[:space:]]",'',tolower(rslt_ind)) ## 1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
+  srctype   <- gsub("[[:space:]]",'',tolower(srctype)) ## format of data source i.e. gdb, oracle, postgres, geopackage, raster, shp
   srcpath   <- gsub("[[:space:]]",'',tolower(srcpath))## path to input data. Note use bcgw for whse
   srclyr    <- gsub("[[:space:]]",'',tolower(srclyr)) ## input layer name
-  pk        <- gsub("[[:space:]]",'',tolower(pk)) ## primary key field that will be added to resultant table
   suffix    <- gsub("[[:space:]]",'',tolower(suffix)) ## suffix to be used in the resultant table
   nsTblm    <- gsub("[[:space:]]",'',tolower(nsTblm)) ## name of output non spatial table
   query     <- query  ## where clause used to filter input dataset
@@ -268,8 +268,7 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
   print(glue('Creating PG table: {dst_schema_name}.{dst_gr_skey_table_name} from values in tif and gr_skey'))
   faibDataManagement::sendSQLstatement(glue("DROP TABLE IF EXISTS {dst_schema_name}.{dst_gr_skey_table_name};"), connList)
   if (tolower(srctype) == 'raster') {
-    ## currently the only time pk is used
-    band_field_name <- pk
+    band_field_name <- 'val'
   } else {
     band_field_name <- pk_id
   }
