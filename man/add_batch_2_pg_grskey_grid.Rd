@@ -15,31 +15,36 @@ add_batch_2_pg_grskey_grid(
   grskeyTIF =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\bc_01ha_gr_skey.tif",
   maskTif =
-    "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Lands_and_Islandsincluded.tif",
+    "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
   dataSourceTblName = "data_sources",
-  setwd = "D:/Projects/provDataProject",
   outTifpath = "D:\\\\Projects\\\\provDataProject",
   importrast2pg = FALSE
 )
 }
 \arguments{
-\item{inCSV}{coming soon}
+\item{inCSV}{File path to data sources csv, see inputsDatasets2load2PG.csv for example}
 
-\item{connList}{coming soon}
+\item{connList}{Keyring object of Postgres credentials}
 
-\item{cropExtent}{coming soon}
+\item{oraConnList}{Keyring object of Oracle credentials}
 
-\item{gr_skey_tbl}{coming soon}
+\item{cropExtent}{list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
 
-\item{wrkSchema}{coming soon}
+\item{gr_skey_tbl}{Tablename of the pre-existing foreign key lookup gr_skey table. Argument to be used with suffix and rslt_ind within inCSV. Schema is assumed to be wrkSchema}
 
-\item{rasSchema}{coming soon}
+\item{wrkSchema}{Schema where gr_skey, non spatial table will be imported as well as the schema of gr_skey_tbl}
+
+\item{rasSchema}{If importrast2pg=TRUE, schema of imported raster}
+
+\item{grskeyTIF}{The file path to the gr_skey geotiff to be used as a template raster}
+
+\item{maskTif}{The file path to the geotiff to be used as a mask}
 
 \item{dataSourceTblName}{coming soon}
 
-\item{setwd}{coming soon}
+\item{outTifpath}{Directory where output tif if exported and where vector is temporally stored prior to import}
 
-\item{templateRaster}{coming soon}
+\item{importrast2pg}{If TRUE, raster is imported into database in rasSchema}
 }
 \value{
 no return
