@@ -4,7 +4,7 @@
 \alias{df2PG}
 \title{Write a PG Table from Dataframe}
 \usage{
-df2PG(pgTblName, inDF, connList, overwrite = T, append = F)
+df2PG(pgTblName, inDF, connList, overwrite = TRUE, append = FALSE)
 }
 \arguments{
 \item{pgTblName}{Name of output PG Table}

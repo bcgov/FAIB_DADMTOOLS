@@ -9,7 +9,6 @@ add_data_2_pg_grskey_grid(
   srctype,
   srcpath,
   srclyr,
-  pk,
   suffix,
   nsTblm,
   query,
@@ -24,51 +23,50 @@ add_data_2_pg_grskey_grid(
   grskeyTIF =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\bc_01ha_gr_skey.tif",
   maskTif =
-    "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Lands_and_Islandsincluded.tif",
+    "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
   dataSourceTblName = "data_sources",
-  setwd = "D:/Projects/provDataProject",
   outTifpath = "D:\\\\Projects\\\\provDataProject",
   importrast2pg = FALSE
 )
 }
 \arguments{
-\item{rslt_ind}{coming soon}
+\item{rslt_ind}{Used in combination with gr_skey_tbl and suffix arguments. 1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)}
 
-\item{srctype}{coming soon}
+\item{srctype}{Format of data source, options: gdb, oracle, postgres, geopackage, raster, shp}
 
-\item{srcpath}{coming soon}
+\item{srcpath}{Path to input data. Note use bcgw for whse oracle layers}
 
-\item{srclyr}{coming soon}
+\item{srclyr}{Input layer name}
 
-\item{pk}{coming soon}
+\item{suffix}{Use in combination with rslt_ind and gr_skey_tbl. Suffix to be added to the primary key field name in the gr_skey table}
 
-\item{suffix}{coming soon}
+\item{nsTblm}{Name of output non spatial table}
 
-\item{nsTblm}{coming soon}
+\item{query}{Where clause used to filter input dataset, Eg. fire_year = 2023 and BURN_SEVERITY_RATING in ('High','Medium')}
 
-\item{query}{coming soon}
+\item{flds2keep}{Fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name}
 
-\item{flds2keep}{coming soon}
+\item{connList}{Keyring object of Postgres credentials}
 
-\item{connList}{coming soon}
+\item{cropExtent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
 
-\item{cropExtent}{coming soon}
+\item{gr_skey_tbl}{Pre-existing table that contains gr_skey field}
 
-\item{gr_skey_tbl}{coming soon}
+\item{wrkSchema}{Schema to insert the new gr_skey and non spatial table}
 
-\item{wrkSchema}{coming soon}
+\item{rasSchema}{If importrast2pg set to TRUE, the import schema for the raster}
 
-\item{rasSchema}{coming soon}
+\item{fdwSchema}{If srctype=oracle, the schema to load the foreign data wrapper table}
 
-\item{fdwSchema}{coming soon}
+\item{grskeyTIF}{The file path to the gr_skey geotiff}
 
-\item{grskeyTIF}{coming soon}
-
-\item{maskTif}{coming soon}
+\item{maskTif}{The file path to the geotiff to be used as a mask}
 
 \item{dataSourceTblName}{coming soon}
 
-\item{setwd}{coming soon}
+\item{outTifpath}{Directory where output tif if exported and where vector is temporally stored prior to import}
+
+\item{importrast2pg}{If TRUE, raster is imported into database in rasSchema}
 }
 \value{
 no return

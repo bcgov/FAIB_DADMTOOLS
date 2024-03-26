@@ -12,7 +12,8 @@ fdwTbl2PGnoSpatial(
   connList,
   fdwSchema = "load",
   attr2keep = NULL,
-  where = ""
+  where = "",
+  table_comment
 )
 }
 \arguments{

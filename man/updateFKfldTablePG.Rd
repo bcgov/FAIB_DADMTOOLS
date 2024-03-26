@@ -7,7 +7,7 @@
 updateFKfldTablePG(nsTbl, fkTBlName, suffix, connList)
 }
 \arguments{
-\item{nsTbl}{non-spatial table to add to foreign key filed table (must have a foreign key column in the foreing key lookup table)}
+\item{nsTbl}{non-spatial table to add to foreign key filed table (must have a foreign key column in the foreign key lookup table)}
 
 \item{fkTBlName}{foreign key lookup table name}
 

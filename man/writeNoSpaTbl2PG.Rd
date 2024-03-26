@@ -12,7 +12,8 @@ writeNoSpaTbl2PG(
   pk = NULL,
   select = NULL,
   where = NULL,
-  schema = NULL
+  outSchema = NULL,
+  table_comment = NULL
 )
 }
 \arguments{
@@ -26,7 +27,7 @@ writeNoSpaTbl2PG(
 
 \item{select}{fields to keep in table e.g. "objectid,feature_id,segmentName"}
 
-\item{schema}{default database schema}
+\item{outSchema}{default database schema}
 
 \item{dbName}{Name of PG database}
 

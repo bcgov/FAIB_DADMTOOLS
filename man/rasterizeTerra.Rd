@@ -12,7 +12,8 @@ rasterizeTerra(
   inlyr = NULL,
   outTifpath = NULL,
   outTifname = NULL,
-  datatype = "INT4S"
+  datatype = "INT4S",
+  nodata = 0
 )
 }
 \arguments{

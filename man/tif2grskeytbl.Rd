@@ -9,21 +9,21 @@ tif2grskeytbl(
   grskeyTIF =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\bc_01ha_gr_skey.tif",
   maskTif =
-    "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Lands_and_Islandsincluded.tif",
+    "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
   cropExtent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
-  valueColName = "value"
+  valueColName = "val"
 )
 }
 \arguments{
-\item{inTIF}{input TIF}
+\item{inTIF}{File path to input geotiff}
 
-\item{grskeyTIF}{TIF with gr_skey values}
+\item{grskeyTIF}{File path to template geotiff with gr_skey values}
 
-\item{maskTif}{TIF to mask (values that ar N/a in mask will be nulled )}
+\item{maskTif}{File path to geotiff to be used as mask (values that ar N/a in mask will be nulled )}
 
-\item{cropExtent}{e.g. c(273287.5,1870587.5,367787.5,1735787.5)}
+\item{cropExtent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
 
-\item{valueColName}{name of output column}
+\item{valueColName}{Name of output column}
 }
 \value{
 coming soon

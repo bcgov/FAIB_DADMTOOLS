@@ -16,6 +16,7 @@ updateFKsrcTblpg(
   inc,
   rslt_ind,
   fields2keep,
+  schema,
   connList
 )
 }

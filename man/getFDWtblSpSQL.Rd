@@ -2,9 +2,17 @@
 % Please edit documentation in R/getFDWtblSpSQL.R
 \name{getFDWtblSpSQL}
 \alias{getFDWtblSpSQL}
-\title{Returnes a sql staement including the spatial field and primary key field of a Foreign Data Wrapper table.  Can be used in gdal rasterize statemenr}
+\title{Returns a SQL statement including the spatial field and primary key field of a Foreign Data Wrapper table.  Can be used in gdal rasterize statement}
 \usage{
-getFDWtblSpSQL(oratable, pk, connList, fdwSchema = "load", where = NULL)
+getFDWtblSpSQL(
+  dst_table_name,
+  dst_schema_name,
+  oratable,
+  pk,
+  connList,
+  fdwSchema = "load",
+  where = NULL
+)
 }
 \arguments{
 \item{oratable}{coming soon}
@@ -21,7 +29,7 @@ getFDWtblSpSQL(oratable, pk, connList, fdwSchema = "load", where = NULL)
 sql string
 }
 \description{
-Returnes a sql staement including the spatial field and primary key field of a Foreign Data Wrapper table.  Can be used in gdal rasterize statemenr
+Returns a SQL statement including the spatial field and primary key field of a Foreign Data Wrapper table.  Can be used in gdal rasterize statement
 }
 \examples{
 coming soon
