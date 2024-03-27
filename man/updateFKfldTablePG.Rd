@@ -4,16 +4,18 @@
 \alias{updateFKfldTablePG}
 \title{Update the foreign key field table in PG}
 \usage{
-updateFKfldTablePG(nsTbl, fkTBlName, suffix, connList)
+updateFKfldTablePG(dst_tbl, dst_schema, fk_tbl, suffix, pg_conn_param)
 }
 \arguments{
-\item{nsTbl}{non-spatial table to add to foreign key filed table (must have a foreign key column in the foreign key lookup table)}
+\item{dst_tbl}{non-spatial table to add to foreign key filed table (must have a foreign key column in the foreign key lookup table)}
 
-\item{fkTBlName}{foreign key lookup table name}
+\item{dst_schema}{non-spatial table schema to add to foreign key filed table (must have a foreign key column in the foreign key lookup table)}
+
+\item{fk_tbl}{foreign key lookup table name}
 
 \item{suffix}{suffix added to the foreign key column}
 
-\item{connList}{Named list with the following connection parameters Driver,host,user,dbname,password,port,schema}
+\item{pg_conn_param}{Named list with the following connection parameters Driver,host,user,dbname,password,port,schema}
 }
 \value{
 nothing is returned

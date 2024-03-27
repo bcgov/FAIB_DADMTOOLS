@@ -1,11 +1,14 @@
 #' Create a PG non spatial table from Foreign data wrapper table
 #'
-#' @param foreignTable coming soon
-#' @param outTblName coming soon
+#' @param src_tbl coming soon
+#' @param dst_tbl coming soon
 #' @param pk coming soon
 #' @param schema coming soon
-#' @param connList coming soon
-#' @param attr2keep optional
+#' @param pg_conn_param coming soon
+#' @param src_schema coming soon
+#' @param flds_to_keep optional
+#' @param where
+#' @param tbl_comment
 #'
 #' @return None
 #' @export
@@ -13,16 +16,25 @@
 #' @examples coming soon
 
 
-fdwTbl2PGnoSpatial <- function(foreignTable, outTblName, pk, outSchema, connList, fdwSchema = 'load', attr2keep = NULL, where = '', table_comment) {
-
-  if (grepl("\\.", foreignTable)) {
-    oraTblNameNoSchema <- unlist(strsplit(foreignTable, split = "[.]"))[-1]
+fdwTbl2PGnoSpatial <- function(src_tbl, 
+                               dst_tbl, 
+                               pk,
+                               dst_schema, 
+                               pg_conn_param, 
+                               tbl_comment,
+                               src_schema   = 'load', 
+                               flds_to_keep = NULL, 
+                               where        = '') 
+{
+  ## if source table has schema appended, strip it off and use src_schema argument
+  if (grepl("\\.", src_tbl)) {
+    src_tbl <- unlist(strsplit(src_tbl, split = "[.]"))[-1]
   } else {
-    oraTblNameNoSchema <- foreignTable
+    src_tbl <- src_tbl
   }
 
-  geomName <- faibDataManagement::getGeomNamePG(fdwSchema, oraTblNameNoSchema, connList)
-  outNameSchema <- glue("{outSchema}.{outTblName}")
+  geom_name <- faibDataManagement::getGeomNamePG(src_schema, src_tbl, pg_conn_param)
+
   if(where == '' || is.null(where) || is.na(where)) {
     where <- ''
   } else {
@@ -30,7 +42,7 @@ fdwTbl2PGnoSpatial <- function(foreignTable, outTblName, pk, outSchema, connList
     where <- glue("where {where}")
   }
 
-  if(is.null(attr2keep) || attr2keep == '' || is.na(attr2keep)) {
+  if(is.null(flds_to_keep) || flds_to_keep == '' || is.na(flds_to_keep)) {
     ## Keep all attributes
     query = glue("SELECT
                     'SELECT ' || array_to_string(
@@ -40,20 +52,20 @@ fdwTbl2PGnoSpatial <- function(foreignTable, outTblName, pk, outSchema, connList
                                                       FROM
                                                         information_schema.columns As c
                                                       WHERE
-                                                        table_name = '{oraTblNameNoSchema}'
+                                                        table_name = '{src_tbl}'
                                                       AND
-                                                        table_schema = 'load'
+                                                        table_schema = '{src_schema}'
                                                       AND
-                                                        c.column_name NOT IN ('{geomName}')
+                                                        c.column_name NOT IN ('{geom_name}')
                                                     )
                                       , ',') || '
                  FROM
-                  {fdwSchema}.{oraTblNameNoSchema} AS o {where} ' As sqlstmt")
+                  {src_schema}.{src_tbl} AS o {where} ' As sqlstmt")
 
-    sqlstmt <- (faibDataManagement::getTableQueryPG(query, connList))$sqlstmt
+    sqlstmt <- (faibDataManagement::getTableQueryPG(query, pg_conn_param))$sqlstmt
   } else {
     # Split the original string into elements
-    elements <- strsplit(attr2keep, ",")[[1]]
+    elements <- strsplit(flds_to_keep, ",")[[1]]
     # if objectid is not in requested fields, add it
     if (!("objectid" %in% elements)) {
       elements <- c(elements, "objectid")
@@ -63,7 +75,7 @@ fdwTbl2PGnoSpatial <- function(foreignTable, outTblName, pk, outSchema, connList
     quoted_elements <- paste0("'", elements, "'")
 
     # Join the quoted elements into a new string
-    attr2keep <- paste(quoted_elements, collapse = ',')
+    flds_to_keep <- paste(quoted_elements, collapse = ',')
 
     query = glue("SELECT
                     'SELECT ' || array_to_string(
@@ -73,25 +85,25 @@ fdwTbl2PGnoSpatial <- function(foreignTable, outTblName, pk, outSchema, connList
                                                       FROM
                                                         information_schema.columns As c
                                                       WHERE
-                                                        table_name = '{oraTblNameNoSchema}'
+                                                        table_name = '{src_tbl}'
                                                       AND
-                                                        table_schema = 'load'
+                                                        table_schema = '{src_schema}'
                                                       AND
-                                                        c.column_name NOT IN ('{geomName}')
+                                                        c.column_name NOT IN ('{geom_name}')
                                                       AND
-                                                        c.column_name IN ({attr2keep})
+                                                        c.column_name IN ({flds_to_keep})
                                                     )
                                       , ',') || '
                  FROM
-                  {fdwSchema}.{oraTblNameNoSchema} AS o {where} ' As sqlstmt")
-    sqlstmt <- (faibDataManagement::getTableQueryPG(query, connList))$sqlstmt
+                  {src_schema}.{src_tbl} AS o {where} ' As sqlstmt")
+    sqlstmt <- (faibDataManagement::getTableQueryPG(query, pg_conn_param))$sqlstmt
   }
   today_date <- format(Sys.Date(), "%Y-%m-%d")
   ## Alter the SQL statement to cast the
-  faibDataManagement::sendSQLstatement(glue('DROP TABLE IF EXISTS {outSchema}.{outTblName} CASCADE;'),connList)
-  faibDataManagement::sendSQLstatement(glue('CREATE TABLE {outSchema}.{outTblName} AS {sqlstmt};'),connList)
+  faibDataManagement::sendSQLstatement(glue('DROP TABLE IF EXISTS {dst_schema}.{dst_tbl} CASCADE;'), pg_conn_param)
+  faibDataManagement::sendSQLstatement(glue('CREATE TABLE {dst_schema}.{dst_tbl} AS {sqlstmt};'), pg_conn_param)
   ## add harded coded fid primary key sequenctial integer
-  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {outSchema}.{outTblName} ADD COLUMN {pk} int GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY;"), connList)
-  faibDataManagement::sendSQLstatement(table_comment, connList)
-  faibDataManagement::sendSQLstatement(glue("ANALYZE {outSchema}.{outTblName};"),connList)
+  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {dst_schema}.{dst_tbl} ADD COLUMN {pk} int GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY;"), pg_conn_param)
+  faibDataManagement::sendSQLstatement(tbl_comment, pg_conn_param)
+  faibDataManagement::sendSQLstatement(glue("ANALYZE {dst_schema}.{dst_tbl};"), pg_conn_param)
   }

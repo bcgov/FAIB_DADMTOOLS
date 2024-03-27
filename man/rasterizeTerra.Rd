@@ -5,33 +5,33 @@
 \title{Rasterize spatial data using Terra}
 \usage{
 rasterizeTerra(
-  inSrc,
+  src_sf,
   field,
-  template,
-  cropExtent = NULL,
-  inlyr = NULL,
-  outTifpath = NULL,
-  outTifname = NULL,
+  template_tif,
+  crop_extent = NULL,
+  src_lyr = NULL,
+  out_tif_path = NULL,
+  out_tif_name = NULL,
   datatype = "INT4S",
   nodata = 0
 )
 }
 \arguments{
-\item{inSrc}{path of gdb or geopackage}
+\item{src_sf}{Simple feature object}
 
 \item{field}{field to be rasterized}
 
-\item{template}{path of template raster}
+\item{crop_extent}{OPTIONAL - extent of output raster <xmin>,<ymax>,<ymin>,<xmax> default c(273287.5,1870587.5,367787.5,1735787.5)}
 
-\item{cropExtent}{OPTIONAL - extent of output raster <xmin>,<ymax>,<ymin>,<xmax> default c(273287.5,1870587.5,367787.5,1735787.5)}
+\item{src_lyr}{OPTIONAL - input data layer e.g. 'veg_comp_poly'}
 
-\item{inlyr}{OPTIONAL - input data layer e.g. 'veg_comp_poly'}
+\item{out_tif_path}{path of out TIF defualt D:/Projects/provDataProject}
 
-\item{outTifpath}{path of out TIF defualt D:/Projects/provDataProject}
-
-\item{outTifname}{name of out TIF}
+\item{out_tif_name}{name of out TIF}
 
 \item{datatype}{default Int64}
+
+\item{template}{path of template raster}
 }
 \value{
 output tif name

@@ -1,26 +1,28 @@
 #' Run a external sql file
 #'
-#' @param sqlVar vector of variables to use in sql file e.g. c("schema='dbName',xwalkprev='inFC')
-#' @param sqlFile path and file name of sql file
-#' @param pgDB pg database name
+#' @param sql_var vector of variables to use in sql file e.g. c("schema='dbName',xwalkprev='inFC')
+#' @param sql_file path and file name of sql file
+#' @param pg_db pg database name
 #' @param host host of db e.g. 'localhost'
 #'
 #' @return no return
 #' @export
 #'
-#' @examples sqlVar <- c("schema"='dbName',xwalkprev='inFC') \cr
-#' sqlFile <- C:/sql/file.sql \cr
-#' runSQL(sqlVar,sqlFile,pgDB)
+#' @examples sql_var <- c("schema"='dbName',xwalkprev='inFC') \cr
+#' sql_file <- C:/sql/file.sql \cr
+#' runSQL(sql_var,sql_file,pg_db)
 
 
 
-runSQL <- function(sqlVar,sqlFile,pgDB, host=NULL){
-  if (is.null(host)){host<-'localhost'}
-  cmd <-  c("-d",pgDB,"-f",sqlFile,"-h",host)
-  for(i in sqlVar){
-    cmd <- append(cmd,"-v")
-    cmd <- append(cmd,i)
+runSQL <- function(sql_var, sql_file, pg_db, host=NULL){
+  if (is.null(host)){
+    host<-'localhost'
+  }
+  cmd <-  c("-d", pg_db, "-f", sql_file, "-h", host)
+  for(i in sql_var){
+    cmd <- append(cmd, "-v")
+    cmd <- append(cmd, i)
   }
   print(cmd)
-  print(system2("psql",args=cmd,wait=TRUE,stdout=TRUE,stderr=TRUE))
+  print(system2("psql", args = cmd, wait = TRUE, stdout = TRUE, stderr = TRUE))
 }

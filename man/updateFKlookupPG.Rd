@@ -4,18 +4,28 @@
 \alias{updateFKlookupPG}
 \title{Update the foreign key lookup table in PG}
 \usage{
-updateFKlookupPG(inLayer, pk, suffix, fkTBlName, connList, joinFld = "gr_skey")
+updateFKlookupPG(
+  dst_tbl,
+  dst_schema,
+  pk,
+  suffix,
+  fk_tbl,
+  pg_conn_param,
+  join_field = "gr_skey"
+)
 }
 \arguments{
-\item{inLayer}{input pg table to be incorporated into foreign key lookup table}
+\item{dst_tbl}{input pg table to be incorporated into foreign key lookup table}
+
+\item{dst_schema}{input pg table schema to be incorporated into foreign key lookup table}
 
 \item{pk}{column to incorporated into foreign key lookup table}
 
 \item{suffix}{suffix added to the foreign key column}
 
-\item{fkTBlName}{current foreign key lookup table}
+\item{fk_tbl}{current foreign key lookup table}
 
-\item{connList}{Named list with the following connection parameters Driver,host,user,dbname,password,port,schema}
+\item{pg_conn_param}{Named list with the following connection parameters Driver,host,user,dbname,password,port,schema}
 }
 \value{
 nothing is returned

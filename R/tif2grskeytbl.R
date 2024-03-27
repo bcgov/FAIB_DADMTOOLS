@@ -1,10 +1,10 @@
 #' Convert tif to grskey table
 #'
-#' @param inTIF File path to input geotiff
-#' @param grskeyTIF File path to template geotiff with gr_skey values
-#' @param maskTif File path to geotiff to be used as mask (values that ar N/a in mask will be nulled )
-#' @param cropExtent Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005
-#' @param valueColName Name of output column
+#' @param src_tif_filename File path to input geotiff
+#' @param template_tif File path to template geotiff with gr_skey values
+#' @param mask_tif File path to geotiff to be used as mask (values that ar N/a in mask will be nulled )
+#' @param crop_extent Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005
+#' @param val_field_name Name of output column
 #'
 #' @return coming soon
 #' @export
@@ -12,44 +12,44 @@
 #' @examples coming soon
 
 
-tif2grskeytbl <- function(inTIF = 'D:\\Projects\\provDataProject\\fadm_tfl_all_sp.tif',
-                          grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-                          maskTif='S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
-                          cropExtent = c(273287.5,1870587.5,367787.5,1735787.5),
-                          valueColName = 'val')
+tif2grskeytbl <- function(src_tif_filename = 'D:\\Projects\\provDataProject\\fadm_tfl_all_sp.tif',
+                          template_tif     = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+                          mask_tif         = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
+                          crop_extent      = c(273287.5,1870587.5,367787.5,1735787.5),
+                          val_field_name   = 'val')
 {
 
-  terraExt <- terra::ext(cropExtent[1], cropExtent[2], cropExtent[3], cropExtent[4])
-  tifRast <- terra::rast(inTIF)
-  grskeyRast <- terra::rast(grskeyTIF)
-  landRast <- terra::rast(maskTif)
+  terra_extent <- terra::ext(crop_extent[1], crop_extent[2], crop_extent[3], crop_extent[4])
+  tif_rast <- terra::rast(src_tif_filename)
+  template_rast <- terra::rast(template_tif)
+  mask_rask <- terra::rast(mask_tif)
 
-  rastList <- list(grskeyRast, landRast)
-  cropList <- lapply(rastList,function(x){
+  rast_lift <- list(template_rast, mask_rask)
+  crop_list <- lapply(rast_lift, function(x){
                 crs(x) <-  "epsg:3005"
-                terra::crop(x, terraExt, datatype='INT4S')
+                terra::crop(x, terra_extent, datatype='INT4S')
                 }
               )
-  raster_datatype <- datatype(tifRast)
-  tifRast <- terra::extend(tifRast, terraExt, datatype = raster_datatype)
-  tifRast <- terra::crop(tifRast, terraExt, datatype = raster_datatype)
-  grskeyRast <- cropList[[1]]
-  landRast <- cropList[[2]]
+  raster_datatype <- datatype(tif_rast)
+  tif_rast <- terra::extend(tif_rast, terra_extent, datatype = raster_datatype)
+  tif_rast <- terra::crop(tif_rast, terra_extent, datatype = raster_datatype)
+  template_rast <- crop_list[[1]]
+  mask_rask <- crop_list[[2]]
 
-  landRast[landRast <= 0] <- NA
-  tifRast <- terra::mask(tifRast, landRast, datatype = raster_datatype)
+  mask_rask[mask_rask <= 0] <- NA
+  tif_rast <- terra::mask(tif_rast, mask_rask, datatype = raster_datatype)
 
   ## if the raster datatype is integer,
   if (grepl("INT", raster_datatype)) {
-    tifValues <- as.integer(tifRast[])
+    tif_values <- as.integer(tif_rast[])
   } else {
-    tifValues <- as.numeric(tifRast[])
+    tif_values <- as.numeric(tif_rast[])
   }
-  grskeyValues <- as.integer(grskeyRast[])
+  grskeyValues <- as.integer(template_rast[])
 
-  df <- data.frame(grskeyValues, tifValues)
+  df <- data.frame(grskeyValues, tif_values)
   colnames(df) <- c('gr_skey', 'value')
   df <- df[!is.na(df$value),]
-  colnames(df) <- c('gr_skey', valueColName)
+  colnames(df) <- c('gr_skey', val_field_name)
   return(df)
 }

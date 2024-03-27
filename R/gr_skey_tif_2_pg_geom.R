@@ -1,11 +1,11 @@
 #' Import Grskey TIF 2 pg table
 #'
-#' @param grskeyTIF coming soon
-#' @param maskTif coming soon
-#' @param cropExtent coming soon
-#' @param outCropTifName coming soon
-#' @param connList coming soon
-#' @param pgtblname coming soon
+#' @param template_tif The file path to the gr_skey template geotiff
+#' @param mask_tif The file path to the geotiff to be used as a mask
+#' @param crop_extent Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005
+#' @param out_crop_tif_name filename of the written output tif
+#' @param pg_conn_param Keyring object of Postgres credentials
+#' @param dst_tbl Postgres table name of the imported table with gr_skey and geom
 #'
 #' @return coming soon
 #' @export
@@ -14,44 +14,44 @@
 
 
 gr_skey_tif_2_pg_geom <- function(
-    grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-    maskTif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
-    cropExtent = c(273287.5,1870587.5,367787.5,1735787.5),
-    outCropTifName = 'D:\\Projects\\provDataProject\\gr_skey_cropped.tif',
-    connList = faibDataManagement::get_pg_conn_list(),
-    pgtblname = "whse.all_bc_gr_skey"
+    template_tif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+    mask_tif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
+    crop_extent = c(273287.5,1870587.5,367787.5,1735787.5),
+    out_crop_tif_name,
+    pg_conn_param = faibDataManagement::get_pg_conn_list(),
+    dst_tbl = "whse.all_bc_gr_skey"
     ) {
 
   #Remove ocean from gr_skey raster, write a new tif
-  terraExt <- terra::ext(cropExtent[1], cropExtent[2], cropExtent[3], cropExtent[4])
-  grskeyRast <- terra::rast(grskeyTIF)
-  landRast <- terra::rast(maskTif)
+  terra_extent <- terra::ext(crop_extent[1], crop_extent[2], crop_extent[3], crop_extent[4])
+  gr_skey_rast <- terra::rast(template_tif)
+  make_rast <- terra::rast(mask_tif)
 
-  rastList <- list(grskeyRast,landRast)
-  cropList <- lapply(rastList,function(x){
+  rast_list <- list(gr_skey_rast, make_rast)
+  crop_list <- lapply(rast_list, function(x){
     terra::crs(x) <-  "epsg:3005"
-    terra::crop(x,terraExt,datatype='INT4S')})
+    terra::crop(x, terra_extent, datatype = 'INT4S')})
 
-  grskeyRast <- cropList[[1]]
-  landRast <- cropList[[2]]
+  gr_skey_rast <- crop_list[[1]]
+  make_rast <- crop_list[[2]]
 
-  landRast[landRast <= 0] <- NA
-  grskeyRast <- terra::mask(grskeyRast,landRast,datatype='INT4S')
-  writeRaster(grskeyRast, outCropTifName, datatype='INT4S',overwrite=TRUE)
+  make_rast[make_rast <= 0] <- NA
+  gr_skey_rast <- terra::mask(gr_skey_rast, make_rast, datatype='INT4S')
+  writeRaster(gr_skey_rast, out_crop_tif_name, datatype = 'INT4S', overwrite=TRUE)
 
   #GR_SKEY_RASTER to PG
-  host <- connList["host"][[1]]
-  user <- connList["user"][[1]]
-  dbname <- connList["dbname"][[1]]
-  password <- connList["password"][[1]]
-  port <- connList["port"][[1]]
-  sendSQLstatement("DROP TABLE IF EXISTS raster.grskey_bc_land;", connList)
-  cmd<- glue('raster2pgsql -s 3005 -d -C -r -P -I -M -t 100x100 {outCropTifName} raster.grskey_bc_land | psql postgresql://{user}:{password}@{host}:{port}/{dbname}')
+  host <- pg_conn_param["host"][[1]]
+  user <- pg_conn_param["user"][[1]]
+  dbname <- pg_conn_param["dbname"][[1]]
+  password <- pg_conn_param["password"][[1]]
+  port <- pg_conn_param["port"][[1]]
+  sendSQLstatement("DROP TABLE IF EXISTS raster.grskey_bc_land;", pg_conn_param)
+  cmd<- glue('raster2pgsql -s 3005 -d -C -r -P -I -M -t 100x100 {out_crop_tif_name} raster.grskey_bc_land | psql postgresql://{user}:{password}@{host}:{port}/{dbname}')
   shell(cmd)
   #Convert gr_skey raster to point table
-  qry <- glue("DROP TABLE IF EXISTS {pgtblname};")
+  qry <- glue("DROP TABLE IF EXISTS {dst_tbl};")
   qry1 <- 'SET client_min_messages TO WARNING;'
-  qry2 <- glue("CREATE TABLE {pgtblname} AS
+  qry2 <- glue("CREATE TABLE {dst_tbl} AS
                   WITH tbl1 AS  (
                     SELECT
                       RAST
@@ -70,21 +70,22 @@ gr_skey_tif_2_pg_geom <- function(
                     tbl2
                   WHERE
                     (public.ST_SummaryStats(rast)).sum is not null;")
-  sendSQLstatement(qry,connList)
-  conn<-DBI::dbConnect(connList["driver"][[1]],
-                  host = connList["host"][[1]],
-                  user = connList["user"][[1]],
-                  dbname = connList["dbname"][[1]],
-                  password = connList["password"][[1]],
-                  port = connList["port"][[1]])
+  sendSQLstatement(qry, pg_conn_param)
+  conn<-DBI::dbConnect(pg_conn_param["driver"][[1]],
+                  host = pg_conn_param["host"][[1]],
+                  user = pg_conn_param["user"][[1]],
+                  dbname = pg_conn_param["dbname"][[1]],
+                  password = pg_conn_param["password"][[1]],
+                  port = pg_conn_param["port"][[1]])
   RPostgres::dbExecute(conn, statement = qry1)
   RPostgres::dbExecute(conn, statement = qry2)
   RPostgres::dbDisconnect(conn)
-  tblname <- strsplit(pgtblname, "\\.")[[1]][[2]]
-  sendSQLstatement(glue("ALTER TABLE {pgtblname} ADD PRIMARY KEY (gr_skey);"),connList)
-  sendSQLstatement(glue("DROP INDEX IF EXISTS {tblname}_gr_skey_idx;"),connList)
-  sendSQLstatement(glue("CREATE INDEX {tblname}_gr_skey_idx ON {pgtblname} USING GIST(geom);"),connList)
-  sendSQLstatement(glue("ANALYZE {pgtblname};"),connList)
+  tblname <- strsplit(dst_tbl, "\\.")[[1]][[2]]
+  sendSQLstatement(glue("ALTER TABLE {dst_tbl} ADD PRIMARY KEY (gr_skey);"), pg_conn_param)
+  sendSQLstatement(glue("DROP INDEX IF EXISTS {tblname}_gr_skey_idx;"), pg_conn_param)
+  sendSQLstatement(glue("CREATE INDEX {tblname}_gr_skey_idx ON {dst_tbl} USING GIST(geom);"), pg_conn_param)
+  sendSQLstatement(glue("ANALYZE {dst_tbl};"), pg_conn_param)
+  print(glue("Finished importing {dst_tbl}"))
 }
 
 

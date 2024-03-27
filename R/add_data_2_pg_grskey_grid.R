@@ -3,24 +3,25 @@
 #'
 #'
 #' @param rslt_ind Used in combination with gr_skey_tbl and suffix arguments. 1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
-#' @param srctype Format of data source, options: gdb, oracle, postgres, geopackage, raster, shp
-#' @param srcpath Path to input data. Note use bcgw for whse oracle layers
-#' @param srclyr Input layer name
+#' @param src_type Format of data source, Options: gdb, oracle, postgres, geopackage, raster, shp
+#' @param src_path Path to input data. Note use "bcgw" for whse oracle layers
+#' @param src_lyr Input layer name
 #' @param suffix Use in combination with rslt_ind and gr_skey_tbl. Suffix to be added to the primary key field name in the gr_skey table
-#' @param nsTblm Name of output non spatial table
+#' @param dst_tbl Name of output non spatial table
 #' @param query Where clause used to filter input dataset, Eg. fire_year = 2023 and BURN_SEVERITY_RATING in ('High','Medium')
-#' @param flds2keep Fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name
-#' @param connList Keyring object of Postgres credentials
-#' @param cropExtent Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005
-#' @param gr_skey_tbl Pre-existing table that contains gr_skey field
-#' @param wrkSchema Schema to insert the new gr_skey and non spatial table
-#' @param rasSchema If importrast2pg set to TRUE, the import schema for the raster
-#' @param fdwSchema If srctype=oracle, the schema to load the foreign data wrapper table
-#' @param grskeyTIF The file path to the gr_skey geotiff
-#' @param maskTif The file path to the geotiff to be used as a mask
-#' @param dataSourceTblName coming soon
-#' @param outTifpath Directory where output tif if exported and where vector is temporally stored prior to import
-#' @param importrast2pg If TRUE, raster is imported into database in rasSchema
+#' @param flds_to_keep Fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name
+#' @param pg_conn_param Keyring object of Postgres credentials
+#' @param ora_conn_param Keyring object of Oracle credentials
+#' @param crop_extent Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005
+#' @param gr_skey_tbl Schema and table name of the pre-existing foreign key lookup gr_skey table. Argument to be used with suffix and rslt_ind within in_csv.
+#' @param dst_schema Schema to insert the newly created gr_skey and dst_tbl (Eg. non spatial table)
+#' @param raster_schema If import_rast_to_pg set to TRUE, the import schema for the raster. Defaults to "raster"
+#' @param fdw_schema If src_type=oracle, the schema to load the foreign data wrapper table, Defaults to "load"
+#' @param template_tif The file path to the gr_skey template geotiff
+#' @param mask_tif The file path to the geotiff to be used as a mask
+#' @param data_src_tbl Schema and table name of the metadata table in postgres that updates with any newly imported layer
+#' @param out_tif_path Directory where output tif if exported and where vector is temporally stored prior to import
+#' @param import_rast_to_pg If TRUE, raster is imported into database in raster_schema
 #'
 #'
 #' @return no return
@@ -30,61 +31,60 @@
 
 
 add_data_2_pg_grskey_grid <- function(rslt_ind,
-                                      srctype,
-                                      srcpath,
-                                      srclyr,
+                                      src_type,
+                                      src_path,
+                                      src_lyr,
                                       suffix,
-                                      nsTblm,
+                                      dst_tbl,
                                       query,
-                                      flds2keep,
-                                      connList = faibDataManagement::get_pg_conn_list(),
-                                      oraConnList = faibDataManagement::get_ora_conn_list(),
-                                      cropExtent = c(273287.5,1870587.5,367787.5,1735787.5),
-                                      gr_skey_tbl = 'all_bc_res_gr_skey',
-                                      wrkSchema = 'whse',
-                                      rasSchema = 'raster',
-                                      fdwSchema = 'load',
-                                      grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-                                      maskTif='S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
-                                      dataSourceTblName = 'data_sources',
-                                      outTifpath = 'D:\\Projects\\provDataProject',
-                                      importrast2pg = FALSE
+                                      flds_to_keep,
+                                      out_tif_path,
+                                      pg_conn_param     = faibDataManagement::get_pg_conn_list(),
+                                      ora_conn_param    = faibDataManagement::get_ora_conn_list(),
+                                      crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5),
+                                      gr_skey_tbl       = 'whse.all_bc_gr_skey',
+                                      dst_schema        = 'whse',
+                                      raster_schema     = 'raster',
+                                      fdw_schema        = 'load',
+                                      template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+                                      mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
+                                      data_src_tbl      = 'whse.data_sources',
+                                      import_rast_to_pg = FALSE
 )
 
 {
-  print(paste(rep("*", 80), collapse=""))
-  print(glue("Importing {srcpath} | layername={srclyr}..."))
-  print(paste(rep("*", 80), collapse=""))
+  cat("\n")
+  cat(paste(rep("*", 80), collapse = ""), "\n")
+  print(glue("Starting import of {src_path} | layername={src_lyr}..."))
+  cat(paste(rep("*", 80), collapse = ""), "\n")
+  cat("\n")
   ## Get inputs from input file
-  rslt_ind  <- gsub("[[:space:]]",'',tolower(rslt_ind)) ## 1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
-  srctype   <- gsub("[[:space:]]",'',tolower(srctype)) ## format of data source i.e. gdb, oracle, postgres, geopackage, raster, shp
-  srcpath   <- gsub("[[:space:]]",'',tolower(srcpath))## path to input data. Note use bcgw for whse
-  srclyr    <- gsub("[[:space:]]",'',tolower(srclyr)) ## input layer name
-  suffix    <- gsub("[[:space:]]",'',tolower(suffix)) ## suffix to be used in the resultant table
-  nsTblm    <- gsub("[[:space:]]",'',tolower(nsTblm)) ## name of output non spatial table
-  query     <- query  ## where clause used to filter input dataset
-  flds2keep <- gsub("[[:space:]]",'',tolower(flds2keep)) ## fields to keep in non spatial table
-  dataSourceTblName <- glue::glue("{wrkSchema}.{dataSourceTblName}")
+  rslt_ind     <- gsub("[[:space:]]",'',tolower(rslt_ind)) ## 1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
+  src_type     <- gsub("[[:space:]]",'',tolower(src_type)) ## format of data source i.e. gdb, oracle, postgres, geopackage, raster, shp
+  src_path     <- gsub("[[:space:]]",'',tolower(src_path))## path to input data. Note use bcgw for whse
+  src_lyr      <- gsub("[[:space:]]",'',tolower(src_lyr)) ## input layer name
+  suffix       <- gsub("[[:space:]]",'',tolower(suffix)) ## suffix to be used in the resultant table
+  dst_tbl      <- gsub("[[:space:]]",'',tolower(dst_tbl)) ## name of output non spatial table
+  query        <- query  ## where clause used to filter input dataset
+  flds_to_keep <- gsub("[[:space:]]",'',tolower(flds_to_keep)) ## fields to keep in non spatial table
 
-  dst_schema_name <- wrkSchema ## destination schema name
-  dst_table_name  <- nsTblm ## destination table name
-  dst_gr_skey_table_name <- glue("{nsTblm}_gr_skey") ## destination table gr skey name
+  dst_gr_skey_tbl <- glue("{dst_tbl}_gr_skey") ## destination table gr skey name
   pk_id = "faib_fid"
   no_data_value = 0
   today_date <- format(Sys.time(), "%Y-%m-%d %I:%M:%S %p")
-  dest_table_comment <- glue("COMMENT ON TABLE {dst_schema_name}.{dst_table_name} IS 'Table created by the FAIB_DATA_MANAGEMENT R package at {today_date}.
-                                            TABLE relates to {dst_schema_name}.{dst_gr_skey_table_name}
+  dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the FAIB_DATA_MANAGEMENT R package at {today_date}.
+                                            TABLE relates to {dst_schema}.{dst_gr_skey_tbl}
                                             Data source details:
-                                            Source type: {srctype}
-                                            Source path: {srcpath}
-                                            Source layer: {srclyr}
+                                            Source type: {src_type}
+                                            Source path: {src_path}
+                                            Source layer: {src_lyr}
                                             Source where query: {query}';")
-  dest_gr_skey_table_comment <- glue("COMMENT ON TABLE {dst_schema_name}.{dst_gr_skey_table_name} IS 'Table created by the FAIB_DATA_MANAGEMENT R package at {today_date}.
-                                            TABLE relates to {dst_schema_name}.{dst_table_name}
+  dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_gr_skey_tbl} IS 'Table created by the FAIB_DATA_MANAGEMENT R package at {today_date}.
+                                            TABLE relates to {dst_schema}.{dst_tbl}
                                             Data source details:
-                                            Source type: {srctype}
-                                            Source path: {srcpath}
-                                            Source layer: {srclyr}
+                                            Source type: {src_type}
+                                            Source path: {src_path}
+                                            Source layer: {src_lyr}
                                             Source where query: {query}';")
   ## convert whitespace to null when where clause is null
   if (is_blank(query)) {
@@ -94,43 +94,37 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
     where_claus <- query
   }
 
+  if(tolower(src_type) != 'raster') {
 
-  if(tolower(srctype) != 'raster') {
+    if(tolower(src_type) == 'oracle'){
+      src_schema <- strsplit(src_lyr, "\\.")[[1]][[1]]
+      src_table  <- strsplit(src_lyr, "\\.")[[1]][[2]]
 
-    if(tolower(srctype) == 'oracle'){
-      oraServer <- oraConnList["server"][[1]]
-      idir      <- oraConnList["user"][[1]]
-      orapass   <- oraConnList["password"][[1]]
-      outServerName <- 'oradb'
-
-      src_schema_name <- strsplit(srclyr, "\\.")[[1]][[1]]
-      src_table_name  <- strsplit(srclyr, "\\.")[[1]][[2]]
-
-      fdw_schema_name <- fdwSchema
-      fdw_table_name  <- strsplit(srclyr, "\\.")[[1]][[2]]
+      fdw_tbl  <- strsplit(src_lyr, "\\.")[[1]][[2]]
       ## Create a FDW table in PG
-      fklyr <- createOracleFDWpg(srclyr, oraConnList, connList, outServerName, fdw_schema_name)
+      fklyr <- createOracleFDWpg(src_lyr, ora_conn_param, pg_conn_param, 'oradb', fdw_schema)
 
-      connz <- dbConnect(connList["driver"][[1]],
-                       host     = connList["host"][[1]],
-                       user     = connList["user"][[1]],
-                       dbname   = connList["dbname"][[1]],
-                       password = connList["password"][[1]],
-                       port     = connList["port"][[1]])
+      connz <- dbConnect(pg_conn_param["driver"][[1]],
+                       host     = pg_conn_param["host"][[1]],
+                       user     = pg_conn_param["user"][[1]],
+                       dbname   = pg_conn_param["dbname"][[1]],
+                       password = pg_conn_param["password"][[1]],
+                       port     = pg_conn_param["port"][[1]])
       on.exit(RPostgres::dbDisconnect(connz))
       # =============================================================================
       # Create Non Spatial Table with attributes from FDW
       # =============================================================================
-      print(glue("Creating non-spatial PG table: {dst_schema_name}.{dst_table_name} from FDW table: {fdw_schema_name}.{fdw_table_name}"))
+      print(glue("Creating non-spatial PG table: {dst_schema}.{dst_tbl} from FDW table: {fdw_schema}.{fdw_tbl}"))
       faibDataManagement::fdwTbl2PGnoSpatial(
-        foreignTable  = src_table_name,
-        outTblName    = dst_table_name,
+        src_tbl       = fdw_tbl,
+        src_schema    = fdw_schema,
+        dst_tbl       = dst_tbl,
+        dst_schema    = dst_schema,
         pk            = pk_id,
-        outSchema     = dst_schema_name,
-        connList      = connList,
-        attr2keep     = flds2keep,
+        pg_conn_param = pg_conn_param,
+        flds_to_keep  = flds_to_keep,
         where         = query,
-        table_comment = dest_table_comment
+        tbl_comment   = dst_tbl_comment
       )
       print("Table created successfully.")
 
@@ -139,42 +133,40 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
       # =============================================================================
 
       ## Create a SQL query including the spatial field and primary key field of a Foreign Data Wrapper table
-      qry <- getFDWtblSpSQL(dst_table_name  = dst_table_name,
-                            dst_schema_name = dst_schema_name,
-                            oratable        = srclyr,
-                            pk              = pk_id,
-                            connList        = connList,
-                            fdwSchema       = fdw_schema_name,
-                            where           = query
+      qry <- getFDWtblSpSQL(dst_tbl       = dst_tbl,
+                            dst_schema    = dst_schema,
+                            ora_tbl       = src_lyr,
+                            pk            = pk_id,
+                            pg_conn_param = pg_conn_param,
+                            fdw_schema    = fdw_schema,
+                            where         = query
       )
 
-      castList <- c("MULTIPOLYGON","MULTIPOINT","MULTILINE")
-      print(glue('Converting SQL query which joins FDW table: {fdw_schema_name}.{fdw_table_name} and {dst_schema_name}.{dst_table_name} and WHERE query into R Simple Feature Collection'))
-      for (i in castList) {
+      cast_list <- c("MULTIPOLYGON","MULTIPOINT","MULTILINE")
+      print(glue('Converting SQL query which joins FDW table: {fdw_schema}.{fdw_tbl} and {dst_schema}.{dst_tbl} and WHERE query into R Simple Feature Collection'))
+      for (i in cast_list) {
         #ERROR HANDLING
-        possibleError <- tryCatch(
-          inSF <- st_cast(st_read(connz, query = qry, crs = 3005),i ),
+        possible_error <- tryCatch(
+          in_sf <- st_cast(st_read(connz, query = qry, crs = 3005),i ),
           error=function(e) e
         )
-        if(inherits(possibleError, "error")) next else {
+        if(inherits(possible_error, "error")) next else {
           break
         }
       }
+
       ## Rasterize using TERRA
-      outTifName <- glue("{nsTblm}.tif")
-      inRas <- rasterizeTerra(
-        inSrc      = inSF,
-        field      = pk_id,
-        template   = grskeyTIF,
-        cropExtent = cropExtent,
-        outTifpath = outTifpath,
-        outTifname = outTifName,
-        datatype   = 'INT4U',
-        nodata     = no_data_value
+      dst_ras_filename <- rasterizeTerra(
+        src_sf       = in_sf,
+        field        = pk_id,
+        template_tif = template_tif,
+        crop_extent  = crop_extent,
+        out_tif_path = out_tif_path,
+        out_tif_name = glue("{dst_tbl}.tif"),
+        datatype     = 'INT4U',
+        nodata       = no_data_value
       )
 
-      inSrcTemp <- NULL
-      pgConnTemp <- connList
     } else {
       # =============================================================================
       # Copy layer to local directory.
@@ -182,161 +174,161 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
       # and second for the gdal_rasterize command. There is a small chance that the
       # file will be modified between the first & second command which will impact
       # change the order of the on the fly ID field creation. To prevent this, the
-      # file is copied to a outTifpath directory.
+      # file is copied to a out_tif_path directory.
       # =============================================================================
-      print(glue("Copying {srcpath} to {outTifpath}"))
-      if (srctype %in% c("shapefile", "shp")) {
-        files <- list.files(path = dirname(srcpath), pattern = paste0("^", tools::file_path_sans_ext(basename(srcpath)), "\\..*"), ignore.case = TRUE)
+      print(glue("Copying {src_path} to {out_tif_path}"))
+      if (src_type %in% c("shapefile", "shp")) {
+        files <- list.files(path = dirname(src_path), pattern = paste0("^", tools::file_path_sans_ext(basename(src_path)), "\\..*"), ignore.case = TRUE)
         for (file in files) {
-          file.copy(file.path(dirname(srcpath), file), file.path(outTifpath, file), overwrite = TRUE)
+          file.copy(file.path(dirname(src_path), file), file.path(out_tif_path, file), overwrite = TRUE)
         }
       } else {
-        file.copy(from = srcpath, to = outTifpath, overwrite = TRUE, recursive = TRUE, copy.mode = TRUE)
+        file.copy(from = src_path, to = out_tif_path, overwrite = TRUE, recursive = TRUE, copy.mode = TRUE)
       }
 
-      old_src_path <- srcpath
-      srcpath <- file.path(outTifpath, basename(srcpath))
+      old_src_path <- src_path
+      src_path <- file.path(out_tif_path, basename(src_path))
 
       # =============================================================================
       # Create Non Spatial Table with attributes from FDW
       # =============================================================================
-      print(glue("Creating non-spatial PG table: {dst_schema_name}.{dst_table_name} from source: {srcpath}|layername={srclyr}"))
+      print(glue("Creating non-spatial PG table: {dst_schema}.{dst_tbl} from source: {src_path}|layername={src_lyr}"))
       faibDataManagement::writeNoSpaTbl2PG(
-                                            src           = srcpath,
-                                            outTblName    = dst_table_name,
-                                            connList      = connList,
+                                            src           = src_path,
+                                            dst_tbl       = dst_tbl,
+                                            pg_conn_param = pg_conn_param,
+                                            lyr           = src_lyr,
                                             pk            = pk_id,
-                                            outSchema     = dst_schema_name,
-                                            lyr           = srclyr,
+                                            select        = flds_to_keep,
                                             where         = query,
-                                            select        = flds2keep,
-                                            table_comment = dest_table_comment
+                                            dst_schema    = dst_schema,
+                                            tbl_comment   = dst_tbl_comment
       )
 
       print("Table created successfully.")
       #Create tif from input
-      outTifName <- glue("{nsTblm}.tif")
-      inRas <- rasterizeWithGdal(
-                                  inlyr      = srclyr,
-                                  field      = pk_id,
-                                  outTifpath = outTifpath,
-                                  outTifname = outTifName,
-                                  inSrc      = srcpath,
-                                  pgConnList = NULL,
-                                  vecExtent  = cropExtent,
-                                  nodata     = no_data_value,
-                                  where      = where_claus
+      dst_ras_filename <- rasterizeWithGdal(
+                                  in_lyr         = src_lyr,
+                                  field         = pk_id,
+                                  out_tif_path  = out_tif_path,
+                                  out_tif_name  = glue("{dst_tbl}.tif"),
+                                  src_path      = src_path,
+                                  pg_conn_param = NULL,
+                                  crop_extent   = crop_extent,
+                                  nodata        = no_data_value,
+                                  where         = where_claus
       )
       # =============================================================================
-      # Remove locally created layer from outTifpath
+      # Remove locally created layer from out_tif_path
       # =============================================================================
-      print(glue("Removing {basename(srcpath)} from {outTifpath}"))
+      print(glue("Removing {basename(src_path)} from {out_tif_path}"))
 
-      if (srctype %in% c("shapefile", "shp")) {
-        files <- list.files(path = dirname(srcpath), pattern = paste0("^", tools::file_path_sans_ext(basename(srcpath)), "\\..*"), ignore.case = TRUE)
+      if (src_type %in% c("shapefile", "shp")) {
+        files <- list.files(path = dirname(src_path), pattern = paste0("^", tools::file_path_sans_ext(basename(src_path)), "\\..*"), ignore.case = TRUE)
         for (file in files) {
-          file.remove(file.path(outTifpath, file))
+          file.remove(file.path(out_tif_path, file))
         }
-      } else if (srctype == 'gdb') {
+      } else if (src_type == 'gdb') {
         ## file.remove consistently ran into permission issues when ran on a gdb
         ## switched to gdalmanage
-        print(system2('gdalmanage',args=c("delete", srcpath), stderr = TRUE))
+        print(system2('gdalmanage',args=c("delete", src_path), stderr = TRUE))
       } else {
-        file.remove(srcpath, recursive = TRUE)
+        file.remove(src_path, recursive = TRUE)
       }
 
     }
   }
 
-  if(tolower(srctype) == 'raster') {
-    outTifName <- glue("{nsTblm}.tif")
-    inRas <- srcpath
+  if(tolower(src_type) == 'raster') {
+    dst_ras_filename <- src_path
   }
 
-  inRasbase <- basename(inRas)
   ## Tif to PG Raster
-  if(importrast2pg) {
-    pgRasName <- paste0(rasSchema, '.ras_', substr(inRasbase, 1, nchar(inRasbase)-4))
-    cmd <- glue('raster2pgsql -s 3005 -d -C -r -P -I -M -N {no_data_value} -t 100x100 {inRas} {pgRasName} | psql -d prov_data')
+  if(import_rast_to_pg) {
+    raster_tbl <- glue("{raster_schema}.ras_{substr(basename(dst_ras_filename),1,nchar(basename(dst_ras_filename))-4)}")
+    cmd <- glue('raster2pgsql -s 3005 -d -C -r -P -I -M -N {no_data_value} -t 100x100 {dst_ras_filename} {raster_tbl} | psql -d prov_data')
     print(cmd)
     shell(cmd)
     print('Imported tif to PG')
   }
 
-  # #Convert postgres raster to Non spatial table with gr_skey
-  joinTbl2 <- RPostgres::Id(schema = dst_schema_name, table = dst_gr_skey_table_name)
-  print(glue('Creating PG table: {dst_schema_name}.{dst_gr_skey_table_name} from values in tif and gr_skey'))
-  faibDataManagement::sendSQLstatement(glue("DROP TABLE IF EXISTS {dst_schema_name}.{dst_gr_skey_table_name};"), connList)
-  if (tolower(srctype) == 'raster') {
+  #Convert postgres raster to non-spatial table with gr_skey
+  dst_gr_skey_tbl_pg_obj <- RPostgres::Id(schema = dst_schema, table = dst_gr_skey_tbl)
+  print(glue('Creating PG table: {dst_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
+  faibDataManagement::sendSQLstatement(glue("DROP TABLE IF EXISTS {dst_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
+  if (tolower(src_type) == 'raster') {
     band_field_name <- 'val'
   } else {
     band_field_name <- pk_id
   }
   faibDataManagement::df2PG(
-                            joinTbl2,
-                            faibDataManagement::tif2grskeytbl(
-                                                              inRas,
-                                                              cropExtent   = cropExtent,
-                                                              grskeyTIF    = grskeyTIF,
-                                                              maskTif      = maskTif,
-                                                              valueColName = band_field_name
+                            pg_tbl = dst_gr_skey_tbl_pg_obj,
+                            in_df  = faibDataManagement::tif2grskeytbl(
+                                                              src_tif_filename = dst_ras_filename,
+                                                              crop_extent      = crop_extent,
+                                                              template_tif     = template_tif,
+                                                              mask_tif         = mask_tif,
+                                                              val_field_name   = band_field_name
                             ),
-                            connList
+                            pg_conn_param = pg_conn_param
   )
-  print(glue('Created PG table: {dst_schema_name}.{dst_gr_skey_table_name} from values in tif and gr_skey'))
+  print(glue('Created PG table: {dst_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
 
   ## Adding primary key to table
-  print(glue('Adding gr_skey as primary key to {dst_schema_name}.{dst_gr_skey_table_name}'))
-  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {dst_schema_name}.{dst_gr_skey_table_name} ADD PRIMARY KEY (gr_skey);"), connList)
+  print(glue('Adding gr_skey as primary key to {dst_schema}.{dst_gr_skey_tbl}'))
+  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {dst_schema}.{dst_gr_skey_tbl} ADD PRIMARY KEY (gr_skey);"), pg_conn_param)
 
-  if (tolower(srctype) != 'raster') {
+  if (tolower(src_type) != 'raster') {
     ## Adding in foreign key
-    print(glue('Adding foreign key constraint to {dst_schema_name}.{dst_gr_skey_table_name} referencing {dst_schema_name}.{dst_table_name} using ({pk_id});'))
-    faibDataManagement::sendSQLstatement(glue("ALTER TABLE {dst_schema_name}.{dst_gr_skey_table_name} ADD CONSTRAINT {dst_gr_skey_table_name}_fkey FOREIGN KEY ({pk_id}) REFERENCES {dst_schema_name}.{dst_table_name} ({pk_id});"), connList)
+    print(glue('Adding foreign key constraint to {dst_schema}.{dst_gr_skey_tbl} referencing {dst_schema}.{dst_tbl} using ({pk_id});'))
+    faibDataManagement::sendSQLstatement(glue("ALTER TABLE {dst_schema}.{dst_gr_skey_tbl} ADD CONSTRAINT {dst_gr_skey_tbl}_fkey FOREIGN KEY ({pk_id}) REFERENCES {dst_schema}.{dst_tbl} ({pk_id});"), pg_conn_param)
     ## Add index on fid
-    faibDataManagement::sendSQLstatement(glue("DROP INDEX IF EXISTS {dst_gr_skey_table_name}_{pk_id}_idx;"), connList)
-    faibDataManagement::sendSQLstatement(glue("CREATE INDEX {dst_gr_skey_table_name}_{pk_id}_idx ON {dst_schema_name}.{dst_gr_skey_table_name} USING btree ({pk_id})"), connList)
-
+    faibDataManagement::sendSQLstatement(glue("DROP INDEX IF EXISTS {dst_gr_skey_tbl}_{pk_id}_idx;"), pg_conn_param)
+    faibDataManagement::sendSQLstatement(glue("CREATE INDEX {dst_gr_skey_tbl}_{pk_id}_idx ON {dst_schema}.{dst_gr_skey_tbl} USING btree ({pk_id})"), pg_conn_param)
   }
   ## Add comment on table
-  faibDataManagement::sendSQLstatement(dest_gr_skey_table_comment, connList)
+  faibDataManagement::sendSQLstatement(dst_gr_skey_tbl_comment, pg_conn_param)
   ## Update the query planner with the latest changes
-  faibDataManagement::sendSQLstatement(glue("ANALYZE {dst_schema_name}.{dst_gr_skey_table_name};"),connList)
+  faibDataManagement::sendSQLstatement(glue("ANALYZE {dst_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
 
   if(rslt_ind == 1) {
-    faibDataManagement::updateFKlookupPG(
-                                          inLayer     = glue("{dst_schema_name}.{dst_gr_skey_table_name}"),
-                                          pk          = pk_id,
-                                          suffix      = suffix,
-                                          fkTBlName   = gr_skey_tbl,
-                                          connList    = connList
-    )
+    if (!(is_blank(suffix))) {
+      faibDataManagement::updateFKlookupPG(dst_tbl      = dst_gr_skey_tbl,
+                                          dst_schema    = dst_schema,
+                                          pk            = pk_id,
+                                          suffix        = suffix,
+                                          fk_tbl        = gr_skey_tbl,
+                                          pg_conn_param = pg_conn_param
+      )
 
 
 
-    #Update Metadata tables
-    faibDataManagement::updateFKfldTablePG(
-                                          glue("{dst_schema_name}.{dst_table_name}"),
-                                          gr_skey_tbl,
-                                          suffix,
-                                          connList
-    )
+      #Update Metadata tables
+      faibDataManagement::updateFKfldTablePG(dst_tbl      = dst_tbl,
+                                            dst_schema    = dst_schema,
+                                            fk_tbl        = gr_skey_tbl,
+                                            suffix        = suffix,
+                                            pg_conn_param = pg_conn_param
+      )
+    } else {
+      print("No suffix provided, skipping performing rslt_ind foreign key lookup table update.")
+    }
 
   }
 
   faibDataManagement::updateFKsrcTblpg(
-    outTableName = dataSourceTblName,
-    srctype      = srctype,
-    srcpath      = srcpath,
-    srclyr       = srclyr,
-    pk           = pk_id,
-    suffix       = suffix,
-    nsTblm       = nsTblm,
-    query        = query,
-    rslt_ind     = rslt_ind,
-    fields2keep  = flds2keep,
-    schema       = wrkSchema,
-    connList     = connList
+    data_src_tbl    = data_src_tbl,
+    src_type        = src_type,
+    src_path        = old_src_path,
+    src_lyr         = src_lyr,
+    pk              = pk_id,
+    suffix          = suffix,
+    query           = query,
+    rslt_ind        = rslt_ind,
+    flds_to_keep    = flds_to_keep,
+    dst_tbl         = dst_tbl,
+    dst_schema      = dst_schema,
+    pg_conn_param   = pg_conn_param
   )
 }
 

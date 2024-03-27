@@ -12,11 +12,11 @@
 #' @examples get_pg_conn_list(dbname = 'postgres', keyring::key_get('dbpass', keyring = 'localpsql'))
 
 
-get_pg_conn_list<-function(driver= NULL,host=NULL,user=NULL,dbname=NULL, password=NULL,port='5432'){
+get_pg_conn_list<-function(driver = NULL, host = NULL, user = NULL, dbname = NULL, password = NULL, port='5432'){
   driver <- if (is.null(driver)) RPostgres::Postgres() else driver
   host <- if (is.null(host)) keyring::key_get('dbhost', keyring = 'localpsql') else host
   user <- if (is.null(user)) keyring::key_get('dbuser', keyring = 'localpsql') else user
   dbname <- if (is.null(dbname)) 'prov_data' else dbname
   password <- if (is.null(password)) keyring::key_get('dbpass', keyring = 'localpsql') else password
-  connList <- list(driver=driver,host=host,user=user,dbname=dbname,password=password,port=port)
-  return(connList)}
+  conn_list <- list(driver = driver, host = host, user = user, dbname = dbname, password = password, port = port)
+  return(conn_list)}

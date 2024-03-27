@@ -5,46 +5,46 @@
 \title{Update FAIB hectares database from input csv of datasets}
 \usage{
 add_batch_2_pg_grskey_grid(
-  inCSV = "D:\\\\Projects\\\\provDataProject\\\\tools\\\\prov_data_resultant3.csv",
-  connList = faibDataManagement::get_pg_conn_list(),
-  oraConnList = faibDataManagement::get_ora_conn_list(),
-  cropExtent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
-  gr_skey_tbl = "all_bc_gr_skey",
-  wrkSchema = "whse",
-  rasSchema = "raster",
-  grskeyTIF =
+  in_csv = "config_parameters.csv",
+  pg_conn_param = faibDataManagement::get_pg_conn_list(),
+  ora_conn_param = faibDataManagement::get_ora_conn_list(),
+  crop_extent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
+  gr_skey_tbl = "whse.all_bc_gr_skey",
+  dst_schema = "whse",
+  raster_schema = "raster",
+  template_tif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\bc_01ha_gr_skey.tif",
-  maskTif =
+  mask_tif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
-  dataSourceTblName = "data_sources",
-  outTifpath = "D:\\\\Projects\\\\provDataProject",
-  importrast2pg = FALSE
+  data_src_tbl = "whse.data_sources",
+  out_tif_path = "D:\\\\Projects\\\\provDataProject",
+  import_rast_to_pg = FALSE
 )
 }
 \arguments{
-\item{inCSV}{File path to data sources csv, see inputsDatasets2load2PG.csv for example}
+\item{in_csv}{File path to data sources csv, see config_parameters.csv for example}
 
-\item{connList}{Keyring object of Postgres credentials}
+\item{pg_conn_param}{Keyring object of Postgres credentials}
 
-\item{oraConnList}{Keyring object of Oracle credentials}
+\item{ora_conn_param}{Keyring object of Oracle credentials}
 
-\item{cropExtent}{list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
+\item{crop_extent}{list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
 
-\item{gr_skey_tbl}{Tablename of the pre-existing foreign key lookup gr_skey table. Argument to be used with suffix and rslt_ind within inCSV. Schema is assumed to be wrkSchema}
+\item{gr_skey_tbl}{Schema and table name of the pre-existing foreign key lookup gr_skey table. Argument to be used with suffix and rslt_ind within in_csv. Schema is assumed to be wrkSchema}
 
-\item{wrkSchema}{Schema where gr_skey, non spatial table will be imported as well as the schema of gr_skey_tbl}
+\item{raster_schema}{If importrast2pg=TRUE, schema of imported raster}
 
-\item{rasSchema}{If importrast2pg=TRUE, schema of imported raster}
+\item{template_tif}{The file path to the gr_skey geotiff to be used as a template raster}
 
-\item{grskeyTIF}{The file path to the gr_skey geotiff to be used as a template raster}
+\item{mask_tif}{The file path to the geotiff to be used as a mask}
 
-\item{maskTif}{The file path to the geotiff to be used as a mask}
+\item{data_src_tbl}{Schema and table name of the metadata table in postgres that updates with any newly imported layer}
 
-\item{dataSourceTblName}{coming soon}
+\item{out_tif_path}{Directory where output tif if exported and where vector is temporally stored prior to import}
 
-\item{outTifpath}{Directory where output tif if exported and where vector is temporally stored prior to import}
+\item{import_rast_to_pg}{If TRUE, raster is imported into database in rasSchema}
 
-\item{importrast2pg}{If TRUE, raster is imported into database in rasSchema}
+\item{working_schema}{Schema where gr_skey, non spatial table will be imported as well as the schema of gr_skey_tbl}
 }
 \value{
 no return

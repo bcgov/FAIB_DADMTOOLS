@@ -5,27 +5,31 @@
 \title{Create a PG non spatial table from Foreign data wrapper table}
 \usage{
 fdwTbl2PGnoSpatial(
-  foreignTable,
-  outTblName,
+  src_tbl,
+  dst_tbl,
   pk,
-  outSchema,
-  connList,
-  fdwSchema = "load",
-  attr2keep = NULL,
-  where = "",
-  table_comment
+  dst_schema,
+  pg_conn_param,
+  tbl_comment,
+  src_schema = "load",
+  flds_to_keep = NULL,
+  where = ""
 )
 }
 \arguments{
-\item{foreignTable}{coming soon}
+\item{src_tbl}{coming soon}
 
-\item{outTblName}{coming soon}
+\item{dst_tbl}{coming soon}
 
 \item{pk}{coming soon}
 
-\item{connList}{coming soon}
+\item{pg_conn_param}{coming soon}
 
-\item{attr2keep}{optional}
+\item{tbl_comment}{}
+
+\item{src_schema}{coming soon}
+
+\item{flds_to_keep}{optional}
 
 \item{schema}{coming soon}
 }

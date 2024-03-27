@@ -5,23 +5,27 @@
 \title{Returns a SQL statement including the spatial field and primary key field of a Foreign Data Wrapper table.  Can be used in gdal rasterize statement}
 \usage{
 getFDWtblSpSQL(
-  dst_table_name,
-  dst_schema_name,
-  oratable,
+  dst_tbl,
+  dst_schema,
+  ora_tbl,
   pk,
-  connList,
-  fdwSchema = "load",
+  pg_conn_param,
+  fdw_schema = "load",
   where = NULL
 )
 }
 \arguments{
-\item{oratable}{coming soon}
+\item{dst_tbl}{coming soon}
+
+\item{dst_schema}{coming soon}
+
+\item{ora_tbl}{coming soon}
 
 \item{pk}{coming soon}
 
-\item{connList}{coming soon}
+\item{pg_conn_param}{coming soon}
 
-\item{fdwSchema}{coming soon}
+\item{fdw_schema}{coming soon}
 
 \item{where}{coming soon}
 }

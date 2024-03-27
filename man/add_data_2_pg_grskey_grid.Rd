@@ -6,67 +6,69 @@
 \usage{
 add_data_2_pg_grskey_grid(
   rslt_ind,
-  srctype,
-  srcpath,
-  srclyr,
+  src_type,
+  src_path,
+  src_lyr,
   suffix,
-  nsTblm,
+  dst_tbl,
   query,
-  flds2keep,
-  connList = faibDataManagement::get_pg_conn_list(),
-  oraConnList = faibDataManagement::get_ora_conn_list(),
-  cropExtent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
-  gr_skey_tbl = "all_bc_res_gr_skey",
-  wrkSchema = "whse",
-  rasSchema = "raster",
-  fdwSchema = "load",
-  grskeyTIF =
+  flds_to_keep,
+  out_tif_path,
+  pg_conn_param = faibDataManagement::get_pg_conn_list(),
+  ora_conn_param = faibDataManagement::get_ora_conn_list(),
+  crop_extent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
+  gr_skey_tbl = "whse.all_bc_gr_skey",
+  dst_schema = "whse",
+  raster_schema = "raster",
+  fdw_schema = "load",
+  template_tif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\bc_01ha_gr_skey.tif",
-  maskTif =
+  mask_tif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
-  dataSourceTblName = "data_sources",
-  outTifpath = "D:\\\\Projects\\\\provDataProject",
-  importrast2pg = FALSE
+  data_src_tbl = "whse.data_sources",
+  import_rast_to_pg = FALSE
 )
 }
 \arguments{
 \item{rslt_ind}{Used in combination with gr_skey_tbl and suffix arguments. 1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)}
 
-\item{srctype}{Format of data source, options: gdb, oracle, postgres, geopackage, raster, shp}
+\item{src_type}{Format of data source, Options: gdb, oracle, postgres, geopackage, raster, shp}
 
-\item{srcpath}{Path to input data. Note use bcgw for whse oracle layers}
+\item{src_path}{Path to input data. Note use "bcgw" for whse oracle layers}
 
-\item{srclyr}{Input layer name}
+\item{src_lyr}{Input layer name}
 
 \item{suffix}{Use in combination with rslt_ind and gr_skey_tbl. Suffix to be added to the primary key field name in the gr_skey table}
 
-\item{nsTblm}{Name of output non spatial table}
+\item{dst_tbl}{Name of output non spatial table}
 
 \item{query}{Where clause used to filter input dataset, Eg. fire_year = 2023 and BURN_SEVERITY_RATING in ('High','Medium')}
 
-\item{flds2keep}{Fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name}
+\item{flds_to_keep}{Fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name}
 
-\item{connList}{Keyring object of Postgres credentials}
+\item{out_tif_path}{Directory where output tif if exported and where vector is temporally stored prior to import}
 
-\item{cropExtent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
+\item{pg_conn_param}{Keyring object of Postgres credentials}
 
-\item{gr_skey_tbl}{Pre-existing table that contains gr_skey field}
+\item{ora_conn_param}{Keyring object of Oracle credentials}
 
-\item{wrkSchema}{Schema to insert the new gr_skey and non spatial table}
+\item{crop_extent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
 
-\item{rasSchema}{If importrast2pg set to TRUE, the import schema for the raster}
+\item{gr_skey_tbl}{Schema and table name of the pre-existing foreign key lookup gr_skey table. Argument to be used with suffix and rslt_ind within in_csv.}
 
-\item{fdwSchema}{If srctype=oracle, the schema to load the foreign data wrapper table}
+\item{dst_schema}{Schema to insert the newly created gr_skey and dst_tbl (Eg. non spatial table)}
 
-\item{grskeyTIF}{The file path to the gr_skey geotiff}
+\item{raster_schema}{If import_rast_to_pg set to TRUE, the import schema for the raster. Defaults to "raster"}
 
-\item{maskTif}{The file path to the geotiff to be used as a mask}
+\item{fdw_schema}{If src_type=oracle, the schema to load the foreign data wrapper table, Defaults to "load"}
 
-\item{dataSourceTblName}{coming soon}
+\item{template_tif}{The file path to the gr_skey template geotiff}
 
-\item{outTifpath}{Directory where output tif if exported and where vector is temporally stored prior to import}
+\item{mask_tif}{The file path to the geotiff to be used as a mask}
 
-\item{importrast2pg}{If TRUE, raster is imported into database in rasSchema}
+\item{data_src_tbl}{Schema and table name of the metadata table in postgres that updates with any newly imported layer}
+
+\item{import_rast_to_pg}{If TRUE, raster is imported into database in raster_schema}
 }
 \value{
 no return

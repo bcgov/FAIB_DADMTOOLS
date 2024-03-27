@@ -6,20 +6,20 @@
 \usage{
 writeNoSpaTbl2PG(
   src,
-  outTblName,
-  connList,
+  dst_tbl,
+  pg_conn_param,
   lyr = NULL,
   pk = NULL,
   select = NULL,
   where = NULL,
-  outSchema = NULL,
-  table_comment = NULL
+  dst_schema = NULL,
+  tbl_comment = NULL
 )
 }
 \arguments{
 \item{src}{path of input dataset e.g. c:/test.gdb}
 
-\item{outTblName}{Name of output PG table}
+\item{dst_tbl}{Name of output PG table}
 
 \item{lyr}{layer of input dataser e.g. roadsFC}
 
@@ -27,7 +27,7 @@ writeNoSpaTbl2PG(
 
 \item{select}{fields to keep in table e.g. "objectid,feature_id,segmentName"}
 
-\item{outSchema}{default database schema}
+\item{dst_schema}{default database schema}
 
 \item{dbName}{Name of PG database}
 

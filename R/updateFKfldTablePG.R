@@ -1,58 +1,62 @@
 #' Update the foreign key field table in PG
-#' @param nsTbl non-spatial table to add to foreign key filed table (must have a foreign key column in the foreign key lookup table)
-#' @param fkTBlName  foreign key lookup table name
+#' @param dst_tbl non-spatial table to add to foreign key filed table (must have a foreign key column in the foreign key lookup table)
+#' @param dst_schema non-spatial table schema to add to foreign key filed table (must have a foreign key column in the foreign key lookup table)
+#' @param fk_tbl foreign key lookup table name
 #' @param suffix suffix added to the foreign key column
-#' @param connList Named list with the following connection parameters Driver,host,user,dbname,password,port,schema
+#' @param pg_conn_param Named list with the following connection parameters Driver,host,user,dbname,password,port,schema
 #'
 #' @return nothing is returned
 #' @export
 #'
 #' @examples coming soon
 
-updateFKfldTablePG <- function(nsTbl, fkTBlName, suffix, connList){
-  if (grepl("\\.", fkTBlName)) {
-    fkTBlNameNoSchema <- strsplit(fkTBlName, "\\.")[[1]][[2]]
-    schema <- strsplit(fkTBlName, "\\.")[[1]][[1]]
+updateFKfldTablePG <- function(dst_tbl,
+                               dst_schema, 
+                               fk_tbl, 
+                               suffix, 
+                               pg_conn_param)
+{
+  if (grepl("\\.", fk_tbl)) {
+    fk_schema <- strsplit(fk_tbl, "\\.")[[1]][[1]]
+    fk_tbl <- strsplit(fk_tbl, "\\.")[[1]][[2]]
   } else {
-    schema <- 'public'
-    fkTBlNameNoSchema <- fkTBlName
+    fk_schema <- 'public'
   }
 
-  sql <- glue("CREATE TABLE IF NOT EXISTS {fkTBlName}_flds (
+  sql <- glue("CREATE TABLE IF NOT EXISTS {fk_schema}.{fk_tbl}_flds (
                 fldname varchar(150) PRIMARY KEY,
                 srcTable varchar(200));")
-  sendSQLstatement(sql,connList)
+  sendSQLstatement(sql, pg_conn_param)
 
-  resCols <- getTableQueryPG(glue("SELECT
+  res_cols <- getTableQueryPG(glue("SELECT
                                     column_name
                                   FROM
                                     information_schema.columns
                                   WHERE
-                                    table_schema = '{schema}'
+                                    table_schema = '{fk_schema}'
                                   AND
-                                    table_name = '{fkTBlNameNoSchema}'
+                                    table_name = '{fk_tbl}'
                                   AND
-                                    column_name like '%_{suffix}';"),connList)
+                                    column_name like '%_{suffix}';"), pg_conn_param)
 
-  fldCols <- getTableQueryPG(glue("SELECT
+  field_cols <- getTableQueryPG(glue("SELECT
                                     fldname
-                                  FROM {fkTBlName}_flds;"),connList)
+                                  FROM {fk_schema}.{fk_tbl}_flds;"), pg_conn_param)
 
-
-  for (i in 1:nrow(resCols)) {
-    val <- resCols$column_name[[i]]
-    fldCols <- getTableQueryPG(glue("SELECT
+  for (i in 1:nrow(res_cols)) {
+    val <- res_cols$column_name[[i]]
+    field_cols <- getTableQueryPG(glue("SELECT
                                       fldname
                                     FROM
-                                      {fkTBlName}_flds
+                                      {fk_schema}.{fk_tbl}_flds
                                     WHERE
-                                      fldname = '{val}';"), connList)
+                                      fldname = '{val}';"), pg_conn_param)
 
-    query <- glue("INSERT INTO {fkTBlName}_flds (fldname, srcTable) VALUES ('{val}','{nsTbl}')
+    query <- glue("INSERT INTO {fk_schema}.{fk_tbl}_flds (fldname, srcTable) VALUES ('{val}','{dst_schema}.{dst_tbl}')
                   ON CONFLICT (fldname)
                   DO UPDATE
                   SET srcTable = EXCLUDED.srcTable;")
     print(query)
-    sendSQLstatement(query, connList)
+    sendSQLstatement(query, pg_conn_param)
   }
 }

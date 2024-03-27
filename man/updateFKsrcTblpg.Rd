@@ -5,35 +5,27 @@
 \title{Updates Foreign Key Data Source Table in PG}
 \usage{
 updateFKsrcTblpg(
-  outTableName,
-  srctype,
-  srcpath,
-  srclyr,
+  data_src_tbl,
+  src_type,
+  src_path,
+  src_lyr,
   pk,
   suffix,
-  nsTblm,
   query,
   inc,
   rslt_ind,
-  fields2keep,
-  schema,
-  connList
+  flds_to_keep,
+  dst_tbl,
+  dst_schema,
+  pg_conn_param
 )
 }
 \arguments{
-\item{outTableName}{Data source table name}
-
-\item{srctype}{data source type (one of 'gdb', 'raster','oracle','geopackage')}
-
-\item{srcpath}{source path (e.g. "w:/test/tes.gdb" or 'bcgw')}
-
-\item{srclyr}{data source  (e.g. 'veg_comp_poly' or  'whse_forest_vegetation.f_own')}
+\item{src_type}{data source type (one of 'gdb', 'raster','oracle','geopackage')}
 
 \item{pk}{primary of data source e.g. objectid}
 
 \item{suffix}{suffix used in resultant columns that were kept form the data source (e.g. "vri2021")}
-
-\item{nsTblm}{name of the non spatial data of data source stored in PG e.g. f_own}
 
 \item{query}{where statement used to filter data source}
 
@@ -41,7 +33,15 @@ updateFKsrcTblpg(
 
 \item{rslt_ind}{indicates the pk is in the  pg resultant or not}
 
-\item{fields2keep}{string of fields kept from data input (e.g. "feature_id,proj_age_1,live_stand_volume_125")}
+\item{flds_to_keep}{string of fields kept from data input (e.g. "feature_id,proj_age_1,live_stand_volume_125")}
+
+\item{dst_tbl}{Data source table name}
+
+\item{srcpath}{source path (e.g. "w:/test/tes.gdb" or 'bcgw')}
+
+\item{srclyr}{data source  (e.g. 'veg_comp_poly' or  'whse_forest_vegetation.f_own')}
+
+\item{nsTblm}{name of the non spatial data of data source stored in PG e.g. f_own}
 }
 \value{
 no return

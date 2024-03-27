@@ -4,14 +4,14 @@
 \alias{df2PG}
 \title{Write a PG Table from Dataframe}
 \usage{
-df2PG(pgTblName, inDF, connList, overwrite = TRUE, append = FALSE)
+df2PG(pg_tbl, in_df, pg_conn_param, overwrite = TRUE, append = FALSE)
 }
 \arguments{
-\item{pgTblName}{Name of output PG Table}
+\item{pg_tbl}{Name of output PG Table}
 
-\item{inDF}{input dataframe}
+\item{in_df}{input dataframe}
 
-\item{connList}{Named list with the following parameters Driver,host,user,dbname,password,port,schema}
+\item{pg_conn_param}{Named list with the following parameters Driver,host,user,dbname,password,port,schema}
 
 \item{overwrite}{overwrite output T or F}
 

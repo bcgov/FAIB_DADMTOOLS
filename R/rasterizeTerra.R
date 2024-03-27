@@ -1,12 +1,12 @@
 #' Rasterize spatial data using Terra
 #'
-#' @param inSrc path of gdb or geopackage
+#' @param src_sf Simple feature object
 #' @param field field to be rasterized
 #' @param template path of template raster
-#' @param cropExtent OPTIONAL - extent of output raster <xmin>,<ymax>,<ymin>,<xmax> default c(273287.5,1870587.5,367787.5,1735787.5)
-#' @param inlyr OPTIONAL - input data layer e.g. 'veg_comp_poly'
-#' @param outTifpath path of out TIF defualt D:/Projects/provDataProject
-#' @param outTifname  name of out TIF
+#' @param crop_extent OPTIONAL - extent of output raster <xmin>,<ymax>,<ymin>,<xmax> default c(273287.5,1870587.5,367787.5,1735787.5)
+#' @param src_lyr OPTIONAL - input data layer e.g. 'veg_comp_poly'
+#' @param out_tif_path path of out TIF defualt D:/Projects/provDataProject
+#' @param out_tif_name  name of out TIF
 #' @param datatype  default Int64
 #'
 #' @return output tif name
@@ -14,43 +14,43 @@
 #'
 #' @examples coming soon
 
-rasterizeTerra <- function(
-    inSrc,
-    field,
-    template,
-    cropExtent = NULL,
-    inlyr=NULL,
-    outTifpath = NULL,
-    outTifname = NULL,
-    datatype ='INT4S',
-    nodata = 0){
+rasterizeTerra <- function(src_sf,
+                          field,
+                          template_tif,
+                          crop_extent = NULL,
+                          src_lyr=NULL,
+                          out_tif_path = NULL,
+                          out_tif_name = NULL,
+                          datatype ='INT4S',
+                          nodata = 0)
+{
 
-  dest <- file.path(outTifpath, outTifname)
+  dest_tif <- file.path(out_tif_path, out_tif_name)
 
   # Check if the file exists
-  if (file.exists(dest)) {
+  if (file.exists(dest_tif)) {
     # If exists, delete the file
-    file.remove(dest)
+    file.remove(dest_tif)
   }
 
-  if( !is.null(inlyr)) {
-  inVect <- terra::vect(x = inSrc, layer = inlyr)
+  if( !is.null(src_lyr)) {
+    in_vect <- terra::vect(x = src_sf, layer = src_lyr)
   } else {
-    inVect <- terra::vect(x = inSrc)
+    in_vect <- terra::vect(x = src_sf)
 
   }
 
 
-  templateRast <- terra::rast(template)
+  template_rast <- terra::rast(template_tif)
   print(glue("Rasterizing field: {field} using datatype: {datatype}"))
-  rastBnd <- terra::rasterize(inVect, templateRast, field = field, wopt = list(datatype = datatype))
-  if( !is.null(cropExtent)) {
-    rastBnd <-  terra::crop(rastBnd, cropExtent, datatype = datatype)
+  rast_band <- terra::rasterize(in_vect, template_rast, field = field, wopt = list(datatype = datatype))
+  if( !is.null(crop_extent)) {
+    rast_band <-  terra::crop(rast_band, crop_extent, datatype = datatype)
     }
-  print(glue("Writing raster: {dest} using datatype: {datatype}"))
-  terra::writeRaster(rastBnd, dest, datatype = datatype, overwrite = TRUE, NAflag=nodata)
+  print(glue("Writing raster: {dest_tif} using datatype: {datatype}"))
+  terra::writeRaster(rast_band, dest_tif, datatype = datatype, overwrite = TRUE, NAflag = nodata)
   print('Raster created successfully.')
-  return(dest)
+  return(dest_tif)
 }
 
 

@@ -5,25 +5,25 @@
 \title{Convert tif to grskey table}
 \usage{
 tif2grskeytbl(
-  inTIF = "D:\\\\Projects\\\\provDataProject\\\\fadm_tfl_all_sp.tif",
-  grskeyTIF =
+  src_tif_filename = "D:\\\\Projects\\\\provDataProject\\\\fadm_tfl_all_sp.tif",
+  template_tif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\bc_01ha_gr_skey.tif",
-  maskTif =
+  mask_tif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
-  cropExtent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
-  valueColName = "val"
+  crop_extent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
+  val_field_name = "val"
 )
 }
 \arguments{
-\item{inTIF}{File path to input geotiff}
+\item{src_tif_filename}{File path to input geotiff}
 
-\item{grskeyTIF}{File path to template geotiff with gr_skey values}
+\item{template_tif}{File path to template geotiff with gr_skey values}
 
-\item{maskTif}{File path to geotiff to be used as mask (values that ar N/a in mask will be nulled )}
+\item{mask_tif}{File path to geotiff to be used as mask (values that ar N/a in mask will be nulled )}
 
-\item{cropExtent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
+\item{crop_extent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
 
-\item{valueColName}{Name of output column}
+\item{val_field_name}{Name of output column}
 }
 \value{
 coming soon

@@ -1,13 +1,13 @@
 #' Write non spatial tables to PG using gdal on the machine.  Creates index on primary key.  Use for large files that would take too long to import into R
 #'
 #' @param src path of input dataset e.g. c:/test.gdb
-#' @param outTblName Name of output PG table
+#' @param dst_tbl Name of output PG table
 #' @param dbName Name of PG database
 #' @param lyr layer of input dataser e.g. roadsFC
 #' @param pk primary of table e.g. objectid
 #' @param select fields to keep in table e.g. "objectid,feature_id,segmentName"
 #' @param where_clause sql where clause e.g. segment = 'highway2'
-#' @param outSchema default database schema
+#' @param dst_schema default database schema
 #' @param useGdal Set to TRUE if GDAL is installed on machine e.g. TRUE
 #'
 #' @return no return
@@ -15,10 +15,20 @@
 #'
 #' @examples coming soon
 
-writeNoSpaTbl2PG <- function(src, outTblName, connList, lyr = NULL, pk = NULL, select = NULL, where = NULL, outSchema = NULL, table_comment = NULL) {
+writeNoSpaTbl2PG <- function(src, 
+                             dst_tbl, 
+                             pg_conn_param, 
+                             lyr = NULL, 
+                             pk = NULL, 
+                             select = NULL, 
+                             where = NULL, 
+                             dst_schema = NULL, 
+                             tbl_comment = NULL
+                             ) 
+{
 
-  dbname <- connList["dbname"][[1]]
-  user <- connList["user"][[1]]
+  dbname <- pg_conn_param["dbname"][[1]]
+  user <- pg_conn_param["user"][[1]]
 
   # ## Tidy up lyr input
   if(is_blank(lyr)) {
@@ -53,8 +63,8 @@ writeNoSpaTbl2PG <- function(src, outTblName, connList, lyr = NULL, pk = NULL, s
   }
 
 
-  if(is_blank(outSchema)) {
-    outTblName <- outTblName
+  if(is_blank(dst_schema)) {
+    dst_tbl <- dst_tbl
   }
 
   if(is_blank(where)) {
@@ -64,8 +74,8 @@ writeNoSpaTbl2PG <- function(src, outTblName, connList, lyr = NULL, pk = NULL, s
   }
 
 
-  if(is_blank(outSchema)) {
-    outSchema <- "public"
+  if(is_blank(dst_schema)) {
+    dst_schema <- "public"
   }
 
   if (endsWith(src, '.shp')) {
@@ -81,8 +91,8 @@ writeNoSpaTbl2PG <- function(src, outTblName, connList, lyr = NULL, pk = NULL, s
               '-gt 200000',
               '-dialect sqlite',
               paste('-sql',sql),
-              paste('-nln',outTblName),
-              paste0('-lco SCHEMA=', outSchema),
+              paste('-nln',dst_tbl),
+              paste0('-lco SCHEMA=', dst_schema),
               paste('-lco', 'OVERWRITE=YES'),
               '--config PG_USE_COPY YES',
               precision,
@@ -94,24 +104,24 @@ writeNoSpaTbl2PG <- function(src, outTblName, connList, lyr = NULL, pk = NULL, s
                                   '-gt 200000',
                                   '-dialect sqlite',
                                   paste('-sql',sql),
-                                  paste('-nln',outTblName),
-                                  paste0('-lco SCHEMA=', outSchema),
+                                  paste('-nln',dst_tbl),
+                                  paste0('-lco SCHEMA=', dst_schema),
                                   paste('-lco', 'OVERWRITE=YES'),
                                   '--config PG_USE_COPY YES',
                                   precision,
-                                  paste0('-f PostgreSQL PG:dbname=',dbname),
+                                  paste0('-f PostgreSQL PG:dbname=', dbname),
                                   src), stderr = TRUE)))
-  print('Import Complete, moving to post processing')
+  print('Import complete, moving to post processing')
 
   # ## add harded coded fid primary key sequenctial integer
-  query <- glue("select concat('ALTER TABLE {outSchema}.{outTblName} DROP CONSTRAINT ', constraint_name) as my_query
+  query <- glue("select concat('ALTER TABLE {dst_schema}.{dst_tbl} DROP CONSTRAINT ', constraint_name) as my_query
   from information_schema.table_constraints
-  where table_schema = '{outSchema}'
-  and table_name = '{outTblName}'
+  where table_schema = '{dst_schema}'
+  and table_name = '{dst_tbl}'
   and constraint_type = 'PRIMARY KEY';")
-  sqlstmt <- (faibDataManagement::getTableQueryPG(query, connList))$my_query
-  faibDataManagement::sendSQLstatement(sqlstmt, connList)
-  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {outSchema}.{outTblName} ADD PRIMARY KEY ({pk});"), connList)
-  faibDataManagement::sendSQLstatement(table_comment, connList)
-  faibDataManagement::sendSQLstatement(glue("ANALYZE {outSchema}.{outTblName};"),connList)
+  sqlstmt <- (faibDataManagement::getTableQueryPG(query, pg_conn_param))$my_query
+  faibDataManagement::sendSQLstatement(sqlstmt, pg_conn_param)
+  faibDataManagement::sendSQLstatement(glue("ALTER TABLE {dst_schema}.{dst_tbl} ADD PRIMARY KEY ({pk});"), pg_conn_param)
+  faibDataManagement::sendSQLstatement(tbl_comment, pg_conn_param)
+  faibDataManagement::sendSQLstatement(glue("ANALYZE {dst_schema}.{dst_tbl};"), pg_conn_param)
   }

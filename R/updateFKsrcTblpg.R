@@ -1,7 +1,7 @@
 #' Updates Foreign Key Data Source Table in PG
 #'
-#' @param outTableName Data source table name
-#' @param srctype data source type (one of 'gdb', 'raster','oracle','geopackage')
+#' @param dst_tbl Data source table name
+#' @param src_type data source type (one of 'gdb', 'raster','oracle','geopackage')
 #' @param srcpath source path (e.g. "w:/test/tes.gdb" or 'bcgw')
 #' @param srclyr data source  (e.g. 'veg_comp_poly' or  'whse_forest_vegetation.f_own')
 #' @param pk primary of data source e.g. objectid
@@ -10,8 +10,9 @@
 #' @param query where statement used to filter data source
 #' @param inc 1 or 0,  indicates if data source is in PG
 #' @param rslt_ind indicates the pk is in the  pg resultant or not
-#' @param fields2keep string of fields kept from data input (e.g. "feature_id,proj_age_1,live_stand_volume_125")
-#'
+#' @param flds_to_keep string of fields kept from data input (e.g. "feature_id,proj_age_1,live_stand_volume_125")
+#' @param dst_schema
+#' @param pg_conn_param
 #' @return no return
 #' @export
 #'
@@ -19,17 +20,28 @@
 
 
 
-updateFKsrcTblpg <- function(outTableName, srctype, srcpath, srclyr, pk, suffix, nsTblm, query, inc, rslt_ind, fields2keep, schema, connList) {
+updateFKsrcTblpg <- function(data_src_tbl, 
+                            src_type, 
+                            src_path, 
+                            src_lyr, 
+                            pk, 
+                            suffix, 
+                            query, 
+                            inc, 
+                            rslt_ind, 
+                            flds_to_keep, 
+                            dst_tbl,
+                            dst_schema, 
+                            pg_conn_param) 
+{
 
-  if(is_blank(fields2keep)) {
-    fields2keep <- ""
+  if(is_blank(flds_to_keep)) {
+    flds_to_keep <- ""
   }
 
-  query <- gsub("'","\'",query)
+  query <- gsub("'","\'", query)
 
-  outTableNameNoSchema <- strsplit(outTableName, "\\.")[[1]][[2]]
-
-  sql <- glue::glue("CREATE TABLE IF NOT EXISTS {outTableName} (
+  sql <- glue::glue("CREATE TABLE IF NOT EXISTS {data_src_tbl} (
                       srctype varchar,
                       srcpath varchar,
                       srclyr varchar,
@@ -41,11 +53,11 @@ updateFKsrcTblpg <- function(outTableName, srctype, srcpath, srclyr, pk, suffix,
                       rslt_ind integer,
                       fields2keep varchar,
                       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                      CONSTRAINT {outTableNameNoSchema}_unique UNIQUE (schema, tblname)
+                      CONSTRAINT data_sources_unique UNIQUE (schema, tblname)
                     );")
-  faibDataManagement::sendSQLstatement(sql, connList)
+  faibDataManagement::sendSQLstatement(sql, pg_conn_param)
 
-  sql <- glue::glue("INSERT INTO {outTableName}
+  sql <- glue::glue("INSERT INTO {data_src_tbl}
                     (
                      srctype,
                      srcpath,
@@ -60,16 +72,16 @@ updateFKsrcTblpg <- function(outTableName, srctype, srcpath, srclyr, pk, suffix,
                     )
                      VALUES
                     (
-                    {single_quote(srctype)},
-                    {single_quote(srcpath)},
-                    {single_quote(srclyr)},
+                    {single_quote(src_type)},
+                    {single_quote(src_path)},
+                    {single_quote(src_lyr)},
                     {single_quote(pk)},
                     {single_quote(suffix)},
-                    {single_quote(schema)},
-                    {single_quote(nsTblm)},
+                    {single_quote(dst_schema)},
+                    {single_quote(dst_tbl)},
                     {single_quote(query)},
                     {single_quote(rslt_ind)},
-                    {single_quote(fields2keep)}
+                    {single_quote(flds_to_keep)}
                     )
                     ON CONFLICT (schema, tblname) DO UPDATE
                     SET
@@ -82,6 +94,6 @@ updateFKsrcTblpg <- function(outTableName, srctype, srcpath, srclyr, pk, suffix,
                     rslt_ind = EXCLUDED.rslt_ind,
                     fields2keep = EXCLUDED.fields2keep,
                     created_at = now();")
-  print(glue("Inserting record into {outTableName} for {schema}.{nsTblm}"))
-  faibDataManagement::sendSQLstatement(sql, connList)
+  print(glue("Inserting record into {data_src_tbl} for {dst_schema}.{dst_tbl}"))
+  faibDataManagement::sendSQLstatement(sql, pg_conn_param)
 }

@@ -1,8 +1,8 @@
 #' Converts postgres raster to  posgres points table
 #'
-#' @param inRas coming soon
-#' @param outLyrName coming soon
-#' @param outField coming soon
+#' @param in_ras coming soon
+#' @param out_lyr_name coming soon
+#' @param out_field coming soon
 #'
 #' @return coming soon
 #' @export
@@ -10,11 +10,11 @@
 #' @examples coming soon
 
 #function for converting postgres raster to points
-pg_rast_2_centroid <- function(inRas,
-                               outLyrName,
-                               outField,
-                               connList = faibDataManagement::get_pg_conn_list()){
-  indexName <-  paste0(gsub("\\.", "_", "outLyrName"), '_indx_geom')
+pg_rast_2_centroid <- function(in_ras,
+                               out_lyr_name,
+                               out_field,
+                               pg_conn_param = faibDataManagement::get_pg_conn_list()){
+  indexName <-  paste0(gsub("\\.", "_", "out_lyr_name"), '_indx_geom')
   qry <- "DROP FUNCTION IF EXISTS FAIB_CENTROID_TILED_RASTER;"
   qry2 <-"CREATE OR REPLACE FUNCTION FAIB_CENTROID_TILED_RASTER(outTbl VARCHAR,indexName VARCHAR,srcRast VARCHAR,outFld VARCHAR DEFAULT 'val') RETURNS VARCHAR
 AS $$
@@ -43,10 +43,10 @@ from tbl2 where (public.ST_SummaryStats(rast)).sum is not null;';
 	RETURN outTbl;
 END;
 $$ LANGUAGE plpgsql;"
-  faibDataManagement::sendSQLstatement(qry,connList)
-  faibDataManagement::sendSQLstatement(qry2,connList)
-  qry3 <- paste0("SELECT FAIB_CENTROID_TILED_RASTER('", outLyrName,"','",indexName,"', '",inRas,"','",outField,"')")
+  faibDataManagement::sendSQLstatement(qry, pg_conn_param)
+  faibDataManagement::sendSQLstatement(qry2, pg_conn_param)
+  qry3 <- paste0("SELECT FAIB_CENTROID_TILED_RASTER('", out_lyr_name, "','", indexName, "', '", in_ras, "','", out_field, "')")
   print(qry3)
-  faibDataManagement::sendSQLstatement(qry3,connList)
+  faibDataManagement::sendSQLstatement(qry3, pg_conn_param)
 
 }

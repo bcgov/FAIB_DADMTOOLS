@@ -2,7 +2,7 @@
 #'
 #' @param pattern An text string for the table pattern to look for date named related tables
 #' @param schema  The schema to search in
-#' @param connList Named list with the following parameters Driver,host,user,dbname,password,port,schema
+#' @param pg_conn_param Named list with the following parameters Driver,host,user,dbname,password,port,schema
 #' @param depth The number of matches with dates to return. default is 2
 #'
 #' @return a dataframe of the list of matching tables
@@ -21,7 +21,7 @@
 
 
 
-getDatePatternTableList<-function(pattern,schema,connList,depth=2){
+getDatePatternTableList<-function(pattern, schema, pg_conn_param, depth=2){
   sql <- "select table_name
   from information_schema.tables t
   where table_schema = 'x_x'
@@ -34,12 +34,12 @@ getDatePatternTableList<-function(pattern,schema,connList,depth=2){
   sql <- gsub('z_z',depth,sql)
 
 
-  conn<-dbConnect(connList["driver"][[1]],
-                  host = connList["host"][[1]],
-                  user = connList["user"][[1]],
-                  dbname = connList["dbname"][[1]],
-                  password = connList["password"][[1]],
-                  port = connList["port"][[1]])
+  conn<-dbConnect(pg_conn_param["driver"][[1]],
+                  host = pg_conn_param["host"][[1]],
+                  user = pg_conn_param["user"][[1]],
+                  dbname = pg_conn_param["dbname"][[1]],
+                  password = pg_conn_param["password"][[1]],
+                  port = pg_conn_param["port"][[1]])
   on.exit(RPostgres::dbDisconnect(conn))
   RPostgres::dbGetQuery(conn, sql)
 }

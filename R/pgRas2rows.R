@@ -1,18 +1,18 @@
 #' converts a PG raster into a non spatial pg table
-#' @param outLyrName name of output non-spatial table
-#' @param inRas  input PG Raster
-#' @param outField name of the value field in output table
-#' @param templateRas template pg raster with the same the rsolution znd extent of the input raster
-#'
+#' @param out_lyr_name name of output non-spatial table
+#' @param in_ras  input PG Raster
+#' @param out_field name of the value field in output table
+#' @param templateRas template pg raster with the same the resolution and extent of the input raster
+#' @param pg_conn_param coming soon
 #' @return nothing is returned
 #' @export
 #'
 #' @examples coming soon
 
 
-pgRas2rows <- function(outLyrName,inRas,outField,templateRas,connList){
-  indexName <-  paste0(gsub("\\.", "_", outLyrName), '_indx_geom')
-  print(indexName)
+pgRas2rows <- function(out_lyr_name, in_ras, out_field, template_ras, pg_conn_param){
+  index_name <-  paste0(gsub("\\.", "_", out_lyr_name), '_indx_geom')
+  print(index_name)
   qry1 <- "DROP FUNCTION IF EXISTS FAIB_TILED_RASTER_TO_ROWS;"
   qry2 <- "CREATE OR REPLACE FUNCTION FAIB_TILED_RASTER_TO_ROWS(outTbl VARCHAR,indexName VARCHAR, srcRast VARCHAR, templateRast VARCHAR, outFld VARCHAR DEFAULT 'val') RETURNS VARCHAR
 AS $$
@@ -47,10 +47,10 @@ select ogc_fid, ' || outFld || ' from tbl5 where ' || outFld || ' is not null;';
 	RETURN outTbl;
 END;
 $$ LANGUAGE plpgsql;"
-  faibDataManagement::sendSQLstatement(qry1,connList)
-  faibDataManagement::sendSQLstatement(qry2,connList)
-  qry3 <- paste0("SELECT FAIB_TILED_RASTER_TO_ROWS('", outLyrName,"','",indexName,"', '",inRas,"', '",templateRas,"','",outField,"')")
+  faibDataManagement::sendSQLstatement(qry1, pg_conn_param)
+  faibDataManagement::sendSQLstatement(qry2, pg_conn_param)
+  qry3 <- paste0("SELECT FAIB_TILED_RASTER_TO_ROWS('", out_lyr_name, "','", index_name, "', '", in_ras, "', '", template_ras, "','", out_field, "')")
   print(qry3)
-  faibDataManagement::sendSQLstatement(qry3,connList)
+  faibDataManagement::sendSQLstatement(qry3, pg_conn_param)
 
 }

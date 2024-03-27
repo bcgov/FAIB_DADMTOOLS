@@ -1,17 +1,17 @@
 #' Update FAIB hectares database from input csv of datasets
 #'
-#' @param inCSV File path to data sources csv, see inputsDatasets2load2PG.csv for example
-#' @param connList Keyring object of Postgres credentials
-#' @param oraConnList Keyring object of Oracle credentials
-#' @param cropExtent list of c(ymin, ymax, xmin, xmax) in EPSG:3005
-#' @param gr_skey_tbl Tablename of the pre-existing foreign key lookup gr_skey table. Argument to be used with suffix and rslt_ind within inCSV. Schema is assumed to be wrkSchema
-#' @param wrkSchema Schema where gr_skey, non spatial table will be imported as well as the schema of gr_skey_tbl
-#' @param rasSchema If importrast2pg=TRUE, schema of imported raster
-#' @param grskeyTIF The file path to the gr_skey geotiff to be used as a template raster
-#' @param maskTif The file path to the geotiff to be used as a mask
-#' @param dataSourceTblName coming soon
-#' @param outTifpath Directory where output tif if exported and where vector is temporally stored prior to import
-#' @param importrast2pg If TRUE, raster is imported into database in rasSchema
+#' @param in_csv File path to data sources csv, see config_parameters.csv for example
+#' @param pg_conn_param Keyring object of Postgres credentials
+#' @param ora_conn_param Keyring object of Oracle credentials
+#' @param crop_extent list of c(ymin, ymax, xmin, xmax) in EPSG:3005
+#' @param gr_skey_tbl Schema and table name of the pre-existing foreign key lookup gr_skey table. Argument to be used with suffix and rslt_ind within in_csv.
+#' @param working_schema Schema where gr_skey, non spatial table will be imported as well as the schema of gr_skey_tbl
+#' @param raster_schema If importrast2pg=TRUE, schema of imported raster
+#' @param template_tif The file path to the gr_skey geotiff to be used as a template raster
+#' @param mask_tif The file path to the geotiff to be used as a mask
+#' @param data_src_tbl Schema and table name of the metadata table in postgres that updates with any newly imported layer
+#' @param out_tif_path Directory where output tif if exported and where vector is temporally stored prior to import
+#' @param import_rast_to_pg If TRUE, raster is imported into database in rasSchema
 #'
 #'
 #' @return no return
@@ -19,56 +19,57 @@
 #'
 #' @examples coming soon
 
-add_batch_2_pg_grskey_grid <- function(inCSV            = 'D:\\Projects\\provDataProject\\tools\\prov_data_resultant3.csv',
-                                      connList          = faibDataManagement::get_pg_conn_list(),
-                                      oraConnList       = faibDataManagement::get_ora_conn_list(),
-                                      cropExtent        = c(273287.5,1870587.5,367787.5,1735787.5),
-                                      gr_skey_tbl       = 'all_bc_gr_skey',
-                                      wrkSchema         = 'whse',
-                                      rasSchema         = 'raster',
-                                      grskeyTIF         = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-                                      maskTif           = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
-                                      dataSourceTblName = 'data_sources',
-                                      outTifpath        = 'D:\\Projects\\provDataProject',
-                                      importrast2pg     = FALSE
+add_batch_2_pg_grskey_grid <- function(in_csv           = 'config_parameters.csv',
+                                      pg_conn_param     = faibDataManagement::get_pg_conn_list(),
+                                      ora_conn_param    = faibDataManagement::get_ora_conn_list(),
+                                      crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5),
+                                      gr_skey_tbl       = 'whse.all_bc_gr_skey',
+                                      dst_schema        = 'whse',
+                                      raster_schema     = 'raster',
+                                      template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+                                      mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
+                                      data_src_tbl      = 'whse.data_sources',
+                                      out_tif_path      = 'D:\\Projects\\provDataProject',
+                                      import_rast_to_pg = FALSE
                                       )
 {
   start_time <- Sys.time()
   print(glue("Script started at {format(start_time, '%Y-%m-%d %I:%M:%S %p')}"))
-  inFile <- read.csv(inCSV)
-  inFile <- inFile[inFile$inc == 1,]
-  for (row in 1:nrow(inFile)) {
-    rslt_ind  <- gsub("[[:space:]]",'',tolower(inFile[row, "rslt_ind"])) ##1 = include(i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
-    srctype   <- gsub("[[:space:]]",'',tolower(inFile[row, "srctype"])) ##format of data source i.e. gdb,oracle, postgres, geopackage, raster
-    srcpath   <- gsub("[[:space:]]",'',tolower(inFile[row, "srcpath"]))## path to input data. Note use bcgw for whse
-    srclyr    <- gsub("[[:space:]]",'',tolower(inFile[row, "srclyr"])) ## input layer name
-    suffix    <- gsub("[[:space:]]",'',tolower(inFile[row, "suffix"])) ## suffix to be used in the resultant table
-    nsTblm    <- gsub("[[:space:]]",'',tolower(inFile[row, "tblname"])) ## name of output non spatial table
-    query     <- inFile[row, "src_query"]  ##where clause used to filter input dataset
-    flds2keep <- gsub("[[:space:]]",'',tolower(inFile[row, "fields2keep"])) ## fields to keep in non spatial table
+  in_file <- read.csv(in_csv)
+  in_file <- in_file[in_file$inc == 1,]
+  for (row in 1:nrow(in_file)) {
+    rslt_ind      <- gsub("[[:space:]]",'',tolower(in_file[row, "rslt_ind"])) ##1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
+    src_type      <- gsub("[[:space:]]",'',tolower(in_file[row, "srctype"])) ##format of data source i.e. gdb,oracle, postgres, geopackage, raster
+    src_path      <- gsub("[[:space:]]",'',tolower(in_file[row, "srcpath"])) ## path to input data. Note use bcgw for whse
+    src_lyr       <- gsub("[[:space:]]",'',tolower(in_file[row, "srclyr"])) ## input layer name
+    suffix        <- gsub("[[:space:]]",'',tolower(in_file[row, "suffix"])) ## suffix to be used in the resultant table
+    dst_tbl       <- gsub("[[:space:]]",'',tolower(in_file[row, "tblname"])) ## name of output non spatial table
+    query         <- in_file[row, "src_query"]  ##where clause used to filter input dataset
+    flds_to_keep  <- gsub("[[:space:]]",'',tolower(in_file[row, "fields2keep"])) ## fields to keep in non spatial table
 
 
     faibDataManagement::add_data_2_pg_grskey_grid(rslt_ind          = rslt_ind,
-                                                  srctype           = srctype,
-                                                  srcpath           = srcpath,
-                                                  srclyr            = srclyr,
+                                                  src_type          = src_type,
+                                                  src_path          = src_path,
+                                                  src_lyr           = src_lyr,
                                                   suffix            = suffix,
-                                                  nsTblm            = nsTblm,
+                                                  dst_tbl           = dst_tbl,
                                                   query             = query,
-                                                  flds2keep         = flds2keep,
-                                                  connList          = connList,
-                                                  oraConnList       = oraConnList,
-                                                  cropExtent        = cropExtent,
+                                                  flds_to_keep      = flds_to_keep,
+                                                  pg_conn_param     = pg_conn_param,
+                                                  ora_conn_param    = ora_conn_param,
+                                                  crop_extent       = crop_extent,
                                                   gr_skey_tbl       = gr_skey_tbl,
-                                                  wrkSchema         = wrkSchema,
-                                                  rasSchema         = rasSchema,
-                                                  grskeyTIF         = grskeyTIF,
-                                                  maskTif           = maskTif,
-                                                  dataSourceTblName = dataSourceTblName,
-                                                  outTifpath        = outTifpath,
-                                                  importrast2pg     = importrast2pg)
+                                                  dst_schema        = dst_schema,
+                                                  raster_schema     = raster_schema,
+                                                  template_tif      = template_tif,
+                                                  mask_tif          = mask_tif,
+                                                  data_src_tbl      = data_src_tbl,
+                                                  out_tif_path      = out_tif_path,
+                                                  import_rast_to_pg = import_rast_to_pg)
   }
   end_time <- Sys.time()
   duration <- difftime(end_time, start_time, units = "mins")
+  print(glue("Script started at {format(end_time, '%Y-%m-%d %I:%M:%S %p')}"))
   print(glue("Script duration: {duration} minutes\n"))
 }
