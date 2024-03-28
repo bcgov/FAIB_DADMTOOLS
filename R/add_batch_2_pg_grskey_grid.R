@@ -29,7 +29,7 @@ add_batch_2_pg_grskey_grid <- function(in_csv           = 'config_parameters.csv
                                       template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
                                       mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
                                       data_src_tbl      = 'whse.data_sources',
-                                      out_tif_path      = 'D:\\Projects\\provDataProject',
+                                      out_tif_path,
                                       import_rast_to_pg = FALSE
                                       )
 {
@@ -46,7 +46,16 @@ add_batch_2_pg_grskey_grid <- function(in_csv           = 'config_parameters.csv
     dst_tbl       <- gsub("[[:space:]]",'',tolower(in_file[row, "tblname"])) ## name of output non spatial table
     query         <- in_file[row, "src_query"]  ##where clause used to filter input dataset
     flds_to_keep  <- gsub("[[:space:]]",'',tolower(in_file[row, "fields2keep"])) ## fields to keep in non spatial table
+    ## checks
+    if (any(c(is_blank(src_type), is_blank(src_path), is_blank(src_lyr), is_blank(dst_tbl), is_blank(out_tif_path)))){
+      print("ERROR: Argument not provided, one of src_type, src_path, src_lyr, dst_tbl, out_tif_path was left blank. Exiting script.")
+      return()
+    }
 
+    if (!(src_type %in% c("gdb", "oracle", "geopackage", "gpkg", "raster", "shp", "shapefile"))) {
+      print(glue("ERROR: Invalid src_type: {src_type}. Hint, provide one of: gdb, oracle, geopackage, gpkg, raster, shapefile or shp. Exiting script."))
+      return()
+    }
 
     faibDataManagement::add_data_2_pg_grskey_grid(rslt_ind          = rslt_ind,
                                                   src_type          = src_type,

@@ -26,5 +26,5 @@ df2PG<-function(pg_tbl,
                   dbname = pg_conn_param["dbname"][[1]],
                   password = pg_conn_param["password"][[1]],
                   port = pg_conn_param["port"][[1]])
-  on.exit( RPostgres::dbDisconnect(conn))
+  on.exit(RPostgres::dbDisconnect(conn))
   RPostgres::dbWriteTable(conn, pg_tbl, value = in_df, overwrite = overwrite, append = append, row.names = FALSE)}

@@ -1,4 +1,4 @@
-#' Converts postgres raster to  posgres points table
+#' Converts postgres raster to postgres points table
 #'
 #' @param in_ras coming soon
 #' @param out_lyr_name coming soon

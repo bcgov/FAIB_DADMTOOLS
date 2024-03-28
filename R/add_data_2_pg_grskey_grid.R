@@ -67,7 +67,16 @@ add_data_2_pg_grskey_grid <- function(rslt_ind,
   dst_tbl      <- gsub("[[:space:]]",'',tolower(dst_tbl)) ## name of output non spatial table
   query        <- query  ## where clause used to filter input dataset
   flds_to_keep <- gsub("[[:space:]]",'',tolower(flds_to_keep)) ## fields to keep in non spatial table
+  ## checks
+  if (any(c(is_blank(src_type), is_blank(src_path), is_blank(src_lyr), is_blank(dst_tbl), is_blank(out_tif_path)))){
+    print("ERROR: Argument not provided, one of src_type, src_path, src_lyr, dst_tbl, out_tif_path was left blank. Exiting script.")
+    return()
+  }
 
+  if (!(src_type %in% c("gdb", "oracle", "postgres", "geopackage", "raster", "shp", "shapefile"))) {
+    print(glue("ERROR: Invalid src_type: {src_type}. Hint, provide one of: gdb, oracle, postgres, geopackage, raster or shp. Exiting script."))
+    return()
+  }
   dst_gr_skey_tbl <- glue("{dst_tbl}_gr_skey") ## destination table gr skey name
   pk_id = "faib_fid"
   no_data_value = 0
