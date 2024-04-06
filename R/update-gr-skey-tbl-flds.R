@@ -1,7 +1,7 @@
 #' Update the foreign key field table in PG
 #' @param dst_tbl non-spatial table to add to foreign key filed table (must have a foreign key column in the foreign key lookup table)
 #' @param dst_schema non-spatial table schema to add to foreign key filed table (must have a foreign key column in the foreign key lookup table)
-#' @param fk_tbl foreign key lookup table name
+#' @param gr_skey_tbl current gr_skey table
 #' @param suffix suffix added to the foreign key column
 #' @param pg_conn_param Named list with the following connection parameters Driver,host,user,dbname,password,port,schema
 #'
@@ -12,18 +12,18 @@
 
 update_gr_skey_tbl_flds <- function(dst_tbl,
                                     dst_schema, 
-                                    fk_tbl, 
+                                    gr_skey_tbl, 
                                     suffix, 
                                     pg_conn_param)
 {
-  if (grepl("\\.", fk_tbl)) {
-    fk_schema <- strsplit(fk_tbl, "\\.")[[1]][[1]]
-    fk_tbl <- strsplit(fk_tbl, "\\.")[[1]][[2]]
+  if (grepl("\\.", gr_skey_tbl)) {
+    fk_schema <- strsplit(gr_skey_tbl, "\\.")[[1]][[1]]
+    gr_skey_tbl <- strsplit(gr_skey_tbl, "\\.")[[1]][[2]]
   } else {
     fk_schema <- 'public'
   }
 
-  sql <- glue("CREATE TABLE IF NOT EXISTS {fk_schema}.{fk_tbl}_flds (
+  sql <- glue("CREATE TABLE IF NOT EXISTS {fk_schema}.{gr_skey_tbl}_flds (
                 fldname varchar(150) PRIMARY KEY,
                 srcTable varchar(200));")
   run_sql_r(sql, pg_conn_param)
@@ -35,24 +35,24 @@ update_gr_skey_tbl_flds <- function(dst_tbl,
                               WHERE
                                 table_schema = '{fk_schema}'
                               AND
-                                table_name = '{fk_tbl}'
+                                table_name = '{gr_skey_tbl}'
                               AND
                                 column_name like '%_{suffix}';"), pg_conn_param)
 
   field_cols <- sql_to_df(glue("SELECT
                                   fldname
-                                FROM {fk_schema}.{fk_tbl}_flds;"), pg_conn_param)
+                                FROM {fk_schema}.{gr_skey_tbl}_flds;"), pg_conn_param)
 
   for (i in 1:nrow(res_cols)) {
     val <- res_cols$column_name[[i]]
     field_cols <- sql_to_df(glue("SELECT
                                     fldname
                                   FROM
-                                    {fk_schema}.{fk_tbl}_flds
+                                    {fk_schema}.{gr_skey_tbl}_flds
                                   WHERE
                                     fldname = '{val}';"), pg_conn_param)
 
-    query <- glue("INSERT INTO {fk_schema}.{fk_tbl}_flds (fldname, srcTable) VALUES ('{val}','{dst_schema}.{dst_tbl}')
+    query <- glue("INSERT INTO {fk_schema}.{gr_skey_tbl}_flds (fldname, srcTable) VALUES ('{val}','{dst_schema}.{dst_tbl}')
                   ON CONFLICT (fldname)
                   DO UPDATE
                   SET srcTable = EXCLUDED.srcTable;")

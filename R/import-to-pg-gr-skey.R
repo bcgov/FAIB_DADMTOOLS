@@ -329,7 +329,7 @@ import_to_pg_gr_skey <- function(rslt_ind,
                                             dst_schema    = dst_schema,
                                             pk            = pk_id,
                                             suffix        = suffix,
-                                            fk_tbl        = gr_skey_tbl,
+                                            gr_skey_tbl   = gr_skey_tbl,
                                             pg_conn_param = pg_conn_param
       )
 
@@ -338,7 +338,7 @@ import_to_pg_gr_skey <- function(rslt_ind,
       #Update Metadata tables
       faib_dadm_tools::update_gr_skey_tbl_flds(dst_tbl      = dst_tbl,
                                               dst_schema    = dst_schema,
-                                              fk_tbl        = gr_skey_tbl,
+                                              gr_skey_tbl   = gr_skey_tbl,
                                               suffix        = suffix,
                                               pg_conn_param = pg_conn_param
       )
