@@ -1,4 +1,4 @@
-# faib_dadm_tools
+# dadmtools
 Package of common FAIB Data Analysis and Data Management team functions, focusing of functions to import vector into PG in the gr_skey grid lookup table.
 
 ## Dependencies and installation
@@ -67,7 +67,7 @@ key_get("dbname", keyring = "localpsql")
 # R library import
 ```
 library(devtools)
-library(faib_dadm_tools)
+library(dadmtools)
 library(RPostgres)
 library(glue)
 library(terra)
@@ -93,7 +93,7 @@ import_gr_skey_tif_to_pg_rast(
     mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
     crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
     out_crop_tif_name = ## no default
-    pg_conn_param     = faib_dadm_tools::get_pg_conn_list(),
+    pg_conn_param     = dadmtools::get_pg_conn_list(),
     dst_tbl           = 'whse.all_bc_gr_skey'
 )
 ```
@@ -133,8 +133,8 @@ Function takes the following inputs. Default values listed below:
 ```
 batch_import_to_pg_gr_skey(
     in_csv            = 'config_parameters.csv',
-    pg_conn_param     = faib_dadm_tools::get_pg_conn_list(),
-    ora_conn_param    = faib_dadm_tools::get_ora_conn_list(),
+    pg_conn_param     = dadmtools::get_pg_conn_list(),
+    ora_conn_param    = dadmtools::get_ora_conn_list(),
     crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
     gr_skey_tbl       = 'whse.all_bc_gr_skey',
     dst_schema        = 'whse',

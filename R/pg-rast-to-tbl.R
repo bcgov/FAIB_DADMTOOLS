@@ -47,10 +47,10 @@ select ogc_fid, ' || outFld || ' from tbl5 where ' || outFld || ' is not null;';
 	RETURN outTbl;
 END;
 $$ LANGUAGE plpgsql;"
-  faib_dadm_tools::run_sql_r(qry1, pg_conn_param)
-  faib_dadm_tools::run_sql_r(qry2, pg_conn_param)
+  dadmtools::run_sql_r(qry1, pg_conn_param)
+  dadmtools::run_sql_r(qry2, pg_conn_param)
   qry3 <- glue("SELECT FAIB_TILED_RASTER_TO_ROWS('{out_lyr_name}','{index_name}', '{in_ras}', '{template_ras}', '{out_field}')")
   print(qry3)
-  faib_dadm_tools::run_sql_r(qry3, pg_conn_param)
+  dadmtools::run_sql_r(qry3, pg_conn_param)
 
 }

@@ -24,5 +24,5 @@ no return
 Write a PG Table from Dataframe
 }
 \examples{
-df_to_pg('pgTableName',myDF,'postgres','myDB','mypassword',5432,'prod','T','F')
+df_to_pg(pg_tbl = 'pgTableName', in_df = in_df, pg_conn_params = get_pg_conn_list(), overwrite = 'TRUE', append = 'FALSE')
 }

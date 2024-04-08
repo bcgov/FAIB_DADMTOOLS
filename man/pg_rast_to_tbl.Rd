@@ -13,9 +13,9 @@ pg_rast_to_tbl(out_lyr_name, in_ras, out_field, template_ras, pg_conn_param)
 
 \item{out_field}{name of the value field in output table}
 
-\item{pg_conn_param}{coming soon}
+\item{template_ras}{template pg raster with the same the resolution and extent of the input raster}
 
-\item{templateRas}{template pg raster with the same the resolution and extent of the input raster}
+\item{pg_conn_param}{Keyring object of Postgres credentials}
 }
 \value{
 nothing is returned

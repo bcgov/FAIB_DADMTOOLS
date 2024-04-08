@@ -19,41 +19,23 @@ import_to_pg_gr_skey_overlap(
 )
 }
 \arguments{
-\item{grskeyTIF}{coming soon}
+\item{inSrc}{input source}
 
-\item{maskTif}{coming soon}
+\item{inLyr}{input layer}
 
-\item{connList}{coming soon}
+\item{groupFld}{coming soon}
 
-\item{rslt_ind}{coming soon}
+\item{outPGTblName}{output pg table name}
 
-\item{srctype}{coming soon}
+\item{schema}{Defaults to 'whse'}
 
-\item{srcpath}{coming soon}
+\item{grskeyTIF}{Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif'}
 
-\item{srclyr}{coming soon}
+\item{maskTif}{Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif'}
 
-\item{pk}{coming soon}
+\item{connList}{Defaults to get_pg_conn_list()}
 
-\item{suffix}{coming soon}
-
-\item{nsTblm}{coming soon}
-
-\item{query}{coming soon}
-
-\item{flds2keep}{coming soon}
-
-\item{cropExtent}{coming soon}
-
-\item{gr_skey_tbl}{coming soon}
-
-\item{wrkSchema}{coming soon}
-
-\item{rasSchema}{coming soon}
-
-\item{dataSourceTblName}{coming soon}
-
-\item{setwd}{coming soon}
+\item{terraExt}{Defaults to terra::ext(c(273287.5,1870587.5,367787.5,1735787.5))}
 }
 \value{
 no return

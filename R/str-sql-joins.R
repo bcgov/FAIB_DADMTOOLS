@@ -1,4 +1,4 @@
-#' Creates FROM clause string from the standard faib_dadm_tools input df
+#' Creates FROM clause string from the standard dadmtools input df
 #' @param base_join_tbl Input pg table, used as first table to be joined, format: schema.table_name, Eg. whse.all_bc_gr_skey
 #' @param schema PG database schema used for all tables in in_df
 #' @param in_df input dataframe of config_parameters.csv
@@ -14,12 +14,12 @@
 
 
 
-str_sql_joins <- function(base_join_tbl = "whse.all_bc_gr_skey", 
-                          schema = NULL, 
-                          in_df, 
-                          pk = NULL, 
-                          only_inc_rows = TRUE, 
-                          filter_suffix_vect = NULL, 
+str_sql_joins <- function(base_join_tbl = "whse.all_bc_gr_skey",
+                          schema = NULL,
+                          in_df,
+                          pk = NULL,
+                          only_inc_rows = TRUE,
+                          filter_suffix_vect = NULL,
                           metadata_tbl = FALSE
                           ) {
   if ((is.null(pk)) && (!(metadata_tbl))) {

@@ -25,9 +25,9 @@ get_sql_fdw_id_geom(
 
 \item{pg_conn_param}{coming soon}
 
-\item{fdw_schema}{coming soon}
+\item{fdw_schema}{Defaults to "load"}
 
-\item{where}{coming soon}
+\item{where}{Optionalm defaults to NULL}
 }
 \value{
 sql string

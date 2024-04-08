@@ -36,12 +36,12 @@ create_pg_fdw <- function(in_table, ora_conn_param, pg_conn_param, out_server_na
   }
 
 
-  faib_dadm_tools::run_sql_r(glue('drop foreign table if exists {out_schema}.{ora_tbl_no_schema};'), pg_conn_param)
-  faib_dadm_tools::run_sql_r(glue('create schema if not exists {out_schema};'), pg_conn_param)
+  dadmtools::run_sql_r(glue('drop foreign table if exists {out_schema}.{ora_tbl_no_schema};'), pg_conn_param)
+  dadmtools::run_sql_r(glue('create schema if not exists {out_schema};'), pg_conn_param)
 
   if(!(FDWServerExists(out_server_name, pg_conn_param))) {
-    faib_dadm_tools::run_sql_r(glue("create server {out_server_name} foreign data wrapper oracle_fdw options (dbserver '{ora_server}' );"), pg_conn_param)
-    faib_dadm_tools::run_sql_r(glue("create user mapping for postgres server {out_server_name} options (user '{idir}', password '{orapass}');"), pg_conn_param)
+    dadmtools::run_sql_r(glue("create server {out_server_name} foreign data wrapper oracle_fdw options (dbserver '{ora_server}' );"), pg_conn_param)
+    dadmtools::run_sql_r(glue("create user mapping for postgres server {out_server_name} options (user '{idir}', password '{orapass}');"), pg_conn_param)
 
     print(glue("create user mapping for postgres server {out_server_name} options (user '{idir}', password '{orapass}');"))
 
@@ -49,7 +49,7 @@ create_pg_fdw <- function(in_table, ora_conn_param, pg_conn_param, out_server_na
 
   print(glue('Creating PG FDW table: {out_schema}.{ora_tbl_no_schema} from Oracle table: {in_table}'))
   qry <- glue('import foreign schema "{ora_schema}" limit to ({ora_tbl_no_schema}) FROM SERVER {out_server_name} INTO {out_schema};')
-  faib_dadm_tools::run_sql_r(qry, pg_conn_param)
+  dadmtools::run_sql_r(qry, pg_conn_param)
   return(glue("{out_schema}.{ora_tbl_no_schema}"))
 
 }

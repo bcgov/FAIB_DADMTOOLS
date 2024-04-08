@@ -41,8 +41,8 @@ import_to_pg_gr_skey <- function(rslt_ind,
                                 flds_to_keep,
                                 notes,
                                 out_tif_path,
-                                pg_conn_param     = faib_dadm_tools::get_pg_conn_list(),
-                                ora_conn_param    = faib_dadm_tools::get_ora_conn_list(),
+                                pg_conn_param     = dadmtools::get_pg_conn_list(),
+                                ora_conn_param    = dadmtools::get_ora_conn_list(),
                                 crop_extent       = c(273287.5, 1870587.5, 367787.5, 1735787.5),
                                 gr_skey_tbl       = 'whse.all_bc_gr_skey',
                                 dst_schema        = 'whse',
@@ -89,14 +89,14 @@ import_to_pg_gr_skey <- function(rslt_ind,
   no_data_value = 0
   today_date <- format(Sys.time(), "%Y-%m-%d %I:%M:%S %p")
   query_escaped <- gsub("'", "''", query)
-  dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the faib_dadm_tools R package at {today_date}.
+  dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                             TABLE relates to {dst_schema}.{dst_gr_skey_tbl}
                                             Data source details:
                                             Source type: {src_type}
                                             Source path: {src_path}
                                             Source layer: {src_lyr}
                                             Source where query: {query_escaped}';")
-  dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_gr_skey_tbl} IS 'Table created by the faib_dadm_tools R package at {today_date}.
+  dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                             TABLE relates to {dst_schema}.{dst_tbl}
                                             Data source details:
                                             Source type: {src_type}
@@ -133,7 +133,7 @@ import_to_pg_gr_skey <- function(rslt_ind,
       # Create Non Spatial Table with attributes from FDW
       # =============================================================================
       print(glue("Creating non-spatial PG table: {dst_schema}.{dst_tbl} from FDW table: {fdw_schema}.{fdw_tbl}"))
-      faib_dadm_tools::fdw_to_tbl(
+      dadmtools::fdw_to_tbl(
         src_tbl       = fdw_tbl,
         src_schema    = fdw_schema,
         dst_tbl       = dst_tbl,
@@ -213,7 +213,7 @@ import_to_pg_gr_skey <- function(rslt_ind,
       # Create Non Spatial Table with attributes from FDW
       # =============================================================================
       print(glue("Creating non-spatial PG table: {dst_schema}.{dst_tbl} from source: {src_path}|layername={src_lyr}"))
-      faib_dadm_tools::ogr_to_tbl(
+      dadmtools::ogr_to_tbl(
                                       src           = src_path,
                                       dst_tbl       = dst_tbl,
                                       pg_conn_param = pg_conn_param,
@@ -281,15 +281,15 @@ import_to_pg_gr_skey <- function(rslt_ind,
   #Convert postgres raster to non-spatial table with gr_skey
   dst_gr_skey_tbl_pg_obj <- RPostgres::Id(schema = dst_schema, table = dst_gr_skey_tbl)
   print(glue('Creating PG table: {dst_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
-  faib_dadm_tools::run_sql_r(glue("DROP TABLE IF EXISTS {dst_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
+  dadmtools::run_sql_r(glue("DROP TABLE IF EXISTS {dst_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
   if (tolower(src_type) == 'raster') {
     band_field_name <- 'val'
   } else {
     band_field_name <- pk_id
   }
-  faib_dadm_tools::df_to_pg(
+  dadmtools::df_to_pg(
                             pg_tbl = dst_gr_skey_tbl_pg_obj,
-                            in_df  = faib_dadm_tools::tif_to_gr_skey_tbl(
+                            in_df  = dadmtools::tif_to_gr_skey_tbl(
                                                               src_tif_filename = dst_ras_filename,
                                                               crop_extent      = crop_extent,
                                                               template_tif     = template_tif,
@@ -308,24 +308,24 @@ import_to_pg_gr_skey <- function(rslt_ind,
 
   ## Adding primary key to table
   print(glue('Adding gr_skey as primary key to {dst_schema}.{dst_gr_skey_tbl}'))
-  faib_dadm_tools::run_sql_r(glue("ALTER TABLE {dst_schema}.{dst_gr_skey_tbl} ADD PRIMARY KEY (gr_skey);"), pg_conn_param)
+  dadmtools::run_sql_r(glue("ALTER TABLE {dst_schema}.{dst_gr_skey_tbl} ADD PRIMARY KEY (gr_skey);"), pg_conn_param)
 
   if (tolower(src_type) != 'raster') {
     ## Adding in foreign key
     print(glue('Adding foreign key constraint to {dst_schema}.{dst_gr_skey_tbl} referencing {dst_schema}.{dst_tbl} using ({pk_id});'))
-    faib_dadm_tools::run_sql_r(glue("ALTER TABLE {dst_schema}.{dst_gr_skey_tbl} ADD CONSTRAINT {dst_gr_skey_tbl}_fkey FOREIGN KEY ({pk_id}) REFERENCES {dst_schema}.{dst_tbl} ({pk_id});"), pg_conn_param)
+    dadmtools::run_sql_r(glue("ALTER TABLE {dst_schema}.{dst_gr_skey_tbl} ADD CONSTRAINT {dst_gr_skey_tbl}_fkey FOREIGN KEY ({pk_id}) REFERENCES {dst_schema}.{dst_tbl} ({pk_id});"), pg_conn_param)
     ## Add index on fid
-    faib_dadm_tools::run_sql_r(glue("DROP INDEX IF EXISTS {dst_gr_skey_tbl}_{pk_id}_idx;"), pg_conn_param)
-    faib_dadm_tools::run_sql_r(glue("CREATE INDEX {dst_gr_skey_tbl}_{pk_id}_idx ON {dst_schema}.{dst_gr_skey_tbl} USING btree ({pk_id})"), pg_conn_param)
+    dadmtools::run_sql_r(glue("DROP INDEX IF EXISTS {dst_gr_skey_tbl}_{pk_id}_idx;"), pg_conn_param)
+    dadmtools::run_sql_r(glue("CREATE INDEX {dst_gr_skey_tbl}_{pk_id}_idx ON {dst_schema}.{dst_gr_skey_tbl} USING btree ({pk_id})"), pg_conn_param)
   }
   ## Add comment on table
-  faib_dadm_tools::run_sql_r(dst_gr_skey_tbl_comment, pg_conn_param)
+  dadmtools::run_sql_r(dst_gr_skey_tbl_comment, pg_conn_param)
   ## Update the query planner with the latest changes
-  faib_dadm_tools::run_sql_r(glue("ANALYZE {dst_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
+  dadmtools::run_sql_r(glue("ANALYZE {dst_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
 
   if(rslt_ind == 1) {
     if (!(is_blank(suffix))) {
-      faib_dadm_tools::add_pk_to_gr_skey_tbl(dst_tbl      = dst_gr_skey_tbl,
+      dadmtools::add_pk_to_gr_skey_tbl(dst_tbl      = dst_gr_skey_tbl,
                                             dst_schema    = dst_schema,
                                             pk            = pk_id,
                                             suffix        = suffix,
@@ -336,7 +336,7 @@ import_to_pg_gr_skey <- function(rslt_ind,
 
 
       #Update Metadata tables
-      faib_dadm_tools::update_gr_skey_tbl_flds(dst_tbl      = dst_tbl,
+      dadmtools::update_gr_skey_tbl_flds(dst_tbl      = dst_tbl,
                                               dst_schema    = dst_schema,
                                               gr_skey_tbl   = gr_skey_tbl,
                                               suffix        = suffix,
@@ -347,7 +347,7 @@ import_to_pg_gr_skey <- function(rslt_ind,
     }
 
   }
-  faib_dadm_tools::update_pg_metadata_tbl(
+  dadmtools::update_pg_metadata_tbl(
     data_src_tbl    = data_src_tbl,
     src_type        = src_type,
     src_path        = old_src_path,

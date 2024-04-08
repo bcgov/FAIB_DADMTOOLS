@@ -6,8 +6,9 @@
 \usage{
 batch_import_to_pg_gr_skey(
   in_csv = "config_parameters.csv",
-  pg_conn_param = faib_dadm_tools::get_pg_conn_list(),
-  ora_conn_param = faib_dadm_tools::get_ora_conn_list(),
+  out_tif_path,
+  pg_conn_param = dadmtools::get_pg_conn_list(),
+  ora_conn_param = dadmtools::get_ora_conn_list(),
   crop_extent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
   gr_skey_tbl = "whse.all_bc_gr_skey",
   dst_schema = "whse",
@@ -17,34 +18,33 @@ batch_import_to_pg_gr_skey(
   mask_tif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
   data_src_tbl = "whse.data_sources",
-  out_tif_path,
   import_rast_to_pg = FALSE
 )
 }
 \arguments{
-\item{in_csv}{File path to data sources csv, see config_parameters.csv for example}
-
-\item{pg_conn_param}{Keyring object of Postgres credentials}
-
-\item{ora_conn_param}{Keyring object of Oracle credentials}
-
-\item{crop_extent}{list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
-
-\item{gr_skey_tbl}{Schema and table name of the pre-existing foreign key lookup gr_skey table. Argument to be used with suffix and rslt_ind within in_csv.}
-
-\item{raster_schema}{If importrast2pg=TRUE, schema of imported raster}
-
-\item{template_tif}{The file path to the gr_skey geotiff to be used as a template raster}
-
-\item{mask_tif}{The file path to the geotiff to be used as a mask}
-
-\item{data_src_tbl}{Schema and table name of the metadata table in postgres that updates with any newly imported layer}
+\item{in_csv}{File path to data sources csv, Defaults to "config_parameters.csv"}
 
 \item{out_tif_path}{Directory where output tif if exported and where vector is temporally stored prior to import}
 
-\item{import_rast_to_pg}{If TRUE, raster is imported into database in rasSchema}
+\item{pg_conn_param}{Keyring object of Postgres credentials, defaults to dadmtools::get_pg_conn_list()}
 
-\item{working_schema}{Schema where gr_skey, non spatial table will be imported as well as the schema of gr_skey_tbl}
+\item{ora_conn_param}{Keyring object of Oracle credentials, defaults to dadmtools::get_ora_conn_list()}
+
+\item{crop_extent}{list of c(ymin, ymax, xmin, xmax) in EPSG:3005, defaults to c(273287.5,1870587.5,367787.5,1735787.5)}
+
+\item{gr_skey_tbl}{Schema and table name of the pre-existing gr_skey table. Argument to be used with suffix and rslt_ind within in_csv. Defaults to "whse.all_bc_gr_skey"}
+
+\item{dst_schema}{Destination import schema of non spatial table & related gr_skey table, defaults to "whse"}
+
+\item{raster_schema}{If import_rast_to_pg = TRUE, schema of imported raster, defaults to "raster"}
+
+\item{template_tif}{The file path to the gr_skey geotiff to be used as a template raster, fefaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"}
+
+\item{mask_tif}{The file path to the geotiff to be used as a mask, defaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif"}
+
+\item{data_src_tbl}{Schema and table name of the metadata table in postgres that updates with any newly imported layer. Defaults to "whse.data_sources"}
+
+\item{import_rast_to_pg}{If TRUE, raster is imported into database in raster_schema. Defaults to FALSE}
 }
 \value{
 no return

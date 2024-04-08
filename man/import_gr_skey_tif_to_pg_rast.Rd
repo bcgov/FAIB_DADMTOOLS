@@ -11,22 +11,22 @@ import_gr_skey_tif_to_pg_rast(
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
   crop_extent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
   out_crop_tif_name,
-  pg_conn_param = faib_dadm_tools::get_pg_conn_list(),
+  pg_conn_param = dadmtools::get_pg_conn_list(),
   dst_tbl = "whse.all_bc_gr_skey"
 )
 }
 \arguments{
-\item{template_tif}{The file path to the gr_skey template geotiff}
+\item{template_tif}{The file path to the gr_skey template geotiff, defaults to  "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"}
 
-\item{mask_tif}{The file path to the geotiff to be used as a mask}
+\item{mask_tif}{The file path to the geotiff to be used as a mask, defaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif"}
 
-\item{crop_extent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
+\item{crop_extent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005, defaults to c(273287.5,1870587.5,367787.5,1735787.5)}
 
 \item{out_crop_tif_name}{filename of the written output tif}
 
-\item{pg_conn_param}{Keyring object of Postgres credentials}
+\item{pg_conn_param}{Keyring object of Postgres credentials, defaults to dadmtools::get_pg_conn_list()}
 
-\item{dst_tbl}{Destination table of the imported gr_skey_tbl table (format: schema_name.table_name)}
+\item{dst_tbl}{Destination table of the imported gr_skey_tbl table (format: schema_name.table_name), defaults to "whse.all_bc_gr_skey"}
 }
 \value{
 coming soon

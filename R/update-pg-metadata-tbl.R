@@ -51,7 +51,7 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                     dbname   = pg_conn_param["dbname"][[1]],
                     password = pg_conn_param["password"][[1]],
                     port     = pg_conn_param["port"][[1]])
-  
+
   query        <- dbQuoteString(connz, query)
   notes        <- dbQuoteString(connz, notes)
   src_type     <- dbQuoteString(connz, src_type)
@@ -82,7 +82,7 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                       CONSTRAINT data_sources_unique UNIQUE (schema, tblname)
                     );")
-  faib_dadm_tools::run_sql_r(create_sql, pg_conn_param)
+  dadmtools::run_sql_r(create_sql, pg_conn_param)
 
   insert_sql <- glue::glue("INSERT INTO {data_src_tbl}
                     (
@@ -129,25 +129,25 @@ update_pg_metadata_tbl <- function(data_src_tbl,
   tryCatch({
     # Code that might raise the error
     # For example:
-    result <- faib_dadm_tools::run_sql_r(insert_sql, pg_conn_param)
+    result <- dadmtools::run_sql_r(insert_sql, pg_conn_param)
     result
   }, error = function(e) {
     if (grepl("does not exist", e$message)) {
       # in the event of an error where a column does not exist, rename the current table and make a new one and insert into it
       # Handling specific error
-      
+
       today_date <- format(Sys.Date(), "%Y_%m_%d")
       drop_qry <- glue("DROP TABLE IF EXISTS {data_source_schema}.{data_source_tbl}_deprecated_on_{today_date}")
-      faib_dadm_tools::run_sql_r(drop_qry, pg_conn_param)
+      dadmtools::run_sql_r(drop_qry, pg_conn_param)
       rename_qry <- glue("ALTER TABLE {data_src_tbl} RENAME TO {data_source_tbl}_deprecated_on_{today_date}")
-      faib_dadm_tools::run_sql_r(rename_qry, pg_conn_param)
+      dadmtools::run_sql_r(rename_qry, pg_conn_param)
       print(glue("WARNING: Missing column in {data_src_tbl}, renaming current data sources table to: {data_source_schema}.{data_source_tbl}_deprecated_on_{today_date} and creating new table: {data_src_tbl}"))
-      comment_qry <- glue("COMMENT ON TABLE {data_source_schema}.{data_source_tbl}_deprecated_on_{today_date} IS 'Table was deprecated and renamed on {today_date} by faib_dadm_tools R package. See preferred table: {data_src_tbl}'")
-      faib_dadm_tools::run_sql_r(comment_qry, pg_conn_param)
+      comment_qry <- glue("COMMENT ON TABLE {data_source_schema}.{data_source_tbl}_deprecated_on_{today_date} IS 'Table was deprecated and renamed on {today_date} by dadmtools R package. See preferred table: {data_src_tbl}'")
+      dadmtools::run_sql_r(comment_qry, pg_conn_param)
       drop_constraint <- glue("ALTER TABLE {data_source_schema}.{data_source_tbl}_deprecated_on_{today_date} DROP CONSTRAINT data_sources_unique")
-      faib_dadm_tools::run_sql_r(drop_constraint, pg_conn_param)
-      faib_dadm_tools::run_sql_r(create_sql, pg_conn_param)
-      faib_dadm_tools::run_sql_r(insert_sql, pg_conn_param)
+      dadmtools::run_sql_r(drop_constraint, pg_conn_param)
+      dadmtools::run_sql_r(create_sql, pg_conn_param)
+      dadmtools::run_sql_r(insert_sql, pg_conn_param)
     } else {
       # Handle other errors
       print(glue("ERROR: Unknown error ran into when attempting to insert into {data_src_tbl}. Error: {e$message}"))

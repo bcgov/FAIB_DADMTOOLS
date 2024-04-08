@@ -16,7 +16,7 @@ get_gr_skey_extent(
 
 \item{layer}{coming soon}
 
-\item{template_tif}{coming soon}
+\item{template_tif}{Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif'}
 }
 \value{
 extent vector (i.e. c(xmin,xmax,ymin,ymax))
