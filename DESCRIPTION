@@ -1,4 +1,4 @@
-Package: faibDataManagement
+Package: faib_dadm_tools
 Type: Package
 Title: Faib Data Management Common Functions
 Version: 0.1.0
@@ -8,5 +8,5 @@ License: None
 Encoding: UTF-8
 LazyData: true
 Imports: billboard
-RoxygenNote: 7.2.1
+RoxygenNote: 7.3.0
 Depends: RPostgres, glue, terra, keyring, sf
