@@ -1,5 +1,5 @@
-# FAIB_DATA_MANAGEMENT
-Package of common FAIB data management functions
+# faib_dadm_tools
+Package of common FAIB Data Analysis and Data Management team functions, focusing of functions to import vector into PG in the gr_skey grid lookup table.
 
 ## Dependencies and installation
  - Read/Write access to a PostgreSQL database (version 12 or above) with Postgis and Postgis Raster extension
@@ -67,7 +67,7 @@ key_get("dbname", keyring = "localpsql")
 # R library import
 ```
 library(devtools)
-install_github("bcgov/FAIB_DATA_MANAGEMENT")
+library(faib_dadm_tools)
 library(RPostgres)
 library(glue)
 library(terra)
@@ -80,45 +80,44 @@ library(sf)
 # 1. Importing Spatial Data into postgres gr_skey tables
 
 ```
-gr_skey_tif_2_pg_geom()
+import_gr_skey_tif_to_pg_rast()
 ```
 
-The above function creates two tables in PG database. It creates a raster table named `raster.grskey_bc_land` and an additional table (tablename specified by `pgtblname` argument, default is `whse.all_bc_gr_skey`). The second table is the raster table converted to table with a geometry field (`geom`) representing the raster centroids. Function
+The above function creates two tables in PG database. It creates a raster table named `raster.grskey_bc_land` and an additional table (tablename specified by `dst_tbl` argument, default is `whse.all_bc_gr_skey`). The second table is the raster table converted to table with a geometry field (`geom`) representing the raster centroids. Note: table specified by `dst_tbl` argument, default is `whse.all_bc_gr_skey`, is the `gr_skey_tbl` argument that should be specificed in combination with `rslt_ind` and `suffix`.
 
 Function takes the following inputs. Default values listed below:
 
 ```
-gr_skey_tif_2_pg_geom(
-    grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-    maskTif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Lands_and_Islandsincluded.tif',
-    cropExtent = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
-    outCropTifName = 'D:\\Projects\\provDataProject\\gr_skey_cropped.tif', ## output destination tif filename
-    connList = faibDataManagement::get_pg_conn_list(),
-    pgtblname = 'whse.all_bc_gr_skey'
+import_gr_skey_tif_to_pg_rast(
+    template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+    mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
+    crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
+    out_crop_tif_name = ## no default
+    pg_conn_param     = faib_dadm_tools::get_pg_conn_list(),
+    dst_tbl           = 'whse.all_bc_gr_skey'
 )
 ```
 
-# 2.  Fill in configuration input csv file (i.e. [see example](inputsDatasets2load2PG.csv))
+# 2.  Fill in configuration input csv file (i.e. [see example](config_parameters.csv))
 
 Column names must match template above. Field description:
 - `srctype`: Type of source file. 
-    - Allowable options: `gdb, oracle, raster, geopackage, shp`
+    - Options: `gdb, oracle, raster, geopackage, gpkg, shapefile, shp`
 - `srcpath`: Source path.
     - When `srctype = oracle` then `bcgw`
-    - When `srctype = gdb or raster` then full path and filename
+    - When `srctype = gdb or raster or shp or geopackage` then full path and filename
 - `srclyr` : Layer name
     - When `srctype = oracle` then schema and layer name, e.g. `WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly`
-- `primarykey` : Required source file primary key, must be integer.
-- `suffix` : Used in resultant columns that were kept from the data source (e.g. "vri2021")
+- `suffix` : Used in combination with rslt_ind = 1, suffix used for column name creation in foreign table lookup, e.g. `pgid_<suffix>`
 - `tblname` : Postgres destination table name.
     - E.g. `forest_harvesting_restrictions_july2023` TODO schema?
 - `src_query` : Optional argument to filter source layer
     - E.g. `rr_restriction is not null` OR `rr_restriction = '01_National Park'` OR `strgc_land_rsrce_plan_name like '%Klappan%'`
 - `inc` : Required argument whether to include layer when script is ran. 
     - E.g. 0 = exclude, 1 = include
-- `rslt_ind` : Option to add primary key to imported PG gr_skey table
-    - 1 = include (i.e. will add primary key to gr_skey tbl)
-    - 0 = not included (i.e. will not add primary key to gr_skey table)
+- `rslt_ind` : Used in combination with `suffix` and `gr_skey_tbl` (`gr_skey_tbl` is argument to `batch_import_to_pg_gr_skey` and `import_to_pg_gr_skey`). Option to add `pgid_<suffix>` for the specific imported table to previously imported PG `gr_skey_tbl` (Eg. `whse.all_bc_gr_skey`) 
+    - 1 = include (i.e. will add primary key to gr_skey_tbl)
+    - 0 = not included (i.e. will not add primary key to gr_skey_tbl)
 - `fields2keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
     - E.g. `REGEN_OBLIGATION_IND,FREE_GROW_DECLARED_IND,OBJECTID`
 
@@ -126,32 +125,27 @@ Column names must match template above. Field description:
 # 3.  Add datasets to postgres from csv input by calling
 
 ```
-add_batch_2_pg_grskey_grid()
+batch_import_to_pg_gr_skey()
 ```
 
 Function takes the following inputs. Default values listed below:
 
 ```
-add_batch_2_pg_grskey_grid(
-    inCSV = 'D:\\Projects\\provDataProject\\tools\\prov_data_resultant3.csv',
-    connList = faibDataManagement::get_pg_conn_list(),
-    oraConnList = faibDataManagement::get_ora_conn_list(),
-    cropExtent = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
-    gr_skey_tbl = 'all_bc_res_gr_skey',
-    wrkSchema = 'whse',
-    rasSchema = 'raster',
-    grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-    maskTif='S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Lands_and_Islandsincluded.tif',
-    dataSourceTblName = 'data_sources',
-    setwd='D:/Projects/provDataProject',
-    outTifpath = 'D:\\Projects\\provDataProject',
-    importrast2pg = FALSE
+batch_import_to_pg_gr_skey(
+    in_csv            = 'config_parameters.csv',
+    pg_conn_param     = faib_dadm_tools::get_pg_conn_list(),
+    ora_conn_param    = faib_dadm_tools::get_ora_conn_list(),
+    crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
+    gr_skey_tbl       = 'whse.all_bc_gr_skey',
+    dst_schema        = 'whse',
+    raster_schema     = 'raster',
+    template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+    mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
+    data_src_tbl      = 'whse.data_sources',
+    out_tif_path      = ## no default
+    import_rast_to_pg = FALSE
 )
 ```
-Use the `rslt_ind` field in Step 2's configuration input csv to indicate if the primary key will be added to the gr_skey geometry table or as its own table with a gr_skey attibute.
-
-
-
-
+Use the `rslt_ind` field in Step 2's configuration input csv to indicate if the `pgid_<suffix>` primary key will be added to the gr_skey geometry table. 
 
 [![Lifecycle:Experimental](https://img.shields.io/badge/Lifecycle-Experimental-339999)](<Redirect-URL>)
