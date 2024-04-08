@@ -21,19 +21,19 @@ ogr_to_tbl(
 
 \item{dst_tbl}{Name of output PG table}
 
+\item{pg_conn_param}{Keyring object of Postgres credentials}
+
 \item{lyr}{layer of input dataser e.g. roadsFC}
 
 \item{pk}{primary of table e.g. objectid}
 
 \item{select}{fields to keep in table e.g. "objectid,feature_id,segmentName"}
 
+\item{where}{sql where clause e.g. segment = 'highway2'}
+
 \item{dst_schema}{default database schema}
 
-\item{dbName}{Name of PG database}
-
-\item{where_clause}{sql where clause e.g. segment = 'highway2'}
-
-\item{useGdal}{Set to TRUE if GDAL is installed on machine e.g. TRUE}
+\item{tbl_comment}{Set to TRUE if GDAL is installed on machine e.g. TRUE}
 }
 \value{
 no return

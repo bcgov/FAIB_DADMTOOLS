@@ -20,9 +20,11 @@ fdw_to_geom_tbl(
 
 \item{pk}{coming soon}
 
+\item{out_schema}{coming soon}
+
 \item{ora_conn_param}{coming soon}
 
-\item{schema}{coming soon}
+\item{fdw_schema}{coming soon}
 }
 \value{
 None

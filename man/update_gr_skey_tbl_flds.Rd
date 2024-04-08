@@ -4,14 +4,20 @@
 \alias{update_gr_skey_tbl_flds}
 \title{Update the foreign key field table in PG}
 \usage{
-update_gr_skey_tbl_flds(dst_tbl, dst_schema, fk_tbl, suffix, pg_conn_param)
+update_gr_skey_tbl_flds(
+  dst_tbl,
+  dst_schema,
+  gr_skey_tbl,
+  suffix,
+  pg_conn_param
+)
 }
 \arguments{
 \item{dst_tbl}{non-spatial table to add to foreign key filed table (must have a foreign key column in the foreign key lookup table)}
 
 \item{dst_schema}{non-spatial table schema to add to foreign key filed table (must have a foreign key column in the foreign key lookup table)}
 
-\item{fk_tbl}{foreign key lookup table name}
+\item{gr_skey_tbl}{current gr_skey table}
 
 \item{suffix}{suffix added to the foreign key column}
 

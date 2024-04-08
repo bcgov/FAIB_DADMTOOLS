@@ -9,10 +9,10 @@ is_blank(x, false.triggers = FALSE)
 \arguments{
 \item{x}{A sql string}
 
-\item{connList}{Named list with the following parameters Driver,host,user,dbname,password,port,schema}
+\item{false.triggers}{Defaults to FALSE}
 }
 \value{
-Boolean True or False
+Boolean TRUE or FALSE
 }
 \description{
 Find values that are blank

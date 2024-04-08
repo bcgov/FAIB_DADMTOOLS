@@ -13,7 +13,7 @@ run_sql_psql(sql_var, sql_file, pg_db, host = NULL)
 
 \item{pg_db}{pg database name}
 
-\item{host}{host of db e.g. 'localhost'}
+\item{host}{host of db e.g. 'localhost', defaults to NULL}
 }
 \value{
 no return

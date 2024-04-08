@@ -1,8 +1,8 @@
 #' Update FAIB hectares database from input csv of datasets
 #'
 #' @param in_csv File path to data sources csv, Defaults to "config_parameters.csv"
-#' @param pg_conn_param Keyring object of Postgres credentials, defaults to faib_dadm_tools::get_pg_conn_list()
-#' @param ora_conn_param Keyring object of Oracle credentials, defaults to faib_dadm_tools::get_ora_conn_list()
+#' @param pg_conn_param Keyring object of Postgres credentials, defaults to dadmtools::get_pg_conn_list()
+#' @param ora_conn_param Keyring object of Oracle credentials, defaults to dadmtools::get_ora_conn_list()
 #' @param crop_extent list of c(ymin, ymax, xmin, xmax) in EPSG:3005, defaults to c(273287.5,1870587.5,367787.5,1735787.5)
 #' @param gr_skey_tbl Schema and table name of the pre-existing gr_skey table. Argument to be used with suffix and rslt_ind within in_csv. Defaults to "whse.all_bc_gr_skey"
 #' @param dst_schema Destination import schema of non spatial table & related gr_skey table, defaults to "whse"
@@ -20,8 +20,9 @@
 #' @examples coming soon
 
 batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv",
-                                      pg_conn_param     = faib_dadm_tools::get_pg_conn_list(),
-                                      ora_conn_param    = faib_dadm_tools::get_ora_conn_list(),
+                                       out_tif_path,
+                                      pg_conn_param     = dadmtools::get_pg_conn_list(),
+                                      ora_conn_param    = dadmtools::get_ora_conn_list(),
                                       crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5),
                                       gr_skey_tbl       = "whse.all_bc_gr_skey",
                                       dst_schema        = "whse",
@@ -29,7 +30,6 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
                                       template_tif      = "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif",
                                       mask_tif          = "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif",
                                       data_src_tbl      = "whse.data_sources",
-                                      out_tif_path,
                                       import_rast_to_pg = FALSE
                                       )
 {
@@ -58,7 +58,7 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
       return()
     }
 
-    faib_dadm_tools::import_to_pg_gr_skey(rslt_ind          = rslt_ind,
+    dadmtools::import_to_pg_gr_skey(rslt_ind          = rslt_ind,
                                           src_type          = src_type,
                                           src_path          = src_path,
                                           src_lyr           = src_lyr,

@@ -15,13 +15,13 @@ create_pg_fdw(
 \arguments{
 \item{in_table}{oracle table to import (e.g. WHSE_BASEMAPPING.FWA_ASSESSMENT_WATERSHEDS_POLY )}
 
-\item{ora_conn_param}{named list of  oracle connection parameters (see get_ora_conn_list() function for more details)}
+\item{ora_conn_param}{named list of oracle connection parameters (see get_ora_conn_list() function for more details)}
 
-\item{pg_conn_param}{named list of  postgres connection parameters (see get_pg_conn_list() function for more details)}
+\item{pg_conn_param}{named list of postgres connection parameters (see get_pg_conn_list() function for more details)}
 
 \item{out_server_name}{name of FDW Server that will be created}
 
-\item{out_schema}{name of schema where foreign table will be outputted to}
+\item{out_schema}{name of schema where foreign table will be imported}
 }
 \value{
 string of output foreign table (schema.in_table)

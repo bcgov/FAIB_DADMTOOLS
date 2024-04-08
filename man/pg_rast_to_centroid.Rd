@@ -8,7 +8,7 @@ pg_rast_to_centroid(
   in_ras,
   out_lyr_name,
   out_field,
-  pg_conn_param = faib_dadm_tools::get_pg_conn_list()
+  pg_conn_param = dadmtools::get_pg_conn_list()
 )
 }
 \arguments{
@@ -17,6 +17,8 @@ pg_rast_to_centroid(
 \item{out_lyr_name}{coming soon}
 
 \item{out_field}{coming soon}
+
+\item{pg_conn_param}{Keyring object of Postgres credentials}
 }
 \value{
 coming soon

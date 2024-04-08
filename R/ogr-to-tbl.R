@@ -15,16 +15,16 @@
 #'
 #' @examples coming soon
 
-ogr_to_tbl <- function(src, 
-                       dst_tbl, 
-                       pg_conn_param, 
-                       lyr = NULL, 
-                       pk = NULL, 
-                       select = NULL, 
-                       where = NULL, 
-                       dst_schema = NULL, 
+ogr_to_tbl <- function(src,
+                       dst_tbl,
+                       pg_conn_param,
+                       lyr = NULL,
+                       pk = NULL,
+                       select = NULL,
+                       where = NULL,
+                       dst_schema = NULL,
                        tbl_comment = NULL
-                             ) 
+                             )
 {
 
   dbname <- pg_conn_param["dbname"][[1]]
@@ -115,17 +115,17 @@ ogr_to_tbl <- function(src,
 
   # ## add harded coded fid primary key sequenctial integer
   query <- glue("SELECT concat('ALTER TABLE {dst_schema}.{dst_tbl} DROP CONSTRAINT ', constraint_name) AS my_query
-                FROM 
+                FROM
                   information_schema.table_constraints
-                WHERE 
+                WHERE
                   table_schema = '{dst_schema}'
-                AND 
+                AND
                   table_name = '{dst_tbl}'
-                AND 
+                AND
                   constraint_type = 'PRIMARY KEY';")
-  sqlstmt <- (faib_dadm_tools::sql_to_df(query, pg_conn_param))$my_query
-  faib_dadm_tools::run_sql_r(sqlstmt, pg_conn_param)
-  faib_dadm_tools::run_sql_r(glue("ALTER TABLE {dst_schema}.{dst_tbl} ADD PRIMARY KEY ({pk});"), pg_conn_param)
-  faib_dadm_tools::run_sql_r(tbl_comment, pg_conn_param)
-  faib_dadm_tools::run_sql_r(glue("ANALYZE {dst_schema}.{dst_tbl};"), pg_conn_param)
+  sqlstmt <- (dadmtools::sql_to_df(query, pg_conn_param))$my_query
+  dadmtools::run_sql_r(sqlstmt, pg_conn_param)
+  dadmtools::run_sql_r(glue("ALTER TABLE {dst_schema}.{dst_tbl} ADD PRIMARY KEY ({pk});"), pg_conn_param)
+  dadmtools::run_sql_r(tbl_comment, pg_conn_param)
+  dadmtools::run_sql_r(glue("ANALYZE {dst_schema}.{dst_tbl};"), pg_conn_param)
   }

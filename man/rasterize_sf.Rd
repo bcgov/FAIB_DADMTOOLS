@@ -33,6 +33,10 @@ rasterize_sf(
 \item{vec_extent}{vector with extents in the following order  <xmin>,<ymax>,<ymin>,<xmax> default c(273287.5,1870587.5,367787.5,1735787.5)}
 
 \item{nodata}{no data value of out tif defualt is 0}
+
+\item{where}{where clause}
+
+\item{datatype}{defaults to 'Int32L'}
 }
 \value{
 output tif name

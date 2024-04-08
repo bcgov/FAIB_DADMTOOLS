@@ -8,7 +8,7 @@ create_mask_tif(
   in_src,
   field,
   template,
-  crop_extent = NULL,
+  crop_extent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
   in_lyr = NULL,
   out_tif_path = NULL,
   out_tif_name = NULL,
@@ -26,11 +26,11 @@ create_mask_tif(
 
 \item{in_lyr}{OPTIONAL - input data layer e.g. 'veg_comp_poly'}
 
-\item{out_tif_path}{path of out TIF defualt D:/Projects/provDataProject}
+\item{out_tif_path}{path of out TIF}
 
 \item{out_tif_name}{name of out TIF}
 
-\item{datatype}{default Int64}
+\item{datatype}{defaults to Int64}
 }
 \value{
 output tif name

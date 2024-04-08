@@ -2,36 +2,38 @@
 % Please edit documentation in R/add-pk-to-gr-skey-tbl.R
 \name{add_pk_to_gr_skey_tbl}
 \alias{add_pk_to_gr_skey_tbl}
-\title{Update the foreign key lookup table in PG}
+\title{Update the gr_skey table with primary keys from input table}
 \usage{
 add_pk_to_gr_skey_tbl(
   dst_tbl,
   dst_schema,
   pk,
   suffix,
-  fk_tbl,
+  gr_skey_tbl,
   pg_conn_param,
   join_field = "gr_skey"
 )
 }
 \arguments{
-\item{dst_tbl}{input pg table to be incorporated into foreign key lookup table}
+\item{dst_tbl}{input pg table to be incorporated into gr_skey table}
 
-\item{dst_schema}{input pg table schema to be incorporated into foreign key lookup table}
+\item{dst_schema}{input pg table schema to be incorporated into gr_skey table}
 
-\item{pk}{column to incorporated into foreign key lookup table}
+\item{pk}{column to incorporated into gr_skey table}
 
-\item{suffix}{suffix added to the foreign key column}
+\item{suffix}{suffix to be appended to the pk for the column name in the gr_skey table}
 
-\item{fk_tbl}{current foreign key lookup table}
+\item{gr_skey_tbl}{current gr_skey table}
 
 \item{pg_conn_param}{Named list with the following connection parameters Driver,host,user,dbname,password,port,schema}
+
+\item{join_field}{defaults to 'gr_skey')}
 }
 \value{
 nothing is returned
 }
 \description{
-Update the foreign key lookup table in PG
+Update the gr_skey table with primary keys from input table
 }
 \examples{
 coming soon

@@ -2,33 +2,39 @@
 % Please edit documentation in R/str-sql-joins.R
 \name{str_sql_joins}
 \alias{str_sql_joins}
-\title{Creates FROM clause string from the standard faib_dadm_tools input df.  Only uses inputs where inc = 1}
+\title{Creates FROM clause string from the standard dadmtools input df}
 \usage{
 str_sql_joins(
-  in_pg_tbl,
-  schema,
+  base_join_tbl = "whse.all_bc_gr_skey",
+  schema = NULL,
   in_df,
-  only_inc_rows = FALSE,
-  filter_suffix_vect = NULL
+  pk = NULL,
+  only_inc_rows = TRUE,
+  filter_suffix_vect = NULL,
+  metadata_tbl = FALSE
 )
 }
 \arguments{
-\item{in_pg_tbl}{Input master gr_Key PG Table Name (containing foreign keys)}
+\item{base_join_tbl}{Input pg table, used as first table to be joined, format: schema.table_name, Eg. whse.all_bc_gr_skey}
 
-\item{schema}{PG database schema}
+\item{schema}{PG database schema used for all tables in in_df}
 
-\item{in_df}{input data frame in same format as input csv}
+\item{in_df}{input dataframe of config_parameters.csv}
 
 \item{only_inc_rows}{include of rows wwhere onc field is = 1}
 
 \item{filter_suffix_vect}{vector of suffixes to be included in string}
+
+\item{metadata_tbl}{Boolean to say whether in_df is based on metadata pg (TRUE) or config_parameters.csv (TRUE). If metadata_tbl = TRUE, schema and pk are taken from data_sources table entries rather than from argument.}
 }
 \value{
 String
 }
 \description{
-Creates FROM clause string from the standard faib_dadm_tools input df.  Only uses inputs where inc = 1
+Creates FROM clause string from the standard dadmtools input df
 }
 \examples{
-str_sql_joins(masterTable, schema = 'postgres', inCSV = 'D:/inputs/inputCsv.csv')
+str_sql_joins(base_join_tbl = "whse.all_bc_gr_skey", schema= "whse", pk = "pgid", in_df = read.csv("config_parameters.csv"))
+str_sql_joins(base_join_tbl = "whse.all_bc_gr_skey", schema= "whse", pk = "pgid", in_df = read.csv("config_parameters.csv"), filter_suffix_vect=c("sev_ras", "tsa"))
+str_sql_joins(base_join_tbl = "whse.all_bc_gr_skey", schema= "whse", in_df = sql_to_df("select * FROM whse.data_sources", get_pg_conn_list()), metadata_tbl = TRUE)
 }

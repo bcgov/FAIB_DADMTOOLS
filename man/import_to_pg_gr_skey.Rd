@@ -15,8 +15,8 @@ import_to_pg_gr_skey(
   flds_to_keep,
   notes,
   out_tif_path,
-  pg_conn_param = faib_dadm_tools::get_pg_conn_list(),
-  ora_conn_param = faib_dadm_tools::get_ora_conn_list(),
+  pg_conn_param = dadmtools::get_pg_conn_list(),
+  ora_conn_param = dadmtools::get_ora_conn_list(),
   crop_extent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
   gr_skey_tbl = "whse.all_bc_gr_skey",
   dst_schema = "whse",
@@ -46,6 +46,8 @@ import_to_pg_gr_skey(
 \item{query}{Where clause used to filter input dataset, Eg. fire_year = 2023 and BURN_SEVERITY_RATING in ('High','Medium')}
 
 \item{flds_to_keep}{Fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name}
+
+\item{notes}{Notes field}
 
 \item{out_tif_path}{Directory where output tif if exported and where vector is temporally stored prior to import}
 

@@ -21,6 +21,8 @@ rasterize_terra(
 
 \item{field}{field to be rasterized}
 
+\item{template_tif}{path of template raster}
+
 \item{crop_extent}{OPTIONAL - extent of output raster <xmin>,<ymax>,<ymin>,<xmax> default c(273287.5,1870587.5,367787.5,1735787.5)}
 
 \item{src_lyr}{OPTIONAL - input data layer e.g. 'veg_comp_poly'}
@@ -31,7 +33,7 @@ rasterize_terra(
 
 \item{datatype}{default Int64}
 
-\item{template}{path of template raster}
+\item{nodata}{No data value, defaults to 0}
 }
 \value{
 output tif name

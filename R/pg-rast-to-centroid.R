@@ -14,7 +14,7 @@
 pg_rast_to_centroid <- function(in_ras,
                                out_lyr_name,
                                out_field,
-                               pg_conn_param = faib_dadm_tools::get_pg_conn_list()){
+                               pg_conn_param = dadmtools::get_pg_conn_list()){
   indexName <-  paste0(gsub("\\.", "_", "out_lyr_name"), '_indx_geom')
   qry <- "DROP FUNCTION IF EXISTS FAIB_CENTROID_TILED_RASTER;"
   qry2 <-"CREATE OR REPLACE FUNCTION FAIB_CENTROID_TILED_RASTER(outTbl VARCHAR,indexName VARCHAR,srcRast VARCHAR,outFld VARCHAR DEFAULT 'val') RETURNS VARCHAR
@@ -44,10 +44,10 @@ from tbl2 where (public.ST_SummaryStats(rast)).sum is not null;';
 	RETURN outTbl;
 END;
 $$ LANGUAGE plpgsql;"
-  faib_dadm_tools::run_sql_r(qry, pg_conn_param)
-  faib_dadm_tools::run_sql_r(qry2, pg_conn_param)
+  dadmtools::run_sql_r(qry, pg_conn_param)
+  dadmtools::run_sql_r(qry2, pg_conn_param)
   qry3 <- glue("SELECT FAIB_CENTROID_TILED_RASTER('{out_lyr_name}','{indexName}', '{in_ras}','{out_field}')")
   print(qry3)
-  faib_dadm_tools::run_sql_r(qry3, pg_conn_param)
+  dadmtools::run_sql_r(qry3, pg_conn_param)
 
 }
