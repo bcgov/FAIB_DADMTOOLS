@@ -36,8 +36,8 @@ import_to_pg_gr_skey_overlap <- function(
   pgTblName <- RPostgres::Id(schema = schema, table = glue('{outPGTblName}_overlaps_gr_skey'))
 
   ##Drop existing tables
-  run_sql_r(glue('drop table if exists {pgTblNameGlue}'), connList = connList)
-  run_sql_r(glue('drop table if exists {pgTblNameNoSpaGlue}'), connList = connList)
+  run_sql_r(glue('drop table if exists {pgTblNameGlue}'), pg_conn_param = connList)
+  run_sql_r(glue('drop table if exists {pgTblNameNoSpaGlue}'), pg_conn_param = connList)
 
   ###Crop gr_skey and land and islands raster and mask out ocean
   grskeyRast <- terra::rast(grskeyTIF)
