@@ -110,7 +110,7 @@ Column names must match template above. Field description:
     - When `srctype = oracle` then schema and layer name, e.g. `WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly`
 - `suffix` : Used in combination with rslt_ind = 1, suffix used for column name creation in foreign table lookup, e.g. `pgid_<suffix>`
 - `tblname` : Postgres destination table name.
-    - E.g. `forest_harvesting_restrictions_july2023` TODO schema?
+    - E.g. `forest_harvesting_restrictions_july2023`
 - `src_query` : Optional argument to filter source layer
     - E.g. `rr_restriction is not null` OR `rr_restriction = '01_National Park'` OR `strgc_land_rsrce_plan_name like '%Klappan%'`
 - `inc` : Required argument whether to include layer when script is ran. 
@@ -120,7 +120,8 @@ Column names must match template above. Field description:
     - 0 = not included (i.e. will not add primary key to gr_skey_tbl)
 - `fields2keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
     - E.g. `REGEN_OBLIGATION_IND,FREE_GROW_DECLARED_IND,OBJECTID`
-
+- `notes` : Notes
+    - E.g. `Import file for mapping`
     
 # 3.  Add datasets to postgres from csv input by calling
 

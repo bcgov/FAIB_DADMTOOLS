@@ -74,7 +74,7 @@ import_to_pg_gr_skey <- function(rslt_ind,
     return()
   }
 
-  if (!(src_type %in% c("gdb", "oracle", "postgres", "geopackage", "raster", "shp", "shapefile"))) {
+  if (!(src_type %in% c("gdb", "oracle", "postgres", "geopackage", "gpkg", "raster", "shp", "shapefile"))) {
     print(glue("ERROR: Invalid src_type: {src_type}. Hint, provide one of: gdb, oracle, postgres, geopackage, raster or shp. Exiting script."))
     return()
   }
