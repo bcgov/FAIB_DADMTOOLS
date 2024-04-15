@@ -108,14 +108,14 @@ Column names must match template above. Field description:
     - When `srctype = gdb or raster or shp or geopackage` then full path and filename
 - `srclyr` : Layer name
     - When `srctype = oracle` then schema and layer name, e.g. `WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly`
-- `suffix` : Used in combination with rslt_ind = 1, suffix used for column name creation in foreign table lookup, e.g. `pgid_<suffix>`
+- `suffix` : Ignored unless rslt_ind = 1. When rslt_ind = 1, suffix used for column name creation in foreign table lookup, e.g. `pgid_<suffix>`
 - `tblname` : Postgres destination table name.
     - E.g. `forest_harvesting_restrictions_july2023`
-- `src_query` : Optional argument to filter source layer
+- `src_query` : Optional argument to filter source layer. When srcpath = 'bcgw', src_query is applied to postgres fdw layer. Otherwise, src_query applied to ogr2ogr call.
     - E.g. `rr_restriction is not null` OR `rr_restriction = '01_National Park'` OR `strgc_land_rsrce_plan_name like '%Klappan%'`
 - `inc` : Required argument whether to include layer when script is ran. 
     - E.g. 0 = exclude, 1 = include
-- `rslt_ind` : Used in combination with `suffix` and `gr_skey_tbl` (`gr_skey_tbl` is argument to `batch_import_to_pg_gr_skey` and `import_to_pg_gr_skey`). Option to add `pgid_<suffix>` for the specific imported table to previously imported PG `gr_skey_tbl` (Eg. `whse.all_bc_gr_skey`) 
+- `rslt_ind` : When set to 1, used in combination with `suffix` and `gr_skey_tbl` (`gr_skey_tbl` is argument to `batch_import_to_pg_gr_skey` and `import_to_pg_gr_skey`). Option to add `pgid_<suffix>` for the specific imported table to previously imported PG `gr_skey_tbl` (Eg. `whse.all_bc_gr_skey`) 
     - 1 = include (i.e. will add primary key to gr_skey_tbl)
     - 0 = not included (i.e. will not add primary key to gr_skey_tbl)
 - `fields2keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
