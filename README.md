@@ -101,27 +101,34 @@ import_gr_skey_tif_to_pg_rast(
 # 2.  Fill in configuration input csv file (i.e. [see example](config_parameters.csv))
 
 Column names must match template above. Field description:
-- `srctype`: Type of source file. 
+- `src_type`: Type of source file. 
     - Options: `gdb, oracle, raster, geopackage, gpkg, shapefile, shp`
-- `srcpath`: Source path.
+- `src_path`: Source path.
     - When `srctype = oracle` then `bcgw`
     - When `srctype = gdb or raster or shp or geopackage` then full path and filename
-- `srclyr` : Layer name
-    - When `srctype = oracle` then schema and layer name, e.g. `WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly`
-- `suffix` : Ignored unless rslt_ind = 1. When rslt_ind = 1, suffix used for column name creation in foreign table lookup, e.g. `pgid_<suffix>`
-- `tblname` : Postgres destination table name.
+- `src_lyr` : Layer name
+    - When `src_type = oracle`, provide oracle schema and layer name, e.g. `WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly`
+    - When `src_type = gdb`, provide layername within the file geodatabase, e.g. `tsa_boundaries_2020`
+    - When `src_type = shp|shapefile`, provide the shapefile name without extension, e.g. `k3o_cfa`
+    - When `src_type = gpkg|geopackage`, provide the layername within the geopackage, e.g. `FireSeverity_Final`
+    - When `src_type = raster`, argument not used in import. It is imported into metadata table.
+- `suffix` : Optional argument. Argument ignored unless `rslt_ind = 1`. When `rslt_ind = 1`, suffix used for column name creation in foreign table lookup, e.g. `pgid_<suffix>`
+- `dst_schema` : Postgres destination schema name.
+    - E.g. `whse`
+- `dst_tbl` : Postgres destination table name.
     - E.g. `forest_harvesting_restrictions_july2023`
-- `src_query` : Optional argument to filter source layer. When srcpath = 'bcgw', src_query is applied to postgres fdw layer. Otherwise, src_query applied to ogr2ogr call.
+- `query` : Optional argument to filter source layer. When `src_path = 'bcgw'`, argument is applied to postgres fdw layer. Otherwise, argument used within ogr2ogr call.
     - E.g. `rr_restriction is not null` OR `rr_restriction = '01_National Park'` OR `strgc_land_rsrce_plan_name like '%Klappan%'`
 - `inc` : Required argument whether to include layer when script is ran. 
-    - E.g. 0 = exclude, 1 = include
+    - 0 = exclude
+    - 1 = include
 - `rslt_ind` : When set to 1, used in combination with `suffix` and `gr_skey_tbl` (`gr_skey_tbl` is argument to `batch_import_to_pg_gr_skey` and `import_to_pg_gr_skey`). Option to add `pgid_<suffix>` for the specific imported table to previously imported PG `gr_skey_tbl` (Eg. `whse.all_bc_gr_skey`) 
     - 1 = include (i.e. will add primary key to gr_skey_tbl)
     - 0 = not included (i.e. will not add primary key to gr_skey_tbl)
-- `fields2keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
+- `flds_to_keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
     - E.g. `REGEN_OBLIGATION_IND,FREE_GROW_DECLARED_IND,OBJECTID`
 - `notes` : Notes
-    - E.g. `Import file for mapping`
+    - E.g. `This layer is very important.`
     
 # 3.  Add datasets to postgres from csv input by calling
 
@@ -138,7 +145,6 @@ batch_import_to_pg_gr_skey(
     ora_conn_param    = dadmtools::get_ora_conn_list(),
     crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
     gr_skey_tbl       = 'whse.all_bc_gr_skey',
-    dst_schema        = 'whse',
     raster_schema     = 'raster',
     template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
     mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
