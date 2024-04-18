@@ -11,7 +11,6 @@ batch_import_to_pg_gr_skey(
   ora_conn_param = dadmtools::get_ora_conn_list(),
   crop_extent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
   gr_skey_tbl = "whse.all_bc_gr_skey",
-  dst_schema = "whse",
   raster_schema = "raster",
   template_tif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\bc_01ha_gr_skey.tif",
@@ -33,8 +32,6 @@ batch_import_to_pg_gr_skey(
 \item{crop_extent}{list of c(ymin, ymax, xmin, xmax) in EPSG:3005, defaults to c(273287.5,1870587.5,367787.5,1735787.5)}
 
 \item{gr_skey_tbl}{Schema and table name of the pre-existing gr_skey table. Argument to be used with suffix and rslt_ind within in_csv. Defaults to "whse.all_bc_gr_skey"}
-
-\item{dst_schema}{Destination import schema of non spatial table & related gr_skey table, defaults to "whse"}
 
 \item{raster_schema}{If import_rast_to_pg = TRUE, schema of imported raster, defaults to "raster"}
 
