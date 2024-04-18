@@ -43,7 +43,7 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
     suffix        <- gsub("[[:space:]]","",tolower(in_file[row, "suffix"])) ## suffix to be used in the resultant table
     dst_schema    <- gsub("[[:space:]]","",tolower(in_file[row, "dst_schema"])) ## name of output non spatial table
     dst_tbl       <- gsub("[[:space:]]","",tolower(in_file[row, "dst_tbl"])) ## name of output non spatial table
-    query         <- in_file[row, "src_query"]  ##where clause used to filter input dataset
+    query         <- in_file[row, "query"]  ##where clause used to filter input dataset
     notes         <- in_file[row, "notes"]  ##where clause used to filter input dataset
     flds_to_keep  <- gsub("[[:space:]]","",tolower(in_file[row, "flds_to_keep"])) ## fields to keep in non spatial table
     ## checks
@@ -58,25 +58,25 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
     }
 
     dadmtools::import_to_pg_gr_skey(rslt_ind          = rslt_ind,
-                                          src_type          = src_type,
-                                          src_path          = src_path,
-                                          src_lyr           = src_lyr,
-                                          suffix            = suffix,
-                                          dst_tbl           = dst_tbl,
-                                          query             = query,
-                                          flds_to_keep      = flds_to_keep,
-                                          notes             = notes,
-                                          pg_conn_param     = pg_conn_param,
-                                          ora_conn_param    = ora_conn_param,
-                                          crop_extent       = crop_extent,
-                                          gr_skey_tbl       = gr_skey_tbl,
-                                          dst_schema        = dst_schema,
-                                          raster_schema     = raster_schema,
-                                          template_tif      = template_tif,
-                                          mask_tif          = mask_tif,
-                                          data_src_tbl      = data_src_tbl,
-                                          out_tif_path      = out_tif_path,
-                                          import_rast_to_pg = import_rast_to_pg)
+                                    src_type          = src_type,
+                                    src_path          = src_path,
+                                    src_lyr           = src_lyr,
+                                    suffix            = suffix,
+                                    dst_tbl           = dst_tbl,
+                                    query             = query,
+                                    flds_to_keep      = flds_to_keep,
+                                    notes             = notes,
+                                    pg_conn_param     = pg_conn_param,
+                                    ora_conn_param    = ora_conn_param,
+                                    crop_extent       = crop_extent,
+                                    gr_skey_tbl       = gr_skey_tbl,
+                                    dst_schema        = dst_schema,
+                                    raster_schema     = raster_schema,
+                                    template_tif      = template_tif,
+                                    mask_tif          = mask_tif,
+                                    data_src_tbl      = data_src_tbl,
+                                    out_tif_path      = out_tif_path,
+                                    import_rast_to_pg = import_rast_to_pg)
   }
   end_time <- Sys.time()
   duration <- difftime(end_time, start_time, units = "mins")

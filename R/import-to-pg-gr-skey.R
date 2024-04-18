@@ -88,7 +88,14 @@ import_to_pg_gr_skey <- function(rslt_ind,
   pk_id = "pgid"
   no_data_value = 0
   today_date <- format(Sys.time(), "%Y-%m-%d %I:%M:%S %p")
-  query_escaped <- gsub("'", "''", query)
+  connz <- dbConnect(pg_conn_param["driver"][[1]],
+                    host     = pg_conn_param["host"][[1]],
+                    user     = pg_conn_param["user"][[1]],
+                    dbname   = pg_conn_param["dbname"][[1]],
+                    password = pg_conn_param["password"][[1]],
+                    port     = pg_conn_param["port"][[1]])
+
+  query_escaped <- dbQuoteString(connz, query)
   dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                             TABLE relates to {dst_schema}.{dst_gr_skey_tbl}
                                             Data source details:
