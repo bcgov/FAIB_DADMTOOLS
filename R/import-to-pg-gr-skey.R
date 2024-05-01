@@ -67,6 +67,7 @@ import_to_pg_gr_skey <- function(rslt_ind,
   src_lyr      <- gsub("[[:space:]]",'',tolower(src_lyr)) ## input layer name
   suffix       <- gsub("[[:space:]]",'',tolower(suffix)) ## suffix to be used in the resultant table
   dst_tbl      <- gsub("[[:space:]]",'',tolower(dst_tbl)) ## name of output non spatial table
+  dst_schema   <- gsub("[[:space:]]",'',tolower(dst_schema)) ## name of output non spatial table
   flds_to_keep <- gsub("[[:space:]]",'',tolower(flds_to_keep)) ## fields to keep in non spatial table
   ## checks
   if (any(c(is_blank(src_type), is_blank(src_path), is_blank(src_lyr), is_blank(dst_tbl), is_blank(out_tif_path)))){
@@ -74,7 +75,7 @@ import_to_pg_gr_skey <- function(rslt_ind,
     return()
   }
 
-  if (!(src_type %in% c("gdb", "oracle", "postgres", "geopackage", "raster", "shp", "shapefile"))) {
+  if (!(src_type %in% c("gdb", "oracle", "postgres", "geopackage", "gpkg", "raster", "shp", "shapefile"))) {
     print(glue("ERROR: Invalid src_type: {src_type}. Hint, provide one of: gdb, oracle, postgres, geopackage, raster or shp. Exiting script."))
     return()
   }
@@ -88,7 +89,15 @@ import_to_pg_gr_skey <- function(rslt_ind,
   pk_id = "pgid"
   no_data_value = 0
   today_date <- format(Sys.time(), "%Y-%m-%d %I:%M:%S %p")
-  query_escaped <- gsub("'", "''", query)
+  connz <- dbConnect(pg_conn_param["driver"][[1]],
+                    host     = pg_conn_param["host"][[1]],
+                    user     = pg_conn_param["user"][[1]],
+                    dbname   = pg_conn_param["dbname"][[1]],
+                    password = pg_conn_param["password"][[1]],
+                    port     = pg_conn_param["port"][[1]])
+
+  query_escaped <- as.character(dbQuoteString(connz, query))
+
   dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                             TABLE relates to {dst_schema}.{dst_gr_skey_tbl}
                                             Data source details:

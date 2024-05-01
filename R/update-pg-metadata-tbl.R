@@ -37,9 +37,12 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                                    pg_conn_param)
 {
   print(glue("Inserting record into {data_src_tbl} for {dst_schema}.{dst_tbl}"))
-
   if(is_blank(flds_to_keep)) {
     flds_to_keep <- ""
+  }
+
+  if(is_blank(notes)) {
+    notes <- ""
   }
 
   data_source_schema <- strsplit(data_src_tbl, "\\.")[[1]][[1]]
@@ -144,8 +147,19 @@ update_pg_metadata_tbl <- function(data_src_tbl,
       print(glue("WARNING: Missing column in {data_src_tbl}, renaming current data sources table to: {data_source_schema}.{data_source_tbl}_deprecated_on_{today_date} and creating new table: {data_src_tbl}"))
       comment_qry <- glue("COMMENT ON TABLE {data_source_schema}.{data_source_tbl}_deprecated_on_{today_date} IS 'Table was deprecated and renamed on {today_date} by dadmtools R package. See preferred table: {data_src_tbl}'")
       dadmtools::run_sql_r(comment_qry, pg_conn_param)
-      drop_constraint <- glue("ALTER TABLE {data_source_schema}.{data_source_tbl}_deprecated_on_{today_date} DROP CONSTRAINT data_sources_unique")
-      dadmtools::run_sql_r(drop_constraint, pg_conn_param)
+      check_for_constraint_qry <- glue("SELECT con.conname = 'data_sources_unique' as con_check
+       FROM pg_catalog.pg_constraint con
+            INNER JOIN pg_catalog.pg_class rel
+                       ON rel.oid = con.conrelid
+            INNER JOIN pg_catalog.pg_namespace nsp
+                       ON nsp.oid = connamespace
+       WHERE nsp.nspname = '{data_source_schema}'
+             AND rel.relname = '{data_source_tbl}_deprecated_on_{today_date}';")
+      check_df <- dadmtools::sql_to_df(check_for_constraint_qry, pg_conn_param)
+      if (nrow(check_df) > 0) {
+        drop_constraint <- glue("ALTER TABLE {data_source_schema}.{data_source_tbl}_deprecated_on_{today_date} DROP CONSTRAINT data_sources_unique")
+        dadmtools::run_sql_r(drop_constraint, pg_conn_param)
+      }
       dadmtools::run_sql_r(create_sql, pg_conn_param)
       dadmtools::run_sql_r(insert_sql, pg_conn_param)
     } else {
