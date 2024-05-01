@@ -37,9 +37,12 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                                    pg_conn_param)
 {
   print(glue("Inserting record into {data_src_tbl} for {dst_schema}.{dst_tbl}"))
-
   if(is_blank(flds_to_keep)) {
     flds_to_keep <- ""
+  }
+
+  if(is_blank(notes)) {
+    notes <- ""
   }
 
   data_source_schema <- strsplit(data_src_tbl, "\\.")[[1]][[1]]
