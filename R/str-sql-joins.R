@@ -36,10 +36,10 @@ str_sql_joins <- function(base_join_tbl = "whse.all_bc_gr_skey",
       inc <- gsub("[[:space:]]","",tolower(in_df[row, "inc"])) ##  1 = include(i.e. will not skip) 0 = not included (i.e. will skip)
     }
     rslt_ind  <- gsub("[[:space:]]","",tolower(in_df[row, "rslt_ind"])) ##1 = include(i.e. will add data to provincial resultant) 0 = not included (i.e. will not add data to provincial resultant)
-    srctype   <- gsub("[[:space:]]","",tolower(in_df[row, "srctype"])) ##format of data source i.e. gdb,oracle, postgres, geopackage, raster
-    srcpath   <- gsub("[[:space:]]","",tolower(in_df[row, "srcpath"]))## path to input data. Note use bcgw for whse
+    srctype   <- gsub("[[:space:]]","",tolower(in_df[row, "src_type"])) ##format of data source i.e. gdb,oracle, postgres, geopackage, raster
+    srcpath   <- gsub("[[:space:]]","",tolower(in_df[row, "src_path"]))## path to input data. Note use bcgw for whse
     suffix    <- gsub("[[:space:]]","",tolower(in_df[row, "suffix"])) ## suffix to be used in the resultant table
-    in_tbl    <- gsub("[[:space:]]","",tolower(in_df[row, "tblname"])) ## name of output non spatial table
+    in_tbl    <- gsub("[[:space:]]","",tolower(in_df[row, "dst_tbl"])) ## name of output non spatial table
 
     ## if user has selected to only include rows where inc = 1, pass to next row if inc = 0
     if (only_inc_rows) {
@@ -49,7 +49,7 @@ str_sql_joins <- function(base_join_tbl = "whse.all_bc_gr_skey",
     }
     ## error out if no suffix provided as needed in join aliases
     if (is_blank(suffix)) {
-      print(glue("ERROR: no suffix provided where srcpath = {srcpath}, exiting script."))
+      print(glue("ERROR: no suffix provided where srcpath = {src_path}, exiting script."))
       return()
     }
 
@@ -63,7 +63,7 @@ str_sql_joins <- function(base_join_tbl = "whse.all_bc_gr_skey",
     ## if in_df is the metadata table, retrieve pk & schema from metadata_tbl
     if (metadata_tbl) {
       schema <- gsub("[[:space:]]","",tolower(in_df[row, "schema"]))
-      pk     <- gsub("[[:space:]]","",tolower(in_df[row, "primarykey"]))
+      pk     <- gsub("[[:space:]]","",tolower(in_df[row, "primary_key"]))
     }
 
     if(rslt_ind == 1  &&  srctype != "raster") {
