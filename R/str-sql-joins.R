@@ -2,9 +2,10 @@
 #' @param base_join_tbl Input pg table, used as first table to be joined, format: schema.table_name, Eg. whse.all_bc_gr_skey
 #' @param schema PG database schema used for all tables in in_df
 #' @param in_df input dataframe of config_parameters.csv
+#' @param pk needed if metadata_tbl is false
 #' @param only_inc_rows include of rows wwhere onc field is = 1
 #' @param filter_suffix_vect vector of suffixes to be included in string
-#' @param metadata_tbl Boolean to say whether in_df is based on metadata pg (TRUE) or config_parameters.csv (TRUE). If metadata_tbl = TRUE, schema and pk are taken from data_sources table entries rather than from argument.
+#' @param metadata_tbl Boolean to say whether in_df is based on metadata pg (TRUE) or config_parameters.csv (FALSE). If metadata_tbl = TRUE, schema and pk are taken from data_sources table entries rather than from argument.
 #' @return String
 #' @export
 #'
