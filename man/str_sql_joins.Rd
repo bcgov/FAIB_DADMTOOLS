@@ -21,11 +21,13 @@ str_sql_joins(
 
 \item{in_df}{input dataframe of config_parameters.csv}
 
+\item{pk}{needed if metadata_tbl is false}
+
 \item{only_inc_rows}{include of rows wwhere onc field is = 1}
 
 \item{filter_suffix_vect}{vector of suffixes to be included in string}
 
-\item{metadata_tbl}{Boolean to say whether in_df is based on metadata pg (TRUE) or config_parameters.csv (TRUE). If metadata_tbl = TRUE, schema and pk are taken from data_sources table entries rather than from argument.}
+\item{metadata_tbl}{Boolean to say whether in_df is based on metadata pg (TRUE) or config_parameters.csv (FALSE). If metadata_tbl = TRUE, schema and pk are taken from data_sources table entries rather than from argument.}
 }
 \value{
 String

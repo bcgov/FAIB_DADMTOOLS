@@ -71,34 +71,34 @@ update_pg_metadata_tbl <- function(data_src_tbl,
 
 
   create_sql <- glue::glue("CREATE TABLE IF NOT EXISTS {data_src_tbl} (
-                      srctype varchar,
-                      srcpath varchar,
-                      srclyr varchar,
-                      primarykey varchar,
+                      src_type varchar,
+                      src_path varchar,
+                      src_lyr varchar,
+                      primary_key varchar,
                       suffix varchar,
-                      schema varchar,
-                      tblname varchar,
-                      src_query varchar,
+                      dst_schema varchar,
+                      dst_tbl varchar,
+                      query varchar,
                       rslt_ind integer,
-                      fields2keep varchar,
+                      flds_to_keep varchar,
                       notes varchar,
                       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                      CONSTRAINT data_sources_unique UNIQUE (schema, tblname)
+                      CONSTRAINT data_sources_unique UNIQUE (dst_schema, dst_tbl)
                     );")
   dadmtools::run_sql_r(create_sql, pg_conn_param)
 
   insert_sql <- glue::glue("INSERT INTO {data_src_tbl}
                     (
-                     srctype,
-                     srcpath,
-                     srclyr,
-                     primarykey,
+                     src_type,
+                     src_path,
+                     src_lyr,
+                     primary_key,
                      suffix,
-                     schema,
-                     tblname,
-                     src_query,
+                     dst_schema,
+                     dst_tbl,
+                     query,
                      rslt_ind,
-                     fields2keep,
+                     flds_to_keep,
                      notes
                     )
                      VALUES
@@ -115,16 +115,17 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                     {flds_to_keep},
                     {notes}
                     )
-                    ON CONFLICT (schema, tblname) DO UPDATE
+                    ON CONFLICT (dst_schema, dst_tbl) DO UPDATE
                     SET
-                    srctype = EXCLUDED.srctype,
-                    srcpath = EXCLUDED.srcpath,
-                    srclyr = EXCLUDED.srclyr,
-                    primarykey = EXCLUDED.primarykey,
+                    src_type = EXCLUDED.src_type,
+                    src_path = EXCLUDED.src_path,
+                    src_lyr = EXCLUDED.src_lyr,
+                    primary_key = EXCLUDED.primary_key,
                     suffix = EXCLUDED.suffix,
-                    src_query = EXCLUDED.src_query,
+                    dst_schema = EXCLUDED.dst_schema,
+                    query = EXCLUDED.query,
                     rslt_ind = EXCLUDED.rslt_ind,
-                    fields2keep = EXCLUDED.fields2keep,
+                    flds_to_keep = EXCLUDED.flds_to_keep,
                     notes = EXCLUDED.notes,
                     created_at = now();")
   print(glue("Inserting record into {data_src_tbl} for {dst_schema}.{dst_tbl}"))

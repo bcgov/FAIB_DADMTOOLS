@@ -96,7 +96,11 @@ import_to_pg_gr_skey <- function(rslt_ind,
                     password = pg_conn_param["password"][[1]],
                     port     = pg_conn_param["port"][[1]])
 
-  query_escaped <- as.character(dbQuoteString(connz, query))
+  if(query == '' || is.null(query) || is.na(query)) {
+    query_escaped <- ''
+  } else {
+    query_escaped <- gsub("\'","\'\'", query)
+  }
 
   dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                             TABLE relates to {dst_schema}.{dst_gr_skey_tbl}
