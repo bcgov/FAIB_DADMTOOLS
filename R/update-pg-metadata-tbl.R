@@ -83,7 +83,7 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                       flds_to_keep varchar,
                       notes varchar,
                       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                      CONSTRAINT data_sources_unique UNIQUE (schema, tblname)
+                      CONSTRAINT data_sources_unique UNIQUE (dst_schema, dst_tbl)
                     );")
   dadmtools::run_sql_r(create_sql, pg_conn_param)
 
@@ -115,7 +115,7 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                     {flds_to_keep},
                     {notes}
                     )
-                    ON CONFLICT (schema, tblname) DO UPDATE
+                    ON CONFLICT (dst_schema, dst_tbl) DO UPDATE
                     SET
                     src_type = EXCLUDED.src_type,
                     src_path = EXCLUDED.src_path,
