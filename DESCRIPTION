@@ -1,12 +1,12 @@
-Package: faibDataManagement
+Package: dadmtools
 Type: Package
 Title: Faib Data Management Common Functions
-Version: 0.1.0
+Version: 3.0.0
 Author: Iaian McDougall
 Description: Common functions used in by the FAIB Data Management and Analysis Team
 License: None
 Encoding: UTF-8
 LazyData: true
 Imports: billboard
-RoxygenNote: 7.2.1
+RoxygenNote: 7.3.1
 Depends: RPostgres, glue, terra, keyring, sf
