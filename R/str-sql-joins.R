@@ -82,5 +82,9 @@ str_sql_joins <- function(base_join_tbl = "whse.all_bc_gr_skey",
   }
   base_string <- glue("{base_join_tbl} a")
   join_list <- append(base_string, join_list)
-  return(cat(paste(join_list, collapse="\n")))
+ cat(paste(join_list, collapse="\n"))
+ join_vect <- unlist(join_list, use.names = FALSE)
+ join_vect <- gsub("[\r\n]", " ",paste(join_vect,collapse = ' '))
+
+return(join_vect)
 }
