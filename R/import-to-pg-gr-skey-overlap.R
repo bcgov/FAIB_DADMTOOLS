@@ -74,13 +74,13 @@ import_to_pg_gr_skey_overlap <- function(
     colnames(df) <- names
     df1 <- df[!is.na(df$fid),]
     df1 <- df1[!is.na(df1$gr_skey),]
-    dadmtools::df_to_pg(pgTblName,df1,connList = connList, overwrite=F,append=T)
+    dadmtools::df_to_pg(pgTblName,df1,pg_conn_param = connList, overwrite=F,append=T)
   }
 
 
   ##Group by gr_skey, creating an array for each bnd fid
   bndNoSpa <- st_drop_geometry(bnd)
-  dadmtools::df_to_pg(pgTblNameNoSpa,bndNoSpa,connList = connList, overwrite=T,append=F)
-  dadmtools::run_sql_r(paste0('create index ', outPGTblName, '_indx on ', pgTblNameGlue,'(gr_skey)'),connList = connList)
+  dadmtools::df_to_pg(pgTblNameNoSpa,bndNoSpa,pg_conn_param = connList, overwrite=T,append=F)
+  dadmtools::run_sql_r(paste0('create index ', outPGTblName, '_indx on ', pgTblNameGlue,'(gr_skey)'),pg_conn_param = connList)
 
   }
