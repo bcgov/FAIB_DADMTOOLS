@@ -300,15 +300,22 @@ import_to_pg_gr_skey <- function(rslt_ind,
   } else {
     band_field_name <- pk_id
   }
+
+  in_df <- dadmtools::tif_to_gr_skey_tbl(
+    src_tif_filename = dst_ras_filename,
+    crop_extent      = crop_extent,
+    template_tif     = template_tif,
+    mask_tif         = mask_tif,
+    val_field_name   = band_field_name
+  )
+  ## if the above function returned NULL - then the input raster had a problem - exit script safely.
+  if (is.null(in_df)){
+    return()
+  }
+
   dadmtools::df_to_pg(
                             pg_tbl = dst_gr_skey_tbl_pg_obj,
-                            in_df  = dadmtools::tif_to_gr_skey_tbl(
-                                                              src_tif_filename = dst_ras_filename,
-                                                              crop_extent      = crop_extent,
-                                                              template_tif     = template_tif,
-                                                              mask_tif         = mask_tif,
-                                                              val_field_name   = band_field_name
-                            ),
+                            in_df,
                             pg_conn_param = pg_conn_param
   )
   print(glue('Created PG table: {dst_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
