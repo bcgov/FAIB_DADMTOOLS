@@ -32,6 +32,8 @@ CREATE EXTENSION oracle_fdw;
  CREATE SCHEMA raster;
  CREATE SCHEMA whse;
  ```
+ - Ensure (pgpass file)[https://www.postgresql.org/docs/current/libpq-pgpass.html] is setup. Either by adding an environment variable PGPASSWORD with your postgres password OR saving the file on Windows at  %APPDATA%\postgresql\pgpass.conf where the file format is:
+ `hostname:port:database:username:password`
 
 ## R First Time Configuration
 Currently defaults to using variables setup with keyring lib.
