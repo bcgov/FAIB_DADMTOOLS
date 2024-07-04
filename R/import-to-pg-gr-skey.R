@@ -102,20 +102,35 @@ import_to_pg_gr_skey <- function(rslt_ind,
     query_escaped <- gsub("\'","\'\'", query)
   }
 
-  dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
-                                            TABLE relates to {dst_schema}.{dst_gr_skey_tbl}
-                                            Data source details:
-                                            Source type: {src_type}
-                                            Source path: {src_path}
-                                            Source layer: {src_lyr}
-                                            Source where query: {query_escaped}';")
-  dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
-                                            TABLE relates to {dst_schema}.{dst_tbl}
-                                            Data source details:
-                                            Source type: {src_type}
-                                            Source path: {src_path}
-                                            Source layer: {src_lyr}
-                                            Source where query: {query_escaped}';")
+  if(tolower(src_type) != 'raster') {
+    dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
+                                              TABLE relates to {dst_schema}.{dst_gr_skey_tbl}
+                                              Data source details:
+                                              Source type: {src_type}
+                                              Source path: {src_path}
+                                              Source layer: {src_lyr}
+                                              Source where query: {query_escaped}';")
+    dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
+                                              TABLE relates to {dst_schema}.{dst_tbl}
+                                              Data source details:
+                                              Source type: {src_type}
+                                              Source path: {src_path}
+                                              Source layer: {src_lyr}
+                                              Source where query: {query_escaped}';")
+  } else {
+    dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
+                                              Data source details:
+                                              Source type: {src_type}
+                                              Source path: {src_path}
+                                              Source layer: {src_lyr}
+                                              Source where query: {query_escaped}';")
+    dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
+                                              Data source details:
+                                              Source type: {src_type}
+                                              Source path: {src_path}
+                                              Source layer: {src_lyr}
+                                              Source where query: {query_escaped}';")
+  }
 
   ## convert whitespace to null when where clause is null
   if (is_blank(query)) {
