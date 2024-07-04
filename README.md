@@ -1,5 +1,5 @@
 # dadmtools
-Package of common FAIB Data Analysis and Data Management team functions, focusing of functions to import vector into PG in the gr_skey grid lookup table.
+Package of common FAIB Data Analysis and Data Management team functions, focusing on functions to import vector into PG in the gr_skey grid lookup table.
 
 ## Dependencies and installation
  - Read/Write access to a PostgreSQL database (version 12 or above) with Postgis and Postgis Raster extension
@@ -22,18 +22,18 @@ Package of common FAIB Data Analysis and Data Management team functions, focusin
  ```
  
  ## PostgreSQL Configuration
- - Requires database with the following extensions enabled:
+1. Requires database with the following extensions enabled:
  ```
 CREATE EXTENSION postgis;
 CREATE EXTENSION postgis_raster;
 CREATE EXTENSION oracle_fdw;
  ```
- - Requires the following schemas:
+2. Requires the following schemas:
  ```
  CREATE SCHEMA raster;
  CREATE SCHEMA whse;
  ```
- - Ensure [pgpass file](https://www.postgresql.org/docs/current/libpq-pgpass.html) is setup. Either by adding an environment variable PGPASSWORD with your postgres password OR saving the file on Windows at  %APPDATA%\postgresql\pgpass.conf where the file format is:
+3. Ensure [pgpass file](https://www.postgresql.org/docs/current/libpq-pgpass.html) is setup. Either by adding an environment variable PGPASSWORD with your postgres password OR saving the file on Windows at  %APPDATA%\postgresql\pgpass.conf where the file format is:
  `hostname:port:database:username:password`
 
 ## R First Time Configuration
