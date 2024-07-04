@@ -67,7 +67,7 @@ import_gr_skey_tif_to_pg_rast <- function(
                   )
                   SELECT
                     public.st_pixelascentroid(rast,1,1)::geometry(Point,3005) AS geom,
-                    (public.ST_SummaryStats(rast)).sum AS gr_skey
+                    (public.ST_SummaryStats(rast)).sum::integer AS gr_skey
                   FROM
                     tbl2
                   WHERE
