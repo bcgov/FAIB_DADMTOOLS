@@ -18,6 +18,7 @@ Package of common FAIB Data Analysis and Data Management team functions, focusin
  install.packages("keyring")
  install.packages("sf")
  install.packages("devtools")
+ install_github("bcgov/FAIB_DADMTOOLS")
  ```
  
  ## PostgreSQL Configuration
@@ -57,13 +58,32 @@ key_set("dbservicename", keyring = "oracle", prompt = 'Oracle keyring serviceNam
 key_set("dbserver", keyring = "oracle", prompt = 'Oracle keyring server:')
 ```
 
-Example of confirming your imputs:
+Example of confirming your inputs:
 ```
+## pg variables
 key_get("dbuser", keyring = "localpsql")
 key_get("dbpass", keyring = "localpsql")
 key_get("dbhost", keyring = "localpsql")
 key_get("dbname", keyring = "localpsql")
+
+## oracle variables
+key_get("dbuser", keyring = "oracle")
+key_get("dbpass", keyring = "oracle")
+key_get("dbhost", keyring = "oracle")
+key_get("dbservicename", keyring = "oracle")
+key_get("dbserver", keyring = "oracle")
 ```
+
+Example of how to update your keyring when your BCGW password changes and you receive an error like this:
+```
+Error: Failed to fetch row : ERROR:  cannot authenticate connection to foreign Oracle server
+DETAIL:  ORA-01017: invalid username/password; logon denied
+```
+Fix: update your oracle keyring with your new password
+```
+key_set("dbpass", keyring = "oracle", prompt = 'Oracle keyring password:')
+```
+
 
 ## Usage
 # R library import
@@ -75,7 +95,6 @@ library(glue)
 library(terra)
 library(keyring)
 library(sf)
-
 ```
 
 
@@ -103,7 +122,7 @@ import_gr_skey_tif_to_pg_rast(
 # 2.  Fill in configuration input csv file (i.e. [see example](config_parameters.csv))
 
 Column names must match template above. Field description:
-- `src_type`: Type of source file. 
+- `src_type`: Type of source file. raster option will only work when the raster matches the spatial resolution (100x100), alignment and projection (BC Albers) of the gr_skey grid. Example gr_skey file: S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif
     - Options: `gdb, oracle, raster, geopackage, gpkg, shapefile, shp`
 - `src_path`: Source path.
     - When `srctype = oracle` then `bcgw`
