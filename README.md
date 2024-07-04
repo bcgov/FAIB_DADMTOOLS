@@ -18,6 +18,7 @@ Package of common FAIB Data Analysis and Data Management team functions, focusin
  install.packages("keyring")
  install.packages("sf")
  install.packages("devtools")
+ library(devtools)
  install_github("bcgov/FAIB_DADMTOOLS")
  ```
  
@@ -88,13 +89,7 @@ key_set("dbpass", keyring = "oracle", prompt = 'Oracle keyring password:')
 ## Usage
 # R library import
 ```
-library(devtools)
 library(dadmtools)
-library(RPostgres)
-library(glue)
-library(terra)
-library(keyring)
-library(sf)
 ```
 
 
@@ -104,7 +99,7 @@ library(sf)
 import_gr_skey_tif_to_pg_rast()
 ```
 
-The above function creates two tables in PG database. It creates a raster table named `raster.grskey_bc_land` and an additional table (tablename specified by `dst_tbl` argument, default is `whse.all_bc_gr_skey`). The second table is the raster table converted to table with a geometry field (`geom`) representing the raster centroids. Note: table specified by `dst_tbl` argument, default is `whse.all_bc_gr_skey`, is the `gr_skey_tbl` argument that should be specificed in combination with `rslt_ind` and `suffix`.
+The above function creates two tables in PG database. It creates a raster table named `raster.grskey_bc_land` and an additional table (tablename specified by `dst_tbl` argument, default is `whse.all_bc_gr_skey`). The second table is the raster table converted to table with a geometry field (`geom`) representing the raster centroids. Note: table specified by `dst_tbl` argument, default is `whse.all_bc_gr_skey`, is the `gr_skey_tbl` argument that should be specified in combination with `rslt_ind` and `suffix`.
 
 Function takes the following inputs. Default values listed below:
 
@@ -116,6 +111,13 @@ import_gr_skey_tif_to_pg_rast(
     out_crop_tif_name = ## no default
     pg_conn_param     = dadmtools::get_pg_conn_list(),
     dst_tbl           = 'whse.all_bc_gr_skey'
+)
+```
+
+Example function call using all defaults and specifying out_crop_tif_name:
+```
+import_gr_skey_tif_to_pg_rast(
+    out_crop_tif_name = 'C:\\projects\\data\\gr_skey_grid.tif'
 )
 ```
 
@@ -149,8 +151,10 @@ Column names must match template above. Field description:
 - `flds_to_keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
     - E.g. `REGEN_OBLIGATION_IND,FREE_GROW_DECLARED_IND,OBJECTID`
 - `notes` : Notes
-    - E.g. `This layer is very important.`
+    - E.g. `This layer is very important because bee boop.`
     
+Use the `rslt_ind` field in Step 2's configuration input csv to indicate if the `pgid_<suffix>` primary key will be added to the gr_skey geometry table. 
+
 # 3.  Add datasets to postgres from csv input by calling
 
 ```
@@ -174,6 +178,14 @@ batch_import_to_pg_gr_skey(
     import_rast_to_pg = FALSE
 )
 ```
-Use the `rslt_ind` field in Step 2's configuration input csv to indicate if the `pgid_<suffix>` primary key will be added to the gr_skey geometry table. 
+
+Example usage using defaults: 
+```
+batch_import_to_pg_gr_skey(
+    in_csv            = 'C:\\projects\\data\\config_parameters.csv',
+    out_tif_path      = 'C:\\projects\\data\\'
+)
+```
+
 
 [![Lifecycle:Experimental](https://img.shields.io/badge/Lifecycle-Experimental-339999)](<Redirect-URL>)
