@@ -18,26 +18,32 @@ tif_to_gr_skey_tbl <- function(src_tif_filename = 'D:\\Projects\\provDataProject
                                crop_extent      = c(273287.5,1870587.5,367787.5,1735787.5),
                                val_field_name   = 'val')
 {
+  tif_rast <- terra::rast(src_tif_filename)
+  if (res(tif_rast)[1] != 100 && res(tif_rast)[2] != 100) {
+    print(glue('ERROR: Exiting script. Provided raster must have a resolution of 100 x 100 and snapped to gr_skey grid. Provided raster resolution of source file {src_tif_filename} is: {res(tif_rast)[1]} x {res(tif_rast)[2]}.'))
+    return(NULL)
+  }
 
   terra_extent <- terra::ext(crop_extent[1], crop_extent[2], crop_extent[3], crop_extent[4])
-  tif_rast <- terra::rast(src_tif_filename)
   template_rast <- terra::rast(template_tif)
-  mask_rask <- terra::rast(mask_tif)
+  mask_rast <- terra::rast(mask_tif)
 
-  rast_lift <- list(template_rast, mask_rask)
-  crop_list <- lapply(rast_lift, function(x){
+  rast_list <- list(template_rast, mask_rast)
+  crop_list <- lapply(rast_list, function(x){
                 crs(x) <-  "epsg:3005"
                 terra::crop(x, terra_extent, datatype='INT4S')
                 }
               )
+
+  template_rast <- crop_list[[1]]
+  mask_rask <- crop_list[[2]]
   raster_datatype <- datatype(tif_rast)
   tif_rast <- terra::extend(tif_rast, terra_extent, datatype = raster_datatype)
   tif_rast <- terra::crop(tif_rast, terra_extent, datatype = raster_datatype)
-  template_rast <- crop_list[[1]]
-  mask_rask <- crop_list[[2]]
+
 
   mask_rask[mask_rask <= 0] <- NA
-  tif_rast <- terra::mask(tif_rast, mask_rask, datatype = raster_datatype)
+  tif_rast <- terra::mask(tif_rast, mask_rast, datatype = raster_datatype)
 
   ## if the raster datatype is integer,
   if (grepl("INT", raster_datatype)) {

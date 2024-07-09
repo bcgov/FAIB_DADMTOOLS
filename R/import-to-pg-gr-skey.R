@@ -102,20 +102,35 @@ import_to_pg_gr_skey <- function(rslt_ind,
     query_escaped <- gsub("\'","\'\'", query)
   }
 
-  dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
-                                            TABLE relates to {dst_schema}.{dst_gr_skey_tbl}
-                                            Data source details:
-                                            Source type: {src_type}
-                                            Source path: {src_path}
-                                            Source layer: {src_lyr}
-                                            Source where query: {query_escaped}';")
-  dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
-                                            TABLE relates to {dst_schema}.{dst_tbl}
-                                            Data source details:
-                                            Source type: {src_type}
-                                            Source path: {src_path}
-                                            Source layer: {src_lyr}
-                                            Source where query: {query_escaped}';")
+  if(tolower(src_type) != 'raster') {
+    dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
+                                              TABLE relates to {dst_schema}.{dst_gr_skey_tbl}
+                                              Data source details:
+                                              Source type: {src_type}
+                                              Source path: {src_path}
+                                              Source layer: {src_lyr}
+                                              Source where query: {query_escaped}';")
+    dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
+                                              TABLE relates to {dst_schema}.{dst_tbl}
+                                              Data source details:
+                                              Source type: {src_type}
+                                              Source path: {src_path}
+                                              Source layer: {src_lyr}
+                                              Source where query: {query_escaped}';")
+  } else {
+    dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
+                                              Data source details:
+                                              Source type: {src_type}
+                                              Source path: {src_path}
+                                              Source layer: {src_lyr}
+                                              Source where query: {query_escaped}';")
+    dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
+                                              Data source details:
+                                              Source type: {src_type}
+                                              Source path: {src_path}
+                                              Source layer: {src_lyr}
+                                              Source where query: {query_escaped}';")
+  }
 
   ## convert whitespace to null when where clause is null
   if (is_blank(query)) {
@@ -300,15 +315,22 @@ import_to_pg_gr_skey <- function(rslt_ind,
   } else {
     band_field_name <- pk_id
   }
+
+  in_df <- dadmtools::tif_to_gr_skey_tbl(
+    src_tif_filename = dst_ras_filename,
+    crop_extent      = crop_extent,
+    template_tif     = template_tif,
+    mask_tif         = mask_tif,
+    val_field_name   = band_field_name
+  )
+  ## if the above function returned NULL - then the input raster had a problem - exit script safely.
+  if (is.null(in_df)){
+    return()
+  }
+
   dadmtools::df_to_pg(
                             pg_tbl = dst_gr_skey_tbl_pg_obj,
-                            in_df  = dadmtools::tif_to_gr_skey_tbl(
-                                                              src_tif_filename = dst_ras_filename,
-                                                              crop_extent      = crop_extent,
-                                                              template_tif     = template_tif,
-                                                              mask_tif         = mask_tif,
-                                                              val_field_name   = band_field_name
-                            ),
+                            in_df,
                             pg_conn_param = pg_conn_param
   )
   print(glue('Created PG table: {dst_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
