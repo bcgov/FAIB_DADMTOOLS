@@ -1,5 +1,5 @@
 # dadmtools
-Package of common FAIB Data Analysis and Data Management team functions, focusing of functions to import vector into PG in the gr_skey grid lookup table.
+Package of common FAIB Data Analysis and Data Management team functions, focusing on functions to import vector into PG in the gr_skey grid lookup table.
 
 ## Dependencies and installation
  - Read/Write access to a PostgreSQL database (version 12 or above) with Postgis and Postgis Raster extension
@@ -18,20 +18,24 @@ Package of common FAIB Data Analysis and Data Management team functions, focusin
  install.packages("keyring")
  install.packages("sf")
  install.packages("devtools")
+ library(devtools)
+ install_github("bcgov/FAIB_DADMTOOLS")
  ```
  
  ## PostgreSQL Configuration
- - Requires database with the following extensions enabled:
+1. Requires database with the following extensions enabled:
  ```
 CREATE EXTENSION postgis;
 CREATE EXTENSION postgis_raster;
 CREATE EXTENSION oracle_fdw;
  ```
- - Requires the following schemas:
+2. Requires the following schemas:
  ```
  CREATE SCHEMA raster;
  CREATE SCHEMA whse;
  ```
+3. Ensure [pgpass file](https://www.postgresql.org/docs/current/libpq-pgpass.html) is setup. Either by adding an environment variable PGPASSWORD with your postgres password OR saving the file on Windows at  %APPDATA%\postgresql\pgpass.conf where the file format is:
+ `hostname:port:database:username:password`
 
 ## R First Time Configuration
 Currently defaults to using variables setup with keyring lib.
@@ -55,25 +59,37 @@ key_set("dbservicename", keyring = "oracle", prompt = 'Oracle keyring serviceNam
 key_set("dbserver", keyring = "oracle", prompt = 'Oracle keyring server:')
 ```
 
-Example of confirming your imputs:
+Example of confirming your inputs:
 ```
+## pg variables
 key_get("dbuser", keyring = "localpsql")
 key_get("dbpass", keyring = "localpsql")
 key_get("dbhost", keyring = "localpsql")
 key_get("dbname", keyring = "localpsql")
+
+## oracle variables
+key_get("dbuser", keyring = "oracle")
+key_get("dbpass", keyring = "oracle")
+key_get("dbhost", keyring = "oracle")
+key_get("dbservicename", keyring = "oracle")
+key_get("dbserver", keyring = "oracle")
 ```
+
+Example of how to update your keyring when your BCGW password changes and you receive an error like this:
+```
+Error: Failed to fetch row : ERROR:  cannot authenticate connection to foreign Oracle server
+DETAIL:  ORA-01017: invalid username/password; logon denied
+```
+Fix: update your oracle keyring with your new password
+```
+key_set("dbpass", keyring = "oracle", prompt = 'Oracle keyring password:')
+```
+
 
 ## Usage
 # R library import
 ```
-library(devtools)
 library(dadmtools)
-library(RPostgres)
-library(glue)
-library(terra)
-library(keyring)
-library(sf)
-
 ```
 
 
@@ -83,7 +99,7 @@ library(sf)
 import_gr_skey_tif_to_pg_rast()
 ```
 
-The above function creates two tables in PG database. It creates a raster table named `raster.grskey_bc_land` and an additional table (tablename specified by `dst_tbl` argument, default is `whse.all_bc_gr_skey`). The second table is the raster table converted to table with a geometry field (`geom`) representing the raster centroids. Note: table specified by `dst_tbl` argument, default is `whse.all_bc_gr_skey`, is the `gr_skey_tbl` argument that should be specificed in combination with `rslt_ind` and `suffix`.
+The above function creates two tables in PG database. It creates a raster table named `raster.grskey_bc_land` and an additional table (tablename specified by `dst_tbl` argument, default is `whse.all_bc_gr_skey`). The second table is the raster table converted to table with a geometry field (`geom`) representing the raster centroids. Note: table specified by `dst_tbl` argument, default is `whse.all_bc_gr_skey`, is the `gr_skey_tbl` argument that should be specified in combination with `rslt_ind` and `suffix`.
 
 Function takes the following inputs. Default values listed below:
 
@@ -98,10 +114,17 @@ import_gr_skey_tif_to_pg_rast(
 )
 ```
 
+Example function call using all defaults and specifying out_crop_tif_name:
+```
+import_gr_skey_tif_to_pg_rast(
+    out_crop_tif_name = 'C:\\projects\\data\\gr_skey_grid.tif'
+)
+```
+
 # 2.  Fill in configuration input csv file (i.e. [see example](config_parameters.csv))
 
 Column names must match template above. Field description:
-- `src_type`: Type of source file. 
+- `src_type`: Type of source file. raster option will only work when the raster matches the spatial resolution (100x100), alignment and projection (BC Albers) of the gr_skey grid. Example gr_skey file: S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif
     - Options: `gdb, oracle, raster, geopackage, gpkg, shapefile, shp`
 - `src_path`: Source path.
     - When `srctype = oracle` then `bcgw`
@@ -128,8 +151,10 @@ Column names must match template above. Field description:
 - `flds_to_keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
     - E.g. `REGEN_OBLIGATION_IND,FREE_GROW_DECLARED_IND,OBJECTID`
 - `notes` : Notes
-    - E.g. `This layer is very important.`
+    - E.g. `This layer is very important because bee boop.`
     
+Use the `rslt_ind` field in Step 2's configuration input csv to indicate if the `pgid_<suffix>` primary key will be added to the gr_skey geometry table. 
+
 # 3.  Add datasets to postgres from csv input by calling
 
 ```
@@ -153,6 +178,14 @@ batch_import_to_pg_gr_skey(
     import_rast_to_pg = FALSE
 )
 ```
-Use the `rslt_ind` field in Step 2's configuration input csv to indicate if the `pgid_<suffix>` primary key will be added to the gr_skey geometry table. 
+
+Example usage using defaults: 
+```
+batch_import_to_pg_gr_skey(
+    in_csv            = 'C:\\projects\\data\\config_parameters.csv',
+    out_tif_path      = 'C:\\projects\\data\\'
+)
+```
+
 
 [![Lifecycle:Experimental](https://img.shields.io/badge/Lifecycle-Experimental-339999)](<Redirect-URL>)
