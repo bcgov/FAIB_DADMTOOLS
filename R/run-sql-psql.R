@@ -18,11 +18,17 @@ run_sql_psql <- function(sql_var, sql_file, pg_db, host=NULL){
   if (is.null(host)){
     host<-'localhost'
   }
+
   cmd <-  c("-d", pg_db, "-f", sql_file, "-h", host)
-  for(i in sql_var){
-    cmd <- append(cmd, "-v")
-    cmd <- append(cmd, i)
-  }
+  if (is.null(sql_var)){
+    print(cmd)
+    print(system2("psql", args = cmd, wait = TRUE, stdout = TRUE, stderr = TRUE))
+  } else {
+    for (i in sql_var){
+      cmd <- append(cmd, "-v")
+      cmd <- append(cmd, i)
+    }
   print(cmd)
   print(system2("psql", args = cmd, wait = TRUE, stdout = TRUE, stderr = TRUE))
+  }
 }
