@@ -1,6 +1,6 @@
 #' Run a external sql file
 #'
-#' @param sql_var vector of variables to use in sql file e.g. c("schema='dbName',xwalkprev='inFC')
+#' @param sql_var vector of variables to use in sql file e.g. c("schema='dbName',xwalkprev='inFC'), when set to NULL, runs sql_file without variable replacement
 #' @param sql_file path and file name of sql file
 #' @param pg_db pg database name
 #' @param host host of db e.g. 'localhost', defaults to NULL
