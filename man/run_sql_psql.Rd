@@ -7,7 +7,7 @@
 run_sql_psql(sql_var, sql_file, pg_db, host = NULL)
 }
 \arguments{
-\item{sql_var}{vector of variables to use in sql file e.g. c("schema='dbName',xwalkprev='inFC')}
+\item{sql_var}{vector of variables to use in sql file e.g. c("schema='dbName',xwalkprev='inFC'), when set to NULL, runs sql_file without variable replacement}
 
 \item{sql_file}{path and file name of sql file}
 
