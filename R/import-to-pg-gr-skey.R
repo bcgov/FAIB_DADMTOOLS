@@ -300,7 +300,7 @@ import_to_pg_gr_skey <- function(rslt_ind,
   ## Tif to PG Raster
   if(import_rast_to_pg) {
     raster_tbl <- glue("{raster_schema}.ras_{substr(basename(dst_ras_filename),1,nchar(basename(dst_ras_filename))-4)}")
-    cmd <- glue('raster2pgsql -s 3005 -d -C -r -P -I -M -N {no_data_value} -t 100x100 {dst_ras_filename} {raster_tbl} | psql -d prov_data')
+    cmd <- glue('raster2pgsql -s 3005 -d -C -r -P -I -M -N {no_data_value} -t 100x100 {dst_ras_filename} {raster_tbl} | psql -d {pg_conn_param["dbname"][[1]]}')
     print(cmd)
     shell(cmd)
     print('Imported tif to PG')
