@@ -6,7 +6,10 @@
 #' @param out_crop_tif_name filename of the written output tif
 #' @param pg_conn_param Keyring object of Postgres credentials, defaults to dadmtools::get_pg_conn_list()
 #' @param dst_tbl Destination table of the imported gr_skey_tbl table (format: schema_name.table_name), defaults to "whse.all_bc_gr_skey"
-#'
+#' @param rast_sch Destination schema
+#' @param pg_rast_name Destination pg raster name
+#' @param geom_type geomtry type of output pg gr_skey table
+
 #' @return coming soon
 #' @export
 #'
@@ -19,7 +22,10 @@ import_gr_skey_tif_to_pg_rast <- function(
     mask_tif = "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif",
     crop_extent = c(273287.5,1870587.5,367787.5,1735787.5),
     pg_conn_param = dadmtools::get_pg_conn_list(),
-    dst_tbl = "whse.all_bc_gr_skey"
+    dst_tbl = "whse.all_bc_gr_skey",
+    rast_sch = "raster",
+    pg_rast_name = "grskey_bc_land",
+    geom_type = 'Centroid'
     ) {
 
   #Remove ocean from gr_skey raster, write a new tif
@@ -47,8 +53,8 @@ import_gr_skey_tif_to_pg_rast <- function(
   dbname <- pg_conn_param["dbname"][[1]]
   password <- pg_conn_param["password"][[1]]
   port <- pg_conn_param["port"][[1]]
-  run_sql_r("DROP TABLE IF EXISTS raster.grskey_bc_land;", pg_conn_param)
-  cmd<- glue("raster2pgsql -s 3005 -d -C -r -P -I -M -t 100x100 {out_crop_tif_name} raster.grskey_bc_land | psql postgresql://{user}:{password}@{host}:{port}/{dbname}")
+  run_sql_r(glue("DROP TABLE IF EXISTS {rast_sch}.{pg_rast_name};"), pg_conn_param)
+  cmd<- glue("raster2pgsql -s 3005 -d -C -r -P -I -M -t 100x100 {out_crop_tif_name} {rast_sch}.{pg_rast_name} | psql postgresql://{user}:{password}@{host}:{port}/{dbname}")
   shell(cmd)
   #Convert gr_skey raster to point table
   qry <- glue("DROP TABLE IF EXISTS {dst_tbl};")
@@ -58,7 +64,7 @@ import_gr_skey_tif_to_pg_rast <- function(
                     SELECT
                       RAST
                     FROM
-                      raster.grskey_bc_land
+                      {rast_sch}.{pg_rast_name}
                   ), tbl2 as (
                     SELECT
                       ST_Tile(RAST, 1,1) AS RAST
@@ -72,6 +78,26 @@ import_gr_skey_tif_to_pg_rast <- function(
                     tbl2
                   WHERE
                     (public.ST_SummaryStats(rast)).sum is not null;")
+  qry3 <- glue("CREATE TABLE {dst_tbl} AS
+                  WITH tbl1 AS  (
+                    SELECT
+                      RAST
+                    FROM
+                      {rast_sch}.{pg_rast_name}
+                  ), tbl2 as (
+                    SELECT
+                      ST_Tile(RAST, 1,1) AS RAST
+                    FROM
+                      tbl1
+                  )
+                  SELECT
+                    public.ST_PixelAsPolygon(rast,1,1)::geometry(MULTIPOLYGON,3005) AS geom,
+                    (public.ST_SummaryStats(rast)).sum::integer AS gr_skey
+                  FROM
+                    tbl2
+                  WHERE
+                    (public.ST_SummaryStats(rast)).sum is not null;")
+
   run_sql_r(qry, pg_conn_param)
   conn<-DBI::dbConnect(pg_conn_param["driver"][[1]],
                   host = pg_conn_param["host"][[1]],
@@ -80,6 +106,11 @@ import_gr_skey_tif_to_pg_rast <- function(
                   password = pg_conn_param["password"][[1]],
                   port = pg_conn_param["port"][[1]])
   RPostgres::dbExecute(conn, statement = qry1)
+
+  if (tolower(geom_type) == 'polygon' | tolower(geom_type) == 'multipolygon' ) {
+    qry2 <- qry3
+  }
+  else if (tolower(geom_type) == 'centroid'){print('Centroid geometry selected')}else(print('Geometry type not recognized, default to centroids'))
   RPostgres::dbExecute(conn, statement = qry2)
   RPostgres::dbDisconnect(conn)
   tblname <- strsplit(dst_tbl, "\\.")[[1]][[2]]

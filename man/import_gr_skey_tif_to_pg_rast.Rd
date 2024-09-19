@@ -12,7 +12,10 @@ import_gr_skey_tif_to_pg_rast(
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
   crop_extent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
   pg_conn_param = dadmtools::get_pg_conn_list(),
-  dst_tbl = "whse.all_bc_gr_skey"
+  dst_tbl = "whse.all_bc_gr_skey",
+  rast_sch = "raster",
+  pg_rast_name = "grskey_bc_land",
+  geom_type = "Centroid"
 )
 }
 \arguments{
@@ -27,6 +30,12 @@ import_gr_skey_tif_to_pg_rast(
 \item{pg_conn_param}{Keyring object of Postgres credentials, defaults to dadmtools::get_pg_conn_list()}
 
 \item{dst_tbl}{Destination table of the imported gr_skey_tbl table (format: schema_name.table_name), defaults to "whse.all_bc_gr_skey"}
+
+\item{rast_sch}{Destination schema}
+
+\item{pg_rast_name}{Destination pg raster name}
+
+\item{geom_type}{geomtry type of output pg gr_skey table}
 }
 \value{
 coming soon

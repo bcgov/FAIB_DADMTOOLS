@@ -8,5 +8,5 @@ License: None
 Encoding: UTF-8
 LazyData: true
 Imports: billboard
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Depends: RPostgres, glue, terra, keyring, sf
