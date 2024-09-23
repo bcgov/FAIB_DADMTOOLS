@@ -42,6 +42,7 @@ import_gr_skey_tif_to_pg_rast <- function(
 
   gr_skey_rast <- crop_list[[1]]
   make_rast <- crop_list[[2]]
+  make_rast <- terra::extend(make_rast,gr_skey_rast )
 
   make_rast[make_rast <= 0] <- NA
   gr_skey_rast <- terra::mask(gr_skey_rast, make_rast, datatype = "INT4S")
