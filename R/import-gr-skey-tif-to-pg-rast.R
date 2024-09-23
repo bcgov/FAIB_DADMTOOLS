@@ -6,9 +6,9 @@
 #' @param out_crop_tif_name filename of the written output tif
 #' @param pg_conn_param Keyring object of Postgres credentials, defaults to dadmtools::get_pg_conn_list()
 #' @param dst_tbl Destination table of the imported gr_skey_tbl table (format: schema_name.table_name), defaults to "whse.all_bc_gr_skey"
-#' @param rast_sch Destination schema
+#' @param rast_sch Destination schema, defaults to "raster"
 #' @param pg_rast_name Destination pg raster name
-#' @param geom_type geomtry type of output pg gr_skey table
+#' @param geom_type Available options are: Centroid or Polygon. Defaults to "Centroid"
 
 #' @return coming soon
 #' @export
@@ -111,8 +111,12 @@ import_gr_skey_tif_to_pg_rast <- function(
   if (tolower(geom_type) == 'polygon' | tolower(geom_type) == 'multipolygon' ) {
     qry2 <- qry3
   }
-  else if (tolower(geom_type) == 'centroid'){print('Centroid geometry selected')}else(print('Geometry type not recognized, default to centroids'))
-  RPostgres::dbExecute(conn, statement = qry2)
+  else if (tolower(geom_type) == 'centroid') {
+    print('Centroid geometry selected')
+  } else {
+    print('Geometry type not recognized, default to centroids')
+  }
+   RPostgres::dbExecute(conn, statement = qry2)
   RPostgres::dbDisconnect(conn)
   tblname <- strsplit(dst_tbl, "\\.")[[1]][[2]]
   run_sql_r(glue("ALTER TABLE {dst_tbl} ADD PRIMARY KEY (gr_skey);"), pg_conn_param)
