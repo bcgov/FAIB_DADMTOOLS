@@ -33,7 +33,7 @@ import_gr_skey_tif_to_pg_rast(
 
 \item{rast_sch}{Destination schema, defaults to "raster"}
 
-\item{pg_rast_name}{Destination pg raster name}
+\item{pg_rast_name}{Destination pg raster name, defaults to "grskey_bc_land"}
 
 \item{geom_type}{Available options are: Centroid or Polygon. Defaults to "Centroid"}
 }
