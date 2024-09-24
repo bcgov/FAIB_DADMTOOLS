@@ -7,7 +7,7 @@
 #' @param pg_conn_param Keyring object of Postgres credentials, defaults to dadmtools::get_pg_conn_list()
 #' @param dst_tbl Destination table of the imported gr_skey_tbl table (format: schema_name.table_name), defaults to "whse.all_bc_gr_skey"
 #' @param rast_sch Destination schema, defaults to "raster"
-#' @param pg_rast_name Destination pg raster name
+#' @param pg_rast_name Destination pg raster name, defaults to "grskey_bc_land"
 #' @param geom_type Available options are: Centroid or Polygon. Defaults to "Centroid"
 
 #' @return coming soon
