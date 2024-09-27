@@ -31,11 +31,11 @@ import_gr_skey_tif_to_pg_rast(
 
 \item{dst_tbl}{Destination table of the imported gr_skey_tbl table (format: schema_name.table_name), defaults to "whse.all_bc_gr_skey"}
 
-\item{rast_sch}{Destination schema}
+\item{rast_sch}{Destination schema, defaults to "raster"}
 
-\item{pg_rast_name}{Destination pg raster name}
+\item{pg_rast_name}{Destination pg raster name, defaults to "grskey_bc_land"}
 
-\item{geom_type}{geomtry type of output pg gr_skey table}
+\item{geom_type}{Available options are: Centroid or Polygon. Defaults to "Centroid"}
 }
 \value{
 coming soon
