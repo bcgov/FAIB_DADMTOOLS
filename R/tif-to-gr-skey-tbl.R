@@ -31,18 +31,19 @@ tif_to_gr_skey_tbl <- function(src_tif_filename = 'D:\\Projects\\provDataProject
   rast_list <- list(template_rast, mask_rast)
   crop_list <- lapply(rast_list, function(x){
                 crs(x) <-  "epsg:3005"
+                terra::extend(x, terra_extent, datatype='INT4S')
                 terra::crop(x, terra_extent, datatype='INT4S')
                 }
               )
 
   template_rast <- crop_list[[1]]
-  mask_rask <- crop_list[[2]]
+  mask_rast <- crop_list[[2]]
   raster_datatype <- datatype(tif_rast)
   tif_rast <- terra::extend(tif_rast, terra_extent, datatype = raster_datatype)
   tif_rast <- terra::crop(tif_rast, terra_extent, datatype = raster_datatype)
 
 
-  mask_rask[mask_rask <= 0] <- NA
+  mask_rast[mask_rast <= 0] <- NA
   tif_rast <- terra::mask(tif_rast, mask_rast, datatype = raster_datatype)
 
   ## if the raster datatype is integer,
