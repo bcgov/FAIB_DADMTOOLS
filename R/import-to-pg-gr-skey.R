@@ -272,10 +272,11 @@ import_to_pg_gr_skey <- function(rslt_ind,
       print(glue("Removing {basename(src_path)} from {out_tif_path}"))
 
       if (src_type %in% c("shapefile", "shp")) {
-        files <- list.files(path = dirname(src_path), pattern = paste0("^", tools::file_path_sans_ext(basename(src_path)), "\\..*"), ignore.case = TRUE)
-        ## be sure to not delete the newly created .tif
-        files <- files[!grepl("\\.tif$", files, ignore.case = TRUE)]
-        for (file in files) {
+        dir_name <- dirname(src_path)
+        base_name <- tools::file_path_sans_ext(basename(src_path))
+        pattern <- paste0("^", base_name, "\\.(shp|shx|dbf|prj|sbn|sbx|xml|cpg|shp\\.xml)$")
+        shapefiles <- list.files(path = dir_name, pattern = pattern, ignore.case = TRUE)
+        for (file in shapefiles) {
           file.remove(file.path(out_tif_path, file))
         }
       } else if (src_type == 'gdb') {
