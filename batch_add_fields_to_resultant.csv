@@ -1,0 +1,4 @@
+inc,overwrite_resultant_table,overwrite_fields,include_prefix,new_resultant_name,gr_skey_table,attribute_table,current_resultant_table,included_fields,update_field_names,prefix,key_resultant_tbl,key_grskey_tbl ,key_join_tbl,notes
+1,TRUE,TRUE,TRUE,test114,whse.veg_burn_severity_sp_gr_skey,whse.veg_burn_severity_sp,test112,"burn_severity_rating,fire_year",,bshist,gr_skey,gr_skey,fid,historic bs
+1,TRUE,TRUE,FALSE,test114,whse.prov_fuel_type_gr_skey,whse.prov_fuel_type,test114,"fuel_type_cd,percent_conifer","fuel_type_code,percent_conifer",,gr_skey,gr_skey,pgid,less important notes
+1,TRUE,TRUE,TRUE,test114,whse.slope_gr_skey,,test114,val,perc,slope,gr_skey,gr_skey,,no attribute table
