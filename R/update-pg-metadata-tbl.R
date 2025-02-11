@@ -5,10 +5,8 @@
 #' @param src_path source path (e.g. "w:/test/tes.gdb" or 'bcgw')
 #' @param src_lyr data source  (e.g. 'veg_comp_poly' or  'whse_forest_vegetation.f_own')
 #' @param pk primary of data source e.g. objectid
-#' @param suffix suffix used in resultant columns that were kept form the data source (e.g. "vri2021")
 #' @param query where statement used to filter data source
 #' @param inc 1 or 0,  indicates if data source is in PG
-#' @param rslt_ind indicates the pk is in the  pg resultant or not
 #' @param flds_to_keep string of fields kept from data input (e.g. "feature_id,proj_age_1,live_stand_volume_125")
 #' @param notes coming soon
 #' @param dst_tbl coming soon
@@ -26,10 +24,8 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                                    src_path,
                                    src_lyr,
                                    pk,
-                                   suffix,
                                    query,
                                    inc,
-                                   rslt_ind,
                                    flds_to_keep,
                                    notes,
                                    dst_tbl,
@@ -61,10 +57,8 @@ update_pg_metadata_tbl <- function(data_src_tbl,
   src_path     <- dbQuoteString(connz, src_path)
   src_lyr      <- dbQuoteString(connz, src_lyr)
   pk           <- dbQuoteString(connz, pk)
-  suffix       <- dbQuoteString(connz, suffix)
   dst_schema   <- dbQuoteString(connz, dst_schema)
   dst_tbl      <- dbQuoteString(connz, dst_tbl)
-  rslt_ind     <- dbQuoteString(connz, rslt_ind)
   flds_to_keep <- dbQuoteString(connz, flds_to_keep)
   on.exit(RPostgres::dbDisconnect(connz))
 
@@ -75,11 +69,9 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                       src_path varchar,
                       src_lyr varchar,
                       primary_key varchar,
-                      suffix varchar,
                       dst_schema varchar,
                       dst_tbl varchar,
                       query varchar,
-                      rslt_ind integer,
                       flds_to_keep varchar,
                       notes varchar,
                       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -93,11 +85,9 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                      src_path,
                      src_lyr,
                      primary_key,
-                     suffix,
                      dst_schema,
                      dst_tbl,
                      query,
-                     rslt_ind,
                      flds_to_keep,
                      notes
                     )
@@ -107,11 +97,9 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                     {src_path},
                     {src_lyr},
                     {pk},
-                    {suffix},
                     {dst_schema},
                     {dst_tbl},
                     {query},
-                    {rslt_ind},
                     {flds_to_keep},
                     {notes}
                     )
@@ -121,10 +109,8 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                     src_path = EXCLUDED.src_path,
                     src_lyr = EXCLUDED.src_lyr,
                     primary_key = EXCLUDED.primary_key,
-                    suffix = EXCLUDED.suffix,
                     dst_schema = EXCLUDED.dst_schema,
                     query = EXCLUDED.query,
-                    rslt_ind = EXCLUDED.rslt_ind,
                     flds_to_keep = EXCLUDED.flds_to_keep,
                     notes = EXCLUDED.notes,
                     created_at = now();")

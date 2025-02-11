@@ -10,10 +10,8 @@ update_pg_metadata_tbl(
   src_path,
   src_lyr,
   pk,
-  suffix,
   query,
   inc,
-  rslt_ind,
   flds_to_keep,
   notes,
   dst_tbl,
@@ -32,13 +30,9 @@ update_pg_metadata_tbl(
 
 \item{pk}{primary of data source e.g. objectid}
 
-\item{suffix}{suffix used in resultant columns that were kept form the data source (e.g. "vri2021")}
-
 \item{query}{where statement used to filter data source}
 
 \item{inc}{1 or 0,  indicates if data source is in PG}
-
-\item{rslt_ind}{indicates the pk is in the  pg resultant or not}
 
 \item{flds_to_keep}{string of fields kept from data input (e.g. "feature_id,proj_age_1,live_stand_volume_125")}
 

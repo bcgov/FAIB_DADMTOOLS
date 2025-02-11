@@ -2,11 +2,9 @@
 #'
 #'
 #'
-#' @param rslt_ind Used in combination with gr_skey_tbl and suffix arguments. 1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
 #' @param src_type Format of data source, Options: gdb, oracle, postgres, geopackage, raster, shp
 #' @param src_path Path to input data. Note use "bcgw" for whse oracle layers
 #' @param src_lyr Input layer name
-#' @param suffix Use in combination with rslt_ind and gr_skey_tbl. Suffix to be added to the primary key field name in the gr_skey table
 #' @param dst_tbl Name of output non spatial table
 #' @param query Where clause used to filter input dataset, Eg. fire_year = 2023 and BURN_SEVERITY_RATING in ('High','Medium')
 #' @param flds_to_keep Fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name
@@ -15,7 +13,6 @@
 #' @param pg_conn_param Keyring object of Postgres credentials
 #' @param ora_conn_param Keyring object of Oracle credentials
 #' @param crop_extent Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005
-#' @param gr_skey_tbl Used in combination with Schema and table name of the pre-existing foreign key lookup gr_skey table. Argument to be used with suffix and rslt_ind within in_csv.
 #' @param dst_schema Schema to insert the newly created gr_skey and dst_tbl (Eg. non spatial table)
 #' @param raster_schema If import_rast_to_pg set to TRUE, the import schema for the raster. Defaults to "raster"
 #' @param fdw_schema If src_type=oracle, the schema to load the foreign data wrapper table, Defaults to "load"
@@ -31,11 +28,10 @@
 #' @examples coming soon
 
 
-import_to_pg_gr_skey <- function(rslt_ind,
+import_to_pg_gr_skey <- function(
                                 src_type,
                                 src_path,
                                 src_lyr,
-                                suffix,
                                 dst_tbl,
                                 query,
                                 flds_to_keep,
@@ -44,14 +40,14 @@ import_to_pg_gr_skey <- function(rslt_ind,
                                 pg_conn_param     = dadmtools::get_pg_conn_list(),
                                 ora_conn_param    = dadmtools::get_ora_conn_list(),
                                 crop_extent       = c(273287.5, 1870587.5, 367787.5, 1735787.5),
-                                gr_skey_tbl       = 'whse.all_bc_gr_skey',
                                 dst_schema        = 'whse',
                                 raster_schema     = 'raster',
                                 fdw_schema        = 'load',
                                 template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
                                 mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
                                 data_src_tbl      = 'whse.data_sources',
-                                import_rast_to_pg = FALSE
+                                import_rast_to_pg = FALSE,
+                                grskey_schema = NULL
 )
 
 {
@@ -61,11 +57,9 @@ import_to_pg_gr_skey <- function(rslt_ind,
   cat(paste(rep("*", 80), collapse = ""), "\n")
   cat("\n")
   ## Get inputs from input file
-  rslt_ind     <- gsub("[[:space:]]",'',tolower(rslt_ind)) ## 1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
   src_type     <- gsub("[[:space:]]",'',tolower(src_type)) ## format of data source i.e. gdb, oracle, postgres, geopackage, raster, shp
   src_path     <- gsub("[[:space:]]",'',tolower(src_path))## path to input data. Note use bcgw for whse
   src_lyr      <- gsub("[[:space:]]",'',tolower(src_lyr)) ## input layer name
-  suffix       <- gsub("[[:space:]]",'',tolower(suffix)) ## suffix to be used in the resultant table
   dst_tbl      <- gsub("[[:space:]]",'',tolower(dst_tbl)) ## name of output non spatial table
   dst_schema   <- gsub("[[:space:]]",'',tolower(dst_schema)) ## name of output non spatial table
   flds_to_keep <- gsub("[[:space:]]",'',tolower(flds_to_keep)) ## fields to keep in non spatial table
@@ -80,12 +74,11 @@ import_to_pg_gr_skey <- function(rslt_ind,
     return()
   }
 
-  if (!(rslt_ind %in% c(0, 1))) {
-    print(glue("ERROR: Invalid rslt_ind: {rslt_ind}. Hint, provide either 0 or 1. Exiting script."))
-    return()
-  }
-
-  dst_gr_skey_tbl <- glue("{dst_tbl}_gr_skey") ## destination table gr skey name
+  if(is.null(grskey_schema)){
+    grskey_schema <- dst_schema
+    dst_gr_skey_tbl <- glue("{dst_tbl}_gr_skey")}else{
+    dst_gr_skey_tbl <- glue("{dst_tbl}")
+  } ## destination table gr skey name
   pk_id = "pgid"
   no_data_value = 0
   today_date <- format(Sys.time(), "%Y-%m-%d %I:%M:%S %p")
@@ -104,13 +97,13 @@ import_to_pg_gr_skey <- function(rslt_ind,
 
   if(tolower(src_type) != 'raster') {
     dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
-                                              TABLE relates to {dst_schema}.{dst_gr_skey_tbl}
+                                              TABLE relates to {grskey_schema}.{dst_gr_skey_tbl}
                                               Data source details:
                                               Source type: {src_type}
                                               Source path: {src_path}
                                               Source layer: {src_lyr}
                                               Source where query: {query_escaped}';")
-    dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
+    dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {grskey_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                               TABLE relates to {dst_schema}.{dst_tbl}
                                               Data source details:
                                               Source type: {src_type}
@@ -124,7 +117,7 @@ import_to_pg_gr_skey <- function(rslt_ind,
                                               Source path: {src_path}
                                               Source layer: {src_lyr}
                                               Source where query: {query_escaped}';")
-    dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
+    dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {grskey_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                               Data source details:
                                               Source type: {src_type}
                                               Source path: {src_path}
@@ -307,9 +300,9 @@ import_to_pg_gr_skey <- function(rslt_ind,
   }
 
   #Convert postgres raster to non-spatial table with gr_skey
-  dst_gr_skey_tbl_pg_obj <- RPostgres::Id(schema = dst_schema, table = dst_gr_skey_tbl)
-  print(glue('Creating PG table: {dst_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
-  dadmtools::run_sql_r(glue("DROP TABLE IF EXISTS {dst_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
+  dst_gr_skey_tbl_pg_obj <- RPostgres::Id(schema = grskey_schema, table = dst_gr_skey_tbl)
+  print(glue('Creating PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
+  dadmtools::run_sql_r(glue("DROP TABLE IF EXISTS {grskey_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
   if (tolower(src_type) == 'raster') {
     band_field_name <- 'val'
   } else {
@@ -333,7 +326,7 @@ import_to_pg_gr_skey <- function(rslt_ind,
                             in_df,
                             pg_conn_param = pg_conn_param
   )
-  print(glue('Created PG table: {dst_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
+  print(glue('Created PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
   if(tolower(src_type) == 'raster') {
     if (dirname(src_path) != dirname(out_tif_path)) {
       print(glue("Removing {basename(src_path)} from {out_tif_path}"))
@@ -342,55 +335,30 @@ import_to_pg_gr_skey <- function(rslt_ind,
   }
 
   ## Adding primary key to table
-  print(glue('Adding gr_skey as primary key to {dst_schema}.{dst_gr_skey_tbl}'))
-  dadmtools::run_sql_r(glue("ALTER TABLE {dst_schema}.{dst_gr_skey_tbl} ADD PRIMARY KEY (gr_skey);"), pg_conn_param)
+  print(glue('Adding gr_skey as primary key to {grskey_schema}.{dst_gr_skey_tbl}'))
+  dadmtools::run_sql_r(glue("ALTER TABLE {grskey_schema}.{dst_gr_skey_tbl} ADD PRIMARY KEY (gr_skey);"), pg_conn_param)
 
   if (tolower(src_type) != 'raster') {
     ## Adding in foreign key
-    print(glue('Adding foreign key constraint to {dst_schema}.{dst_gr_skey_tbl} referencing {dst_schema}.{dst_tbl} using ({pk_id});'))
-    dadmtools::run_sql_r(glue("ALTER TABLE {dst_schema}.{dst_gr_skey_tbl} ADD CONSTRAINT {dst_gr_skey_tbl}_fkey FOREIGN KEY ({pk_id}) REFERENCES {dst_schema}.{dst_tbl} ({pk_id});"), pg_conn_param)
+    print(glue('Adding foreign key constraint to {grskey_schema}.{dst_gr_skey_tbl} referencing {dst_schema}.{dst_tbl} using ({pk_id});'))
+    dadmtools::run_sql_r(glue("ALTER TABLE {grskey_schema}.{dst_gr_skey_tbl} ADD CONSTRAINT {dst_gr_skey_tbl}_fkey FOREIGN KEY ({pk_id}) REFERENCES {dst_schema}.{dst_tbl} ({pk_id});"), pg_conn_param)
     ## Add index on fid
     dadmtools::run_sql_r(glue("DROP INDEX IF EXISTS {dst_gr_skey_tbl}_{pk_id}_idx;"), pg_conn_param)
-    dadmtools::run_sql_r(glue("CREATE INDEX {dst_gr_skey_tbl}_{pk_id}_idx ON {dst_schema}.{dst_gr_skey_tbl} USING btree ({pk_id})"), pg_conn_param)
+    dadmtools::run_sql_r(glue("CREATE INDEX {dst_gr_skey_tbl}_{pk_id}_idx ON {grskey_schema}.{dst_gr_skey_tbl} USING btree ({pk_id})"), pg_conn_param)
   }
   ## Add comment on table
   dadmtools::run_sql_r(dst_gr_skey_tbl_comment, pg_conn_param)
   ## Update the query planner with the latest changes
-  dadmtools::run_sql_r(glue("ANALYZE {dst_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
-
-  if(rslt_ind == 1) {
-    if (!(is_blank(suffix))) {
-      dadmtools::add_pk_to_gr_skey_tbl(dst_tbl      = dst_gr_skey_tbl,
-                                            dst_schema    = dst_schema,
-                                            pk            = pk_id,
-                                            suffix        = suffix,
-                                            gr_skey_tbl   = gr_skey_tbl,
-                                            pg_conn_param = pg_conn_param
-      )
+  dadmtools::run_sql_r(glue("ANALYZE {grskey_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
 
 
-
-      #Update Metadata tables
-      dadmtools::update_gr_skey_tbl_flds(dst_tbl      = dst_tbl,
-                                              dst_schema    = dst_schema,
-                                              gr_skey_tbl   = gr_skey_tbl,
-                                              suffix        = suffix,
-                                              pg_conn_param = pg_conn_param
-      )
-    } else {
-      print("No suffix provided, skipping performing rslt_ind foreign key lookup table update.")
-    }
-
-  }
   dadmtools::update_pg_metadata_tbl(
     data_src_tbl    = data_src_tbl,
     src_type        = src_type,
     src_path        = old_src_path,
     src_lyr         = src_lyr,
     pk              = pk_id,
-    suffix          = suffix,
     query           = query,
-    rslt_ind        = rslt_ind,
     flds_to_keep    = flds_to_keep,
     notes           = notes,
     dst_tbl         = dst_tbl,
