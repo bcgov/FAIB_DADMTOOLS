@@ -28,7 +28,8 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
                                       template_tif      = "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif",
                                       mask_tif          = "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif",
                                       data_src_tbl      = "whse.data_sources",
-                                      import_rast_to_pg = FALSE
+                                      import_rast_to_pg = FALSE,
+                                      grskey_schema = NULL
                                       )
 {
   start_time <- Sys.time()
@@ -36,7 +37,6 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
   in_file <- read.csv(in_csv)
   in_file <- in_file[in_file$inc == 1,]
   for (row in 1:nrow(in_file)) {
-    rslt_ind      <- gsub("[[:space:]]","",tolower(in_file[row, "rslt_ind"])) ##1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)
     src_type      <- gsub("[[:space:]]","",tolower(in_file[row, "src_type"])) ##format of data source i.e. gdb,oracle, postgres, geopackage, raster
     src_path      <- gsub("[[:space:]]","",tolower(in_file[row, "src_path"])) ## path to input data. Note use bcgw for whse
     src_lyr       <- gsub("[[:space:]]","",tolower(in_file[row, "src_lyr"])) ## input layer name
@@ -57,11 +57,10 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
       return()
     }
 
-    dadmtools::import_to_pg_gr_skey(rslt_ind          = rslt_ind,
+    dadmtools::import_to_pg_gr_skey(
                                     src_type          = src_type,
                                     src_path          = src_path,
                                     src_lyr           = src_lyr,
-                                    suffix            = suffix,
                                     dst_tbl           = dst_tbl,
                                     query             = query,
                                     flds_to_keep      = flds_to_keep,
@@ -69,14 +68,14 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
                                     pg_conn_param     = pg_conn_param,
                                     ora_conn_param    = ora_conn_param,
                                     crop_extent       = crop_extent,
-                                    gr_skey_tbl       = gr_skey_tbl,
                                     dst_schema        = dst_schema,
                                     raster_schema     = raster_schema,
                                     template_tif      = template_tif,
                                     mask_tif          = mask_tif,
                                     data_src_tbl      = data_src_tbl,
                                     out_tif_path      = out_tif_path,
-                                    import_rast_to_pg = import_rast_to_pg)
+                                    import_rast_to_pg = import_rast_to_pg,
+                                    grskey_schema = grskey_schema)
   }
   end_time <- Sys.time()
   duration <- difftime(end_time, start_time, units = "mins")
