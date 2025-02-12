@@ -4,7 +4,7 @@
 #' @param pk column to incorporated into gr_skey table
 #' @param suffix suffix to be appended to the pk for the column name in the gr_skey table
 #' @param gr_skey_tbl current gr_skey table
-#' @param pg_conn_param Named list with the following connection parameters Driver,host,user,dbname,password,port,schema
+#' @param pg_conn_param named list of postgres connection parameters (see get_pg_conn_list() function for more details)
 #' @param join_field defaults to 'gr_skey')
 #'
 #' @return nothing is returned
@@ -13,12 +13,12 @@
 #' @examples coming soon
 
 
-add_pk_to_gr_skey_tbl  <- function(dst_tbl, 
+add_pk_to_gr_skey_tbl  <- function(dst_tbl,
                                   dst_schema,
-                                  pk, 
-                                  suffix, 
-                                  gr_skey_tbl, 
-                                  pg_conn_param, 
+                                  pk,
+                                  suffix,
+                                  gr_skey_tbl,
+                                  pg_conn_param,
                                   join_field = 'gr_skey')
 {
   print("Performing rslt_ind foreign key lookup table update...")

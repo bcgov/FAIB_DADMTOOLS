@@ -17,7 +17,8 @@ batch_import_to_pg_gr_skey(
   mask_tif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
   data_src_tbl = "whse.data_sources",
-  import_rast_to_pg = FALSE
+  import_rast_to_pg = FALSE,
+  grskey_schema = NULL
 )
 }
 \arguments{

@@ -5,11 +5,9 @@
 \title{Update FAIB hectares database from input dataset}
 \usage{
 import_to_pg_gr_skey(
-  rslt_ind,
   src_type,
   src_path,
   src_lyr,
-  suffix,
   dst_tbl,
   query,
   flds_to_keep,
@@ -18,7 +16,6 @@ import_to_pg_gr_skey(
   pg_conn_param = dadmtools::get_pg_conn_list(),
   ora_conn_param = dadmtools::get_ora_conn_list(),
   crop_extent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
-  gr_skey_tbl = "whse.all_bc_gr_skey",
   dst_schema = "whse",
   raster_schema = "raster",
   fdw_schema = "load",
@@ -27,19 +24,16 @@ import_to_pg_gr_skey(
   mask_tif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
   data_src_tbl = "whse.data_sources",
-  import_rast_to_pg = FALSE
+  import_rast_to_pg = FALSE,
+  grskey_schema = NULL
 )
 }
 \arguments{
-\item{rslt_ind}{Used in combination with gr_skey_tbl and suffix arguments. 1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)}
-
 \item{src_type}{Format of data source, Options: gdb, oracle, postgres, geopackage, raster, shp}
 
 \item{src_path}{Path to input data. Note use "bcgw" for whse oracle layers}
 
 \item{src_lyr}{Input layer name}
-
-\item{suffix}{Use in combination with rslt_ind and gr_skey_tbl. Suffix to be added to the primary key field name in the gr_skey table}
 
 \item{dst_tbl}{Name of output non spatial table}
 
@@ -56,8 +50,6 @@ import_to_pg_gr_skey(
 \item{ora_conn_param}{Keyring object of Oracle credentials}
 
 \item{crop_extent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
-
-\item{gr_skey_tbl}{Used in combination with Schema and table name of the pre-existing foreign key lookup gr_skey table. Argument to be used with suffix and rslt_ind within in_csv.}
 
 \item{dst_schema}{Schema to insert the newly created gr_skey and dst_tbl (Eg. non spatial table)}
 
