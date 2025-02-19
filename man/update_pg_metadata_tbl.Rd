@@ -14,6 +14,8 @@ update_pg_metadata_tbl(
   inc,
   flds_to_keep,
   notes,
+  overlap_ind,
+  overlap_group_field,
   dst_tbl,
   dst_schema,
   pg_conn_param
@@ -38,11 +40,15 @@ update_pg_metadata_tbl(
 
 \item{notes}{coming soon}
 
+\item{overlap_ind}{True or False.  If true, it indicates that a duplicae gr_skeys will be in output gr_skey table where spatial overlaps occur.  If false, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)}
+
 \item{dst_tbl}{coming soon}
 
 \item{dst_schema}{coming soon}
 
 \item{pg_conn_param}{coming soon}
+
+\item{overlap_group_fields}{The field groupings that will be used to deal with spatial overlaps. I.e. Every unique grouping of the indicated fields will be rasterized separately.}
 }
 \value{
 no return

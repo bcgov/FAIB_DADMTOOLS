@@ -4,7 +4,14 @@
 \alias{df_to_pg}
 \title{Write a PG Table from Dataframe}
 \usage{
-df_to_pg(pg_tbl, in_df, pg_conn_param, overwrite = TRUE, append = FALSE)
+df_to_pg(
+  pg_tbl,
+  in_df,
+  pg_conn_param,
+  overwrite = TRUE,
+  append = FALSE,
+  output_schema = NULL
+)
 }
 \arguments{
 \item{pg_tbl}{Name of output PG Table}
@@ -15,7 +22,7 @@ df_to_pg(pg_tbl, in_df, pg_conn_param, overwrite = TRUE, append = FALSE)
 
 \item{overwrite}{overwrite output T or F}
 
-\item{append}{append output T or F}
+\item{append}{output_schema Name of output pg schema.  Default = Null}
 }
 \value{
 no return

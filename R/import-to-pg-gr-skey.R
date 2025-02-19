@@ -9,6 +9,8 @@
 #' @param query Where clause used to filter input dataset, Eg. fire_year = 2023 and BURN_SEVERITY_RATING in ('High','Medium')
 #' @param flds_to_keep Fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name
 #' @param notes Notes field
+#' @param overlap_ind True or False.  If true, it indicates that a duplicae gr_skeys will be in output gr_skey table where spatial overlaps occur.  If false, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)
+#' @param overlap_group_fields The field groupings that will be used to deal with spatial overlaps. I.e. Every unique grouping of the indicated fields will be rasterized separately.
 #' @param out_tif_path Directory where output tif if exported and where vector is temporally stored prior to import
 #' @param pg_conn_param Keyring object of Postgres credentials
 #' @param ora_conn_param Keyring object of Oracle credentials
@@ -36,6 +38,8 @@ import_to_pg_gr_skey <- function(
                                 query,
                                 flds_to_keep,
                                 notes,
+                                overlap_ind,
+                                overlap_group_fields,
                                 out_tif_path,
                                 pg_conn_param     = dadmtools::get_pg_conn_list(),
                                 ora_conn_param    = dadmtools::get_ora_conn_list(),
@@ -51,6 +55,7 @@ import_to_pg_gr_skey <- function(
 )
 
 {
+  #browser()
   cat("\n")
   cat(paste(rep("*", 80), collapse = ""), "\n")
   print(glue("Starting import of {src_path} | layername={src_lyr}..."))
@@ -63,9 +68,11 @@ import_to_pg_gr_skey <- function(
   dst_tbl      <- gsub("[[:space:]]",'',tolower(dst_tbl)) ## name of output non spatial table
   dst_schema   <- gsub("[[:space:]]",'',tolower(dst_schema)) ## name of output non spatial table
   flds_to_keep <- gsub("[[:space:]]",'',tolower(flds_to_keep)) ## fields to keep in non spatial table
+  overlap_group_fields <- gsub("[[:space:]]",'',tolower(overlap_group_fields)) ## field to group overlaps
+  overlap_ind   <- as.logical(gsub("[[:space:]]","",toupper(overlap_ind))) # indicates whether overlaps will be group by group field (e.g. TRUE) or ignored (e.g.FALSE)
   ## checks
-  if (any(c(is_blank(src_type), is_blank(src_path), is_blank(src_lyr), is_blank(dst_tbl), is_blank(out_tif_path)))){
-    print("ERROR: Argument not provided, one of src_type, src_path, src_lyr, dst_tbl, out_tif_path was left blank. Exiting script.")
+  if (any(c(is_blank(src_type), is_blank(src_path), is_blank(src_lyr), is_blank(dst_tbl), is_blank(out_tif_path),is_blank(overlap_ind)  ))){
+    print("ERROR: Argument not provided, one of overlap_ind, src_type, src_path, src_lyr, dst_tbl, out_tif_path was left blank. Exiting script.")
     return()
   }
 
@@ -74,11 +81,21 @@ import_to_pg_gr_skey <- function(
     return()
   }
 
+  print(paste("ovelap field is ", overlap_group_fields))
+  if (overlap_ind && is_blank(overlap_group_fields)) {
+    print(glue("ERROR: Argument not provided for overlap_group_fields while OVERLAP_IND is set to TRUE "))
+    return()
+  }
+
+
   if(is.null(grskey_schema)){
     grskey_schema <- dst_schema
     dst_gr_skey_tbl <- glue("{dst_tbl}_gr_skey")}else{
     dst_gr_skey_tbl <- glue("{dst_tbl}")
   } ## destination table gr skey name
+
+  if(overlap_ind){dst_gr_skey_tbl <- glue("{dst_gr_skey_tbl}_overlap")}
+
   pk_id = "pgid"
   no_data_value = 0
   today_date <- format(Sys.time(), "%Y-%m-%d %I:%M:%S %p")
@@ -171,16 +188,19 @@ import_to_pg_gr_skey <- function(
       # Create GR SKEY Spatial Table
       # =============================================================================
 
+      if(overlap_ind){select_flds <- paste0(c(pk_id,paste0('non_spatial.',strsplit(overlap_group_fields, ",")[[1]])),collapse = ",")}else{select_flds <- pk_id}
+
       ## Create a SQL query including the spatial field and primary key field of a Foreign Data Wrapper table
       qry <- get_sql_fdw_id_geom(dst_tbl      = dst_tbl,
                                 dst_schema    = dst_schema,
                                 ora_tbl       = src_lyr,
-                                pk            = pk_id,
+                                pk            = select_flds,
                                 pg_conn_param = pg_conn_param,
                                 fdw_schema    = fdw_schema,
                                 where         = query
       )
 
+      print(qry)
       cast_list <- c("MULTIPOLYGON","MULTIPOINT","MULTILINE")
       print(glue('Converting SQL query which joins FDW table: {fdw_schema}.{fdw_tbl} and {dst_schema}.{dst_tbl} and WHERE query into R Simple Feature Collection'))
       for (i in cast_list) {
@@ -194,6 +214,7 @@ import_to_pg_gr_skey <- function(
         }
       }
 
+      if(!overlap_ind) {
       ## Rasterize using TERRA
       dst_ras_filename <- rasterize_terra(
         src_sf       = in_sf,
@@ -204,7 +225,59 @@ import_to_pg_gr_skey <- function(
         out_tif_name = glue("{dst_tbl}.tif"),
         datatype     = 'INT4U',
         nodata       = no_data_value
-      )
+      )}else if (overlap_ind){
+
+        ##Loop through rasterization, convert into a gr_skey, and append into pg table
+        #dst_gr_skey_tbl <- glue("{dst_gr_skey_tbl}_overlap")
+        dst_gr_skey_tbl_pg_obj <- RPostgres::Id(schema = grskey_schema, table = dst_gr_skey_tbl )
+
+
+        print(glue('Creating PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
+        dadmtools::run_sql_r(glue("DROP TABLE IF EXISTS {grskey_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
+        fields <- unlist(strsplit(overlap_group_fields, ","))
+        groupIDs <- st_drop_geometry(unique(in_sf[, fields]))
+        for (i in 1:nrow(groupIDs)) {
+          row <- groupIDs[i, , drop = FALSE]  # Get the row as a dataframe
+          print(row)
+          filtered_df <- merge(in_sf, row, by = fields)
+
+          ## Rasterize using TERRA
+          dst_ras_filename <- rasterize_terra(
+            src_sf       = filtered_df,
+            field        = pk_id,
+            template_tif = template_tif,
+            crop_extent  = crop_extent,
+            out_tif_path = out_tif_path,
+            out_tif_name = glue("{dst_tbl}.tif"),
+            datatype     = 'INT4U',
+            nodata       = no_data_value)
+
+          in_df <- dadmtools::tif_to_gr_skey_tbl(
+            src_tif_filename = dst_ras_filename,
+            crop_extent      = crop_extent,
+            template_tif     = template_tif,
+            mask_tif         = mask_tif,
+            val_field_name   = pk_id
+          )
+
+          if (is.null(in_df)){
+            print("ERROR: Could not coonvert Raster to GR_SKEY table")
+            return()
+          }
+
+          dadmtools::df_to_pg(
+            pg_tbl = dst_gr_skey_tbl_pg_obj,
+            in_df,
+            pg_conn_param = pg_conn_param,
+            overwrite = FALSE,
+            append = TRUE
+          )
+
+        }
+
+        print(glue('Created PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
+
+      }
       old_src_path <- src_path
     } else {
       # =============================================================================
@@ -246,7 +319,15 @@ import_to_pg_gr_skey <- function(
                                       tbl_comment   = dst_tbl_comment
       )
 
+
+
+
       print("Table created successfully.")
+
+      if(!overlap_ind){
+
+
+
       #Create tif from input
       dst_ras_filename <- rasterize_gdal(
                                   in_lyr        = src_lyr,
@@ -263,6 +344,86 @@ import_to_pg_gr_skey <- function(
       # Remove locally created layer from out_tif_path
       # =============================================================================
       print(glue("Removing {basename(src_path)} from {out_tif_path}"))
+
+      }else if (overlap_ind){
+
+        ##Loop through rasterization, convert into a gr_skey, and append into pg table
+        #dst_gr_skey_tbl <- glue("{dst_gr_skey_tbl}_overlap")
+        dst_gr_skey_tbl_pg_obj <- RPostgres::Id(schema = grskey_schema, table = dst_gr_skey_tbl )
+
+        ###Drop existing table
+        #####
+        dadmtools::run_sql_r(glue("DROP TABLE IF EXISTS {grskey_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
+
+        ###Loop through each group then create a raster for each group and append the results onto the final pg table#######
+        ####################
+        sql <- glue("select {overlap_group_fields} from {dst_schema}.{dst_tbl} group by {overlap_group_fields}" )
+        overlap_groups_df <-  dadmtools::sql_to_df(sql,pg_conn_param)
+        add_quotes <- function(x) {
+          if (is.character(x)) {
+            return(paste0("'", x, "'"))  # Add single quotes
+          }
+          return(x)  # Keep numeric values as is
+        }
+        # Apply function to all elements of the dataframe
+        overlap_groups_df <- as.data.frame(lapply(overlap_groups_df, function(col) sapply(col, add_quotes)), stringsAsFactors = FALSE)
+
+        for (i in 1:nrow(overlap_groups_df)) {
+          row <- overlap_groups_df[i, ,drop = FALSE]  # Get the row as a dataframe
+          print(row)
+          where_clause_overlap <- glue("({where_claus})")
+          for (col in names(row)) {
+            value <- row[1,col]
+            where_clause_overlap <- glue("{where_clause_overlap} and {col} = {value}")
+          }
+          print(where_clause_overlap)
+
+
+          dst_ras_filename <- rasterize_gdal(
+            in_lyr        = src_lyr,
+            field         = pk_id,
+            out_tif_path  = out_tif_path,
+            out_tif_name  = glue("{dst_tbl}.tif"),
+            src_path      = src_path,
+            pg_conn_param = NULL,
+            crop_extent   = crop_extent,
+            nodata        = no_data_value,
+            where         = where_clause_overlap
+          )
+
+          in_df <- dadmtools::tif_to_gr_skey_tbl(
+            src_tif_filename = dst_ras_filename,
+            crop_extent      = crop_extent,
+            template_tif     = template_tif,
+            mask_tif         = mask_tif,
+            val_field_name   = pk_id
+          )
+
+          if (is.null(in_df)){
+            print("ERROR: Could not coonvert Raster to GR_SKEY table")
+            return()
+          }
+
+          dadmtools::df_to_pg(
+            pg_tbl = dst_gr_skey_tbl_pg_obj,
+            in_df,
+            pg_conn_param = pg_conn_param,
+            overwrite = FALSE,
+            append = TRUE
+          )
+
+        }
+
+        print(glue('Created PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
+
+
+
+
+
+
+
+
+      }
 
       if (src_type %in% c("shapefile", "shp")) {
         files <- list.files(path = dirname(src_path), pattern = paste0("^", tools::file_path_sans_ext(basename(src_path)), "\\..*"), ignore.case = TRUE)
@@ -281,6 +442,13 @@ import_to_pg_gr_skey <- function(
   }
 
   if(tolower(src_type) == 'raster') {
+
+    if (overlap_ind) {
+      print("ERROR: Overlaps_ind must be false for rasters")
+            return()
+    }
+
+
     if (dirname(src_path) != dirname(out_tif_path)) {
       print(glue("Copying {src_path} to {out_tif_path}"))
       file.copy(from = src_path, to = out_tif_path, overwrite = TRUE, recursive = TRUE, copy.mode = TRUE)
@@ -289,7 +457,7 @@ import_to_pg_gr_skey <- function(
     dst_ras_filename <- file.path(out_tif_path, basename(src_path))
   }
 
-
+if(!overlap_ind){
   ## Tif to PG Raster
   if(import_rast_to_pg) {
     raster_tbl <- glue("{raster_schema}.ras_{substr(basename(dst_ras_filename),1,nchar(basename(dst_ras_filename))-4)}")
@@ -333,16 +501,22 @@ import_to_pg_gr_skey <- function(
       file.remove(dst_ras_filename)
     }
   }
+}
 
   ## Adding primary key to table
+  if(!overlap_ind){
   print(glue('Adding gr_skey as primary key to {grskey_schema}.{dst_gr_skey_tbl}'))
-  dadmtools::run_sql_r(glue("ALTER TABLE {grskey_schema}.{dst_gr_skey_tbl} ADD PRIMARY KEY (gr_skey);"), pg_conn_param)
+  dadmtools::run_sql_r(glue("ALTER TABLE {grskey_schema}.{dst_gr_skey_tbl} ADD PRIMARY KEY (gr_skey);"), pg_conn_param)}else if(overlap_ind){
+    dadmtools::run_sql_r(glue("DROP INDEX IF EXISTS {dst_gr_skey_tbl}_gr_skey_idx;"), pg_conn_param)
+    dadmtools::run_sql_r(glue("CREATE INDEX {dst_gr_skey_tbl}_gr_skey_idx ON {grskey_schema}.{dst_gr_skey_tbl} USING btree (gr_skey)"), pg_conn_param)
+
+  }
 
   if (tolower(src_type) != 'raster') {
     ## Adding in foreign key
     print(glue('Adding foreign key constraint to {grskey_schema}.{dst_gr_skey_tbl} referencing {dst_schema}.{dst_tbl} using ({pk_id});'))
     dadmtools::run_sql_r(glue("ALTER TABLE {grskey_schema}.{dst_gr_skey_tbl} ADD CONSTRAINT {dst_gr_skey_tbl}_fkey FOREIGN KEY ({pk_id}) REFERENCES {dst_schema}.{dst_tbl} ({pk_id});"), pg_conn_param)
-    ## Add index on fid
+    ## Add index on pgid
     dadmtools::run_sql_r(glue("DROP INDEX IF EXISTS {dst_gr_skey_tbl}_{pk_id}_idx;"), pg_conn_param)
     dadmtools::run_sql_r(glue("CREATE INDEX {dst_gr_skey_tbl}_{pk_id}_idx ON {grskey_schema}.{dst_gr_skey_tbl} USING btree ({pk_id})"), pg_conn_param)
   }
@@ -363,7 +537,9 @@ import_to_pg_gr_skey <- function(
     notes           = notes,
     dst_tbl         = dst_tbl,
     dst_schema      = dst_schema,
-    pg_conn_param   = pg_conn_param
+    pg_conn_param   = pg_conn_param,
+    overlap_ind = overlap_ind ,
+    overlap_group_fields = overlap_group_fields
   )
 }
 

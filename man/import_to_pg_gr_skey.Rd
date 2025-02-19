@@ -12,6 +12,8 @@ import_to_pg_gr_skey(
   query,
   flds_to_keep,
   notes,
+  overlap_ind,
+  overlap_group_fields,
   out_tif_path,
   pg_conn_param = dadmtools::get_pg_conn_list(),
   ora_conn_param = dadmtools::get_ora_conn_list(),
@@ -42,6 +44,10 @@ import_to_pg_gr_skey(
 \item{flds_to_keep}{Fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name}
 
 \item{notes}{Notes field}
+
+\item{overlap_ind}{True or False.  If true, it indicates that a duplicae gr_skeys will be in output gr_skey table where spatial overlaps occur.  If false, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)}
+
+\item{overlap_group_fields}{The field groupings that will be used to deal with spatial overlaps. I.e. Every unique grouping of the indicated fields will be rasterized separately.}
 
 \item{out_tif_path}{Directory where output tif if exported and where vector is temporally stored prior to import}
 
