@@ -14,7 +14,7 @@ import_to_pg_gr_skey_overlap(
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\bc_01ha_gr_skey.tif",
   maskTif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
-  connList = get_pg_conn_list(),
+  pg_conn_param = dadmtools::get_pg_conn_list(),
   terraExt = terra::ext(c(273287.5, 1870587.5, 367787.5, 1735787.5))
 )
 }
@@ -33,7 +33,7 @@ import_to_pg_gr_skey_overlap(
 
 \item{maskTif}{Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif'}
 
-\item{connList}{Defaults to get_pg_conn_list()}
+\item{pg_conn_param}{Defaults to get_pg_conn_list()}
 
 \item{terraExt}{Defaults to terra::ext(c(273287.5,1870587.5,367787.5,1735787.5))}
 }
@@ -45,4 +45,6 @@ Import data with spatial overlaps into Postgres as gr_skey table
 }
 \examples{
 coming soon
+
 }
+\keyword{internal}
