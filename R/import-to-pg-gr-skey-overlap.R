@@ -7,14 +7,17 @@
 #' @param schema Defaults to 'whse'
 #' @param grskeyTIF Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif'
 #' @param maskTif Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif'
-#' @param connList Defaults to get_pg_conn_list()
+#' @param pg_conn_param Defaults to get_pg_conn_list()
 #' @param terraExt Defaults to terra::ext(c(273287.5,1870587.5,367787.5,1735787.5))
 #'
 #'
 #' @return no return
 #' @export
 #'
+#'
 #' @examples coming soon
+#'
+#' @keywords internal
 
 
 import_to_pg_gr_skey_overlap <- function(
@@ -25,7 +28,7 @@ import_to_pg_gr_skey_overlap <- function(
   schema = 'whse',
   grskeyTIF = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
   maskTif = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif' ,
-  connList = get_pg_conn_list(),
+  pg_conn_param     = dadmtools::get_pg_conn_list(),
   terraExt = terra::ext(c(273287.5,1870587.5,367787.5,1735787.5))
   )
 
@@ -36,8 +39,8 @@ import_to_pg_gr_skey_overlap <- function(
   pgTblName <- RPostgres::Id(schema = schema, table = glue('{outPGTblName}_overlaps_gr_skey'))
 
   ##Drop existing tables
-  run_sql_r(glue('drop table if exists {pgTblNameGlue}'), pg_conn_param = connList)
-  run_sql_r(glue('drop table if exists {pgTblNameNoSpaGlue}'), pg_conn_param = connList)
+  run_sql_r(glue('drop table if exists {pgTblNameGlue}'), pg_conn_param = pg_conn_param)
+  run_sql_r(glue('drop table if exists {pgTblNameNoSpaGlue}'), pg_conn_param = pg_conn_param)
 
   ###Crop gr_skey and land and islands raster and mask out ocean
   grskeyRast <- terra::rast(grskeyTIF)
@@ -74,13 +77,13 @@ import_to_pg_gr_skey_overlap <- function(
     colnames(df) <- names
     df1 <- df[!is.na(df$fid),]
     df1 <- df1[!is.na(df1$gr_skey),]
-    dadmtools::df_to_pg(pgTblName,df1,pg_conn_param = connList, overwrite=F,append=T)
+    dadmtools::df_to_pg(pgTblName,df1,pg_conn_param = pg_conn_param, overwrite=F,append=T)
   }
 
 
   ##Group by gr_skey, creating an array for each bnd fid
   bndNoSpa <- st_drop_geometry(bnd)
-  dadmtools::df_to_pg(pgTblNameNoSpa,bndNoSpa,pg_conn_param = connList, overwrite=T,append=F)
-  dadmtools::run_sql_r(paste0('create index ', outPGTblName, '_indx on ', pgTblNameGlue,'(gr_skey)'),pg_conn_param = connList)
+  dadmtools::df_to_pg(pgTblNameNoSpa,bndNoSpa,pg_conn_param = pg_conn_param, overwrite=T,append=F)
+  dadmtools::run_sql_r(paste0('create index ', outPGTblName, '_indx on ', pgTblNameGlue,'(gr_skey)'),pg_conn_param = pg_conn_param)
 
   }

@@ -9,6 +9,8 @@
 #' @param inc 1 or 0,  indicates if data source is in PG
 #' @param flds_to_keep string of fields kept from data input (e.g. "feature_id,proj_age_1,live_stand_volume_125")
 #' @param notes coming soon
+#' @param overlap_ind True or False.  If true, it indicates that a duplicae gr_skeys will be in output gr_skey table where spatial overlaps occur.  If false, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)
+#' @param overlap_group_fields The field groupings that will be used to deal with spatial overlaps. I.e. Every unique grouping of the indicated fields will be rasterized separately.
 #' @param dst_tbl coming soon
 #' @param dst_schema coming soon
 #' @param pg_conn_param coming soon
@@ -28,10 +30,13 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                                    inc,
                                    flds_to_keep,
                                    notes,
+                                   overlap_ind,
+                                   overlap_group_fields,
                                    dst_tbl,
                                    dst_schema,
                                    pg_conn_param)
 {
+  #browser()
   print(glue("Inserting record into {data_src_tbl} for {dst_schema}.{dst_tbl}"))
   if(is_blank(flds_to_keep)) {
     flds_to_keep <- ""
@@ -60,6 +65,8 @@ update_pg_metadata_tbl <- function(data_src_tbl,
   dst_schema   <- dbQuoteString(connz, dst_schema)
   dst_tbl      <- dbQuoteString(connz, dst_tbl)
   flds_to_keep <- dbQuoteString(connz, flds_to_keep)
+  overlap_ind <- dbQuoteString(connz, as.character(overlap_ind))
+  overlap_group_fields <- dbQuoteString(connz, overlap_group_fields)
   on.exit(RPostgres::dbDisconnect(connz))
 
 
@@ -74,6 +81,8 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                       query varchar,
                       flds_to_keep varchar,
                       notes varchar,
+                      overlap_ind varchar,
+                      overlap_group_fields varchar,
                       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                       CONSTRAINT data_sources_unique UNIQUE (dst_schema, dst_tbl)
                     );")
@@ -89,7 +98,9 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                      dst_tbl,
                      query,
                      flds_to_keep,
-                     notes
+                     notes,
+                     overlap_ind,
+                      overlap_group_fields
                     )
                      VALUES
                     (
@@ -101,7 +112,9 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                     {dst_tbl},
                     {query},
                     {flds_to_keep},
-                    {notes}
+                    {notes},
+                    {overlap_ind},
+                      {overlap_group_fields}
                     )
                     ON CONFLICT (dst_schema, dst_tbl) DO UPDATE
                     SET
