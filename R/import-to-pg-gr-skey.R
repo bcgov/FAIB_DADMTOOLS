@@ -226,18 +226,21 @@ import_to_pg_gr_skey <- function(
         datatype     = 'INT4U',
         nodata       = no_data_value
       )}else if (overlap_ind){
-
         ##Loop through rasterization, convert into a gr_skey, and append into pg table
         #dst_gr_skey_tbl <- glue("{dst_gr_skey_tbl}_overlap")
         dst_gr_skey_tbl_pg_obj <- RPostgres::Id(schema = grskey_schema, table = dst_gr_skey_tbl )
 
-
-        print(glue('Creating PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
+        ###Drop existing table
+        #####
         dadmtools::run_sql_r(glue("DROP TABLE IF EXISTS {grskey_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
+
+        ###Loop through each group then create a raster for each group and append the results onto the final pg table#######
+        ####################
+        sql <- glue("select {overlap_group_fields} from {dst_schema}.{dst_tbl} group by {overlap_group_fields}" )
+        overlap_groups_df <-  dadmtools::sql_to_df(sql,pg_conn_param)
         fields <- unlist(strsplit(overlap_group_fields, ","))
-        groupIDs <- st_drop_geometry(unique(in_sf[, fields]))
-        for (i in 1:nrow(groupIDs)) {
-          row <- groupIDs[i, , drop = FALSE]  # Get the row as a dataframe
+        for (i in 1:nrow(overlap_groups_df)) {
+          row <- overlap_groups_df[i, , drop = FALSE]  # Get the row as a dataframe
           print(row)
           filtered_df <- merge(in_sf, row, by = fields)
 
