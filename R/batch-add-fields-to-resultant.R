@@ -20,7 +20,7 @@ batch_add_fields_to_resultant  <- function(
 print(glue("Script started at {format(start_time, '%Y-%m-%d %I:%M:%S %p')}"))
 in_file <- read.csv(in_csv)
 in_file$row_num <- seq_len(nrow(in_file))
-in_file <- in_file[in_file$inc == 1,]
+in_file <- in_file[in_file$include == 1,]
 for (row in 1:nrow(in_file)) {
   print(paste('row:', in_file$row_num[row], ' of batch add fields csv'))
   overwrite_rslt      <- as.logical(gsub("[[:space:]]","",toupper(in_file[row, "overwrite_resultant_table"]))) ##1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)

@@ -135,14 +135,14 @@ add_fields_to_resultant  <- function(
 
 
   ###### Determine fields to add or update
-  if (prefix_ind){
+  if (include_prefix){
     fields_to_add <- paste0(prefix,'_',fields_to_include)[!(paste0(prefix,'_',fields_to_include) %in% resultant_cols)]
     fields_to_add_new_names <- paste0(prefix,'_',updated_field_names)[!(paste0(prefix,'_',updated_field_names) %in% resultant_cols)]
   }else{
   fields_to_add <- fields_to_include[!(fields_to_include %in% resultant_cols)]
   fields_to_add_new_names <- updated_field_names[!(updated_field_names %in% resultant_cols)]}
 
-  if (prefix_ind){
+  if (include_prefix){
     fields_to_update <- paste0(prefix,'_',fields_to_include)[(paste0(prefix,'_',fields_to_include) %in% resultant_cols)]
     fields_to_update_new_names <- paste0(prefix,'_',updated_field_names)[(paste0(prefix,'_',updated_field_names) %in% resultant_cols)]}else{
   fields_to_update <- fields_to_include[(fields_to_include %in% resultant_cols)]
@@ -220,7 +220,7 @@ add_fields_to_resultant  <- function(
                         }
 
     run_sql_r(glue("DROP TABLE IF EXISTS {resultant_table_output_name};"), pg_conn_param)
-    run_sql_r(glue("ALTER TABLE {resultant_table_output_name}_4398349023_temp RENAME TO {resultant_table_output_name};"), pg_conn_param)
+    run_sql_r(glue("ALTER TABLE {resultant_table_output_name}_4398349023_temp RENAME TO {resultant_table_output_no_schema};"), pg_conn_param)
     run_sql_r(glue("ALTER TABLE {resultant_table_output_name} ADD PRIMARY KEY ({key_resultant_tbl});"), pg_conn_param)
     dst_tbl_comment <- glue("COMMENT ON TABLE {resultant_table_output_name} IS 'Table last updated by the dadmtools R package at {today_date}.
                                               TABLE last added fields from {join_gr_skey_table};'")
