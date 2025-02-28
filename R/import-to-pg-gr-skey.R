@@ -382,10 +382,11 @@ import_to_pg_gr_skey <- function(
           print(where_clause_overlap)
 
 
-          if(!dadmtools::is_blank(where_claus)  ){src_lyr <- glue("{src_lyr} where {where_claus}" )}
+          if(!dadmtools::is_blank(where_claus)  ){src_lyr_rasterize <- glue("{src_lyr} where {where_claus}" )}
+        else{src_lyr_rasterize <- src_lyr}
 
           dst_ras_filename <- rasterize_gdal(
-            in_lyr        = src_lyr,
+            in_lyr        = src_lyr_rasterize,
             field         = pk_id,
             out_tif_path  = out_tif_path,
             out_tif_name  = glue("{dst_tbl}.tif"),
