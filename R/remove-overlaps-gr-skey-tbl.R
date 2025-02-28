@@ -25,7 +25,16 @@ remove_overlaps_gr_skey_tbl <- function(gr_skey_table,
                                        pg_conn_param  = dadmtools::get_pg_conn_list())
 {
 
+
+
   #browser()
+
+  gr_skey_table <- tolower(gr_skey_table)
+  attribute_table <- tolower(attribute_table)
+  if(!is.null(array_fields)){array_fields <- paste0(tolower(attribute_table))}
+  if(!is.null(rank_field)){rank_field <- tolower(rank_field)}
+
+
   field_exists <- function(table_name, field_name, schema) {
     query <- sprintf(
       "SELECT column_name
