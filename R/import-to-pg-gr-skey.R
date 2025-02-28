@@ -55,7 +55,7 @@ import_to_pg_gr_skey <- function(
 )
 
 {
-  #browser()
+  browser()
   cat("\n")
   cat(paste(rep("*", 80), collapse = ""), "\n")
   print(glue("Starting import of {src_path} | layername={src_lyr}..."))
@@ -374,10 +374,10 @@ import_to_pg_gr_skey <- function(
         for (i in 1:nrow(overlap_groups_df)) {
           row <- overlap_groups_df[i, ,drop = FALSE]  # Get the row as a dataframe
           print(row)
-          where_clause_overlap <- glue("({where_claus})")
+          if(is.null(where_claus)){where_clause_overlap <- NULL}else{where_clause_overlap <- glue("({where_claus})")}
           for (col in names(row)) {
             value <- row[1,col]
-            where_clause_overlap <- glue("{where_clause_overlap} and {col} = {value}")
+            if(is.null(where_clause_overlap)){where_clause_overlap <- glue("{col} = {value}")}else{where_clause_overlap <- glue("{where_clause_overlap} and {col} = {value}")}
           }
           print(where_clause_overlap)
 
