@@ -362,14 +362,18 @@ import_to_pg_gr_skey <- function(
         ####################
         sql <- glue("select {overlap_group_fields} from {dst_schema}.{dst_tbl} group by {overlap_group_fields}" )
         overlap_groups_df <-  dadmtools::sql_to_df(sql,pg_conn_param)
+
+        # Function to add quotes to character values
         add_quotes <- function(x) {
           if (is.character(x)) {
-            return(paste0("'", x, "'"))  # Add single quotes
+            return(ifelse(is.na(x), NA, paste0("'", x, "'")))
+          } else {
+            return(x)
           }
-          return(x)  # Keep numeric values as is
         }
-        # Apply function to all elements of the dataframe
-        overlap_groups_df <- as.data.frame(lapply(overlap_groups_df, function(col) sapply(col, add_quotes)), stringsAsFactors = FALSE)
+
+        # Apply function to all columns
+        overlap_groups_df[] <- lapply(overlap_groups_df, add_quotes)
 
         for (i in 1:nrow(overlap_groups_df)) {
           row <- overlap_groups_df[i, ,drop = FALSE]  # Get the row as a dataframe
@@ -377,7 +381,12 @@ import_to_pg_gr_skey <- function(
           if(is.null(where_claus)){where_clause_overlap <- NULL}else{where_clause_overlap <- glue("({where_claus})")}
           for (col in names(row)) {
             value <- row[1,col]
-            if(is.null(where_clause_overlap)){where_clause_overlap <- glue("{col} = {value}")}else{where_clause_overlap <- glue("{where_clause_overlap} and {col} = {value}")}
+            if (is.null(value) | is.na(value)) {
+              colquery = glue("{col} is Null")
+            }else{
+              colquery = glue("{col} = {value}")
+            }
+            if(is.null(where_clause_overlap)){where_clause_overlap <- colquery}else{where_clause_overlap <- glue("{where_clause_overlap} and {colquery}")}
           }
           print(where_clause_overlap)
 
