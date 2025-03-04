@@ -31,7 +31,7 @@ remove_overlaps_gr_skey_tbl <- function(gr_skey_table,
 
   gr_skey_table <- tolower(gr_skey_table)
   attribute_table <- tolower(attribute_table)
-  if(!is.null(array_fields)){array_fields <- paste0(tolower(attribute_table))}
+  if(!is.null(array_fields)){array_fields <- paste0(tolower(array_fields))}
   if(!is.null(rank_field)){rank_field <- tolower(rank_field)}
 
 
