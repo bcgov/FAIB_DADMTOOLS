@@ -25,7 +25,7 @@ add_pk_to_gr_skey_tbl(
 
 \item{gr_skey_tbl}{current gr_skey table}
 
-\item{pg_conn_param}{Named list with the following connection parameters Driver,host,user,dbname,password,port,schema}
+\item{pg_conn_param}{named list of postgres connection parameters (see get_pg_conn_list() function for more details)}
 
 \item{join_field}{defaults to 'gr_skey')}
 }

@@ -10,12 +10,12 @@ update_pg_metadata_tbl(
   src_path,
   src_lyr,
   pk,
-  suffix,
   query,
   inc,
-  rslt_ind,
   flds_to_keep,
   notes,
+  overlap_ind,
+  overlap_group_fields,
   dst_tbl,
   dst_schema,
   pg_conn_param
@@ -32,17 +32,17 @@ update_pg_metadata_tbl(
 
 \item{pk}{primary of data source e.g. objectid}
 
-\item{suffix}{suffix used in resultant columns that were kept form the data source (e.g. "vri2021")}
-
 \item{query}{where statement used to filter data source}
 
 \item{inc}{1 or 0,  indicates if data source is in PG}
 
-\item{rslt_ind}{indicates the pk is in the  pg resultant or not}
-
 \item{flds_to_keep}{string of fields kept from data input (e.g. "feature_id,proj_age_1,live_stand_volume_125")}
 
 \item{notes}{coming soon}
+
+\item{overlap_ind}{True or False.  If true, it indicates that a duplicae gr_skeys will be in output gr_skey table where spatial overlaps occur.  If false, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)}
+
+\item{overlap_group_fields}{The field groupings that will be used to deal with spatial overlaps. I.e. Every unique grouping of the indicated fields will be rasterized separately.}
 
 \item{dst_tbl}{coming soon}
 
