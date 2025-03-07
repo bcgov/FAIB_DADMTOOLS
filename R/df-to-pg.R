@@ -26,7 +26,7 @@ df_to_pg <- function(pg_tbl,
     in_df <- lowercase_df_colnames(in_df)}else{
 
       in_df <- lowercase_df_colnames(in_df)
-      in_df <- DBI::Id(schema = output_schema, table =in_df )
+      pg_tbl <- DBI::Id(schema = output_schema, table =pg_tbl )
        }
 
   conn <- dbConnect(pg_conn_param["driver"][[1]],
