@@ -1,12 +1,53 @@
 # dadmtools
 Package of common FAIB Data Analysis and Data Management team functions, focusing on functions to import vector into PG in the gr_skey grid lookup table.
 
-## Dependencies and installation
- - Read/Write access to a PostgreSQL database (version 12 or above) with Postgis and Postgis Raster extension
+# Configuring dadmtools
 
- - Installed version of GDAL Version 3.4 or above (https://www.gisinternals.com/index.html)
- 
- - Installed version of Oracle Instant client (see  [installation instructions](oracle_fdw_install.md) )
+## Install supporting software on PC
+
+ - Requires PostgreSQL database (version 12 or above). During installation, be sure to install the dependancies for `postgis` and `postgis_raster`. and `oracle_fdw` extension installed. After installation, ensure that the connection details are in the User Variables. For example:
+  - PGPORT = 5432
+  - PGUSER = postgres (or whatever user you are using)
+
+- Optional:
+Add your postgres password to the User variables. This allows you to sign into psql without providing your password. You can either create an environment variable:
+  - PGPASSWORD = your password
+
+OR save a pgpass.conf file on Windows at  %APPDATA%\postgresql\pgpass.conf where the file format is:
+ `hostname:port:database:username:password`
+More information about setting up a pgpass.conf file:
+ [pgpass file](https://www.postgresql.org/docs/current/libpq-pgpass.html)
+ Then add this to your environment variable:
+  - PGPASSFILE = C:\Users\<your user>\AppData\Local\postgresql\pg_pass.conf
+
+
+ - Follow instructions provided here to install Oracle Instant client (see  [installation instructions](oracle_fdw_install.md) ) in order to get dependencies required for `oracle_fdw` extension. *Note: Don't forget to follow the instructions in the link around adding the two OCI paths to your SYSTEMS Path or neither the R library or PostgreSQL will be able to connect to the BCGW*
+
+ - Requires GDAL Version 3.4 or above (https://www.gisinternals.com/index.html). Be sure that GDAL_DATA and GDAL_DRIVER_PATH are installed in the System Variables.
+
+## Update configuration in PostgreSQL
+
+
+
+
+1. Once PostgreSQL database installedRequires database with the following extensions enabled:
+ ```
+CREATE EXTENSION postgis;
+CREATE EXTENSION postgis_raster;
+CREATE EXTENSION oracle_fdw;
+ ```
+2. Requires the following schemas:
+ ```
+ CREATE SCHEMA raster;
+ CREATE SCHEMA whse;
+ ```
+3. 
+
+
+
+
+
+
 
  - Installed version of R Version 4.0 or above (https://cran.r-project.org/bin/windows/base/)
 
@@ -22,20 +63,6 @@ Package of common FAIB Data Analysis and Data Management team functions, focusin
  install_github("bcgov/FAIB_DADMTOOLS")
  ```
  
- ## PostgreSQL Configuration
-1. Requires database with the following extensions enabled:
- ```
-CREATE EXTENSION postgis;
-CREATE EXTENSION postgis_raster;
-CREATE EXTENSION oracle_fdw;
- ```
-2. Requires the following schemas:
- ```
- CREATE SCHEMA raster;
- CREATE SCHEMA whse;
- ```
-3. Ensure [pgpass file](https://www.postgresql.org/docs/current/libpq-pgpass.html) is setup. Either by adding an environment variable PGPASSWORD with your postgres password OR saving the file on Windows at  %APPDATA%\postgresql\pgpass.conf where the file format is:
- `hostname:port:database:username:password`
 
 ## R First Time Configuration
 Currently defaults to using variables setup with keyring lib.
@@ -99,18 +126,21 @@ library(dadmtools)
 import_gr_skey_tif_to_pg_rast()
 ```
 
-The above function creates two tables in PG database. It creates a raster table named `raster.grskey_bc_land` and an additional table (tablename specified by `dst_tbl` argument, default is `whse.all_bc_gr_skey`). The second table is the raster table converted to table with a geometry field (`geom`) representing the raster centroids. Note: table specified by `dst_tbl` argument, default is `whse.all_bc_gr_skey`, is the `gr_skey_tbl` argument that should be specified in combination with `rslt_ind` and `suffix`.
+The above function creates two tables in PG database. It creates a raster table within the `raster` schema named `raster.grskey_bc_land` and a second table which defaults to `whse.all_bc_gr_skey` and can be specified using the `dst_tbl` argument (format: `schema_name.table_name`). The second table is the raster table converted to a table with a geometry field (`geom`) representing the raster centroids. You can choose either Centroid or Polygon for the geometry type. The function defaults to "Centroid".
 
 Function takes the following inputs. Default values listed below:
 
 ```
 import_gr_skey_tif_to_pg_rast(
+    out_crop_tif_name = , ## no default, provide filename of the written 
     template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
     mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
     crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
-    out_crop_tif_name = ## no default
-    pg_conn_param     = dadmtools::get_pg_conn_list(),
-    dst_tbl           = 'whse.all_bc_gr_skey'
+    pg_conn_param = dadmtools::get_pg_conn_list(),
+    dst_tbl           = 'whse.all_bc_gr_skey',
+    rast_sch          = "raster",
+    pg_rast_name      = "grskey_bc_land",
+    geom_type         = 'Centroid'
 )
 ```
 
@@ -121,9 +151,16 @@ import_gr_skey_tif_to_pg_rast(
 )
 ```
 
-# 2.  Fill in configuration input csv file (i.e. [see example](config_parameters.csv))
+# 2.  To import data layers, first fill in configuration input csv file (i.e. [see example](config_parameters.csv))
+The main function within the package, `batch_import_to_pg_gr_skey`, uses an input configuration file which is described below. An example configuation csv file is included within the root directory of this repository and linked above. It is recommended that you edit the provided example configuration file for your usage. The function: `batch_import_to_pg_gr_skey` 
 
 Column names must match template above. Field description:
+- `include` : Required argument whether to include layer when script is ran. 
+    - 0 = exclude
+    - 1 = include
+- `overlap_ind` : Required argument indicating whether layer to import contains overlap. If set to TRUE, the function   
+    - TRUE = Layer to import contains overlaps
+    - FALSE = Layer to import does not contain overlaps
 - `src_type`: Type of source file. raster option will only work when the raster matches the spatial resolution (100x100), alignment and projection (BC Albers) of the gr_skey grid. Example gr_skey file: S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif
     - Options: `gdb, oracle, raster, geopackage, gpkg, shapefile, shp`
 - `src_path`: Source path.
@@ -142,9 +179,7 @@ Column names must match template above. Field description:
     - E.g. `forest_harvesting_restrictions_july2023`
 - `query` : Optional argument to filter source layer. When `src_path = 'bcgw'`, argument is applied to postgres fdw layer. Otherwise, argument used within ogr2ogr call.
     - E.g. `rr_restriction is not null` OR `rr_restriction = '01_National Park'` OR `strgc_land_rsrce_plan_name like '%Klappan%'`
-- `inc` : Required argument whether to include layer when script is ran. 
-    - 0 = exclude
-    - 1 = include
+
 - `rslt_ind` : When set to 1, used in combination with `suffix` and `gr_skey_tbl` (`gr_skey_tbl` is argument to `batch_import_to_pg_gr_skey` and `import_to_pg_gr_skey`). Option to add `pgid_<suffix>` for the specific imported table to previously imported PG `gr_skey_tbl` (Eg. `whse.all_bc_gr_skey`) 
     - 1 = include (i.e. will add primary key to gr_skey_tbl)
     - 0 = not included (i.e. will not add primary key to gr_skey_tbl)
