@@ -106,11 +106,11 @@ Fix: update your oracle keyring with your new password
 key_set("dbpass", keyring = "oracle", prompt = 'Oracle keyring password:')
 ```
 
-# 1. Importing Spatial Data into postgres gr_skey tables
+#### Importing Spatial Data into postgres gr_skey tables
 
 Before importing any spatial layers, you must first import a `gr_skey` raster (.tif) into PostgreSQL. This is done using the function: `import_gr_skey_tif_to_pg_rast`.
 
-#### Function overview
+*Function description*
 
 The function creates two tables in the PostgreSQL database:
 1. Raster table
@@ -123,7 +123,7 @@ The function creates two tables in the PostgreSQL database:
  - This table contains a geometry column (geom), representing raster centroids by default.
  - You can choose either "Centroid" or "Polygon" using the `geom_type` argument. The function defaults to "Centroid".
 
-#### Function overview
+*Function overview*
 
 The function takes the following inputs, with default values listed:
 ```
@@ -148,7 +148,7 @@ import_gr_skey_tif_to_pg_rast(
 )
 ```
 
-# 2.  To import data layers, first fill in configuration input csv file (i.e. [see example](config_parameters.csv))
+#### To import data layers, first fill in configuration input csv file (i.e. [see example](config_parameters.csv))
 The main function within the package, `batch_import_to_pg_gr_skey`, uses an input configuration file which is described below. An example configuation csv file is included within the root directory of this repository and linked above. It is recommended that you edit the provided example configuration file for your usage. The function: `batch_import_to_pg_gr_skey` 
 
 Column names must match template above. Field description:
@@ -181,7 +181,7 @@ Column names must match template above. Field description:
 - `notes` : Notes
     - E.g. `This layer is very important because bee boop.`
 
-# 3.  Add datasets to postgres from csv input by calling
+#### Add datasets to postgres from csv input by calling
 
 ```
 batch_import_to_pg_gr_skey()
