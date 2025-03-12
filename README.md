@@ -121,7 +121,7 @@ key_set("dbpass", keyring = "oracle", prompt = 'Oracle keyring password:')
 
 Before importing any spatial layers, you must first import a `gr_skey` raster (.tif) into PostgreSQL. This is done using the function: `import_gr_skey_tif_to_pg_rast`.
 
-**Function description**
+**import_gr_skey_tif_to_pg_rast function description**
 
 The function creates two tables in the PostgreSQL database:
 1. Raster table
@@ -170,7 +170,7 @@ import_gr_skey_tif_to_pg_rast(
 
 #### import_to_pg_gr_skey
 
-*Function Overview*
+**import_to_pg_gr_skey function description**
 
 If importing a vector, the function imports two tables into PostgreSQL:
 1. Vector attribute table with no geometry
@@ -213,6 +213,8 @@ The function then rasterizes the input vector layer and converts the raster into
 The function imported the following two tables into PostgreSQL:
 
 Vector attribute table: `sandbox.adm_nr_districts_sp`
+
+
 Raster attribute table: `sandbox.adm_nr_districts_sp_gr_skey`
 
 Entity Relationship diagram for newly imported tables:
