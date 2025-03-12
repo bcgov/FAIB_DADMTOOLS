@@ -152,7 +152,7 @@ import_gr_skey_tif_to_pg_rast(
 ```
 
 *Understanding `gr_skey`*
- - The `gr_skey`` is a globally unique identifier, where each hectare of land in BC is assigned a static integer value.
+ - The `gr_skey` is a globally unique identifier, where each hectare of land in BC is assigned a static integer value.
  - The table, `whse.all_bc_gr_skey`, is a vector reprentation (Point or Polygon) of the gr_skey raster where each row represents a single raster pixel (i.e., one hectare), identified by its `gr_skey` value.
 
 
@@ -196,6 +196,7 @@ sandbox.adm_nr_districts_sp
 sandbox.adm_nr_districts_sp_gr_skey
 ```
 Entity Relationship diagram for newly imported tables:
+![Image](https://github.com/user-attachments/assets/802bacd8-1222-4b83-9da5-b36570d271b1)
 
 The first table, `sandbox.adm_nr_districts_sp`, is the attribute table from the imported vector dataset. A new unique incrementing integer field, `pgid`, is added as the primary key.
 
