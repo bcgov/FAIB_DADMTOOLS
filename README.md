@@ -119,6 +119,9 @@ The function creates two tables in the PostgreSQL database:
 
 2. Vector Table (Geometry Representation)
  - Default name: `whse.all_bc_gr_skey`
+ - Fields:
+  - `gr_skey integer`
+  - `geom geometry(Point,3005) OR geom geometry(Polygon,3005)`
  - You can specify a different schema and table name using the `dst_tbl` argument (format: "schema_name.table_name").
  - This table contains a geometry column (geom), representing raster centroids by default.
  - You can choose either "Centroid" or "Polygon" using the `geom_type` argument. The function defaults to "Centroid".
@@ -148,8 +151,67 @@ import_gr_skey_tif_to_pg_rast(
 )
 ```
 
-#### To import data layers, first fill in configuration input csv file (i.e. [see example](config_parameters.csv))
-The main function within the package, `batch_import_to_pg_gr_skey`, uses an input configuration file which is described below. An example configuation csv file is included within the root directory of this repository and linked above. It is recommended that you edit the provided example configuration file for your usage. The function: `batch_import_to_pg_gr_skey` 
+*Understanding `gr_skey`*
+ - The `gr_skey`` is a globally unique identifier, where each hectare of land in BC is assigned a static integer value.
+ - The table, `whse.all_bc_gr_skey`, is a vector reprentation (Point or Polygon) of the gr_skey raster where each row represents a single raster pixel (i.e., one hectare), identified by its `gr_skey` value.
+
+
+#### To import data layers, first fill in configuration input csv file (i.e. see example [config_parameters.csv](config_parameters.csv))
+Spatial layers can be imported into PostgreSQL using library functions individually or by using a batch function. The individual function is called `import_to_pg_gr_skey` and the batch function is called `batch_import_to_pg_gr_skey`.
+
+*Function Overview*
+
+ Function imports specified spatial layers into PostgreSQL tables in the gr_skey format. If importing a vector, the function rasterizes the spatial layer using the gr_skey raster defined by argument: `template_tif` as the grid template and will be masked to raster defined by argument: `mask_tif`. The function will create two tables for each single vector imported. An example below is provided for illustration. 
+ 
+ ```
+ ## import whse_admin_boundaries.adm_nr_districts_sp from BCGW into postgres database
+ import_to_pg_gr_skey(
+  src_type             = 'oracle',
+  src_path             = 'bcgw',
+  src_lyr              = 'whse_admin_boundaries.adm_nr_districts_sp',
+  dst_tbl              = 'adm_nr_districts_sp',
+  query                = '',
+  flds_to_keep         = NA,
+  notes                = '',
+  overlap_ind          = FALSE,
+  overlap_group_fields = '',
+  out_tif_path         = 'C:\\projects\\requests\\2025-03-10_test_dadmtools\\output\\',
+  pg_conn_param        = dadmtools::get_pg_conn_list(),
+  ora_conn_param       = dadmtools::get_ora_conn_list(),
+  crop_extent          = c(273287.5, 1870587.5, 367787.5, 1735787.5),
+  dst_schema           = 'sandbox',
+  raster_schema        = 'raster',
+  fdw_schema           = 'load',
+  template_tif         = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+  mask_tif             = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
+  data_src_tbl         = 'whse.data_sources',
+  import_rast_to_pg    = FALSE,
+  grskey_schema        = NULL
+)
+```
+
+The function imported the following two tables into PostgreSQL:
+```
+sandbox.adm_nr_districts_sp
+sandbox.adm_nr_districts_sp_gr_skey
+```
+Entity Relationship diagram for newly imported tables:
+
+The first table, `sandbox.adm_nr_districts_sp`, is the attribute table from the imported vector dataset. A new unique incrementing integer field, `pgid`, is added as the primary key.
+
+The second table, `sandbox.adm_nr_districts_sp_gr_skey`, establishes a link to the first table via the `pgid` field. It also includes the `gr_skey` field, an integer representing the cell value extracted from the `gr_skey` raster (.tif) specified by the `template_tif` argument. This is the same global ID referenced in the `import_gr_skey_tif_to_pg_rast` function description. This second table, `sandbox.adm_nr_districts_sp_gr_skey`, can be thought of as a raster attribute table, where each row represents a single raster pixel (i.e., one hectare), identified by its `gr_skey` value. The `pgid` from the spatial polygon table is repeated for each pixel that overlaps with that polygon. Since each row represents one hectare, this structure makes it easy to perform area calculations and join with other table that use the same structure. Example query calculating area by Natural Resource District:
+```
+SELECT
+    adm.district_name,
+    count(*)
+FROM
+sandbox.adm_nr_districts_sp adm
+JOIN sandbox.adm_nr_districts_sp_gr_skey adm_key ON adm.pgid = adm_key.pgid
+GROUP BY 
+    adm.district_name
+```
+
+ Using the example, The layer is imported into two to the grid imports and rasterizes layers into PostgreSQL. uses an input configuration file which is described below. An example configuation csv file is included within the root directory of this repository and linked above. It is recommended that you edit the provided example configuration file for your usage. The function: `batch_import_to_pg_gr_skey` 
 
 Column names must match template above. Field description:
 - `include` : Required argument whether to include layer when script is ran. 
