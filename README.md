@@ -5,20 +5,24 @@ Package of common FAIB Data Analysis and Data Management team functions, focusin
 
 #### Postgres
  - Requires PostgreSQL database (version 12 or above). During installation, be sure to install the dependancies for `postgis` and `postgis_raster`. After installation, ensure that the connection details are in the User Variables. For example:
+
   - variable = PGPORT, value = 5432
   - variable = PGUSER, value = postgres (or whatever user you are using)
 
 - Optional:
 Add your postgres password to the User variables. This allows you to sign into psql without providing your password. You can either create an environment variable:
+
   - PGPASSWORD = your password
 
 #### Oracle Instant Client
  - Follow instructions provided here to install Oracle Instant client (see  [installation instructions](oracle_fdw_install.md) ) in order to get dependencies required for PostgreSQL Oracle Foreign Data Wrapper extension: `oracle_fdw`. Ensure to follow the instructions in the link around adding the two OCI paths to your System Path environment variable or neither the R library or PostgreSQL will be able to connect to the BCGW. Example of paths to add to System Path environment variable:
+
   - C:\Data\localApps\OCI
   - C:\Data\localApps\OCI\instant_client_23_4
 
 #### GDAL
- - Requires GDAL Version 3.4 or above (https://www.gisinternals.com/index.html). Be sure that GDAL_DATA and GDAL_DRIVER_PATH are installed in the System Variables. For example, 
+ - Requires GDAL Version 3.4 or above (https://www.gisinternals.com/index.html). Be sure that GDAL_DATA and GDAL_DRIVER_PATH are installed in the System Variables. For example:
+
   - variable = GDAL_DATA, value = C:\Program Files\GDAL\gdal-data
   - variable = GDAL_DRIVER_PATH, value = C:\Program Files\GDAL\gdalplugins
 
@@ -104,18 +108,28 @@ key_set("dbpass", keyring = "oracle", prompt = 'Oracle keyring password:')
 
 # 1. Importing Spatial Data into postgres gr_skey tables
 
+Before importing any spatial layers, you must first import a `gr_skey` raster (.tif) into PostgreSQL. This is done using the function: `import_gr_skey_tif_to_pg_rast`.
+
+#### Function overview
+
+The function creates two tables in the PostgreSQL database:
+1. Raster table
+ - Default name: `raster.grskey_bc_land`
+ - You can specify a different schema using the `rast_sch` argument and a different table name using the `pg_rast_name` argument.
+
+2. Vector Table (Geometry Representation)
+ - Default name: `whse.all_bc_gr_skey`
+ - You can specify a different schema and table name using the `dst_tbl` argument (format: "schema_name.table_name").
+ - This table contains a geometry column (geom), representing raster centroids by default.
+ - You can choose either "Centroid" or "Polygon" using the `geom_type` argument. The function defaults to "Centroid".
+
+#### Function overview
+
+The function takes the following inputs, with default values listed:
 ```
 library(dadmtools)
-import_gr_skey_tif_to_pg_rast()
-```
-
-The above function creates two tables in PG database. It creates a raster table within the `raster` schema named `raster.grskey_bc_land` and a second table which defaults to `whse.all_bc_gr_skey` and can be specified using the `dst_tbl` argument (format: `schema_name.table_name`). The second table is the raster table converted to a table with a geometry field (`geom`) representing the raster centroids. You can choose either Centroid or Polygon for the geometry type. The function defaults to "Centroid".
-
-Function takes the following inputs. Default values listed below:
-
-```
 import_gr_skey_tif_to_pg_rast(
-    out_crop_tif_name = , ## no default, provide filename of the written 
+    out_crop_tif_name = , # No default; provide the filename of the output cropped TIFF
     template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
     mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
     crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
