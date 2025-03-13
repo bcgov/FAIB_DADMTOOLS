@@ -1,33 +1,67 @@
-#' Update FAIB hectares database from input dataset
+#' Imports spatial data into a gridded attribute format within PostgreSQL, structuring data according to the gr_skey grid system. 
+#' 
+#'Function supports both vector and raster inputs. For vector data (e.g., Shapefile, FGDB, GeoPackage), the function imports the attribute table into PostgreSQL and generates a corresponding raster attribute table, where each record represents a raster pixel (one hectare). The gr_skey field acts as a globally unique primary key, while pgid links the raster attributes to the vector attributes. Each record within the raster attribute table represents one pixel.
+#'For raster data (e.g., geotiff), the raster is required to have BC Albers coordinate reference system, (Ie. EPSG: 3005), the same grid definition as the 'template_tif' and 'mask_tif' provided to the 'import_gr_skey_tif_to_pg_rast' function and only one band. For TSR, it is recommended to use the gr_skey grid. #'The function imports the raster as a single attribute table. The table includes 'gr_skey', unique global cell id and the input raster pixel value. Each record represent one pixel.
 #'
 #'
 #'
-#' @param src_type Format of data source, Options: gdb, oracle, postgres, geopackage, raster, shp
-#' @param src_path Path to input data. Note use "bcgw" for whse oracle layers
-#' @param src_lyr Input layer name
-#' @param dst_tbl Name of output non spatial table
-#' @param query Where clause used to filter input dataset, Eg. fire_year = 2023 and BURN_SEVERITY_RATING in ('High','Medium')
-#' @param flds_to_keep Fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name
-#' @param notes Notes field
-#' @param overlap_ind True or False.  If true, it indicates that a duplicae gr_skeys will be in output gr_skey table where spatial overlaps occur.  If false, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)
-#' @param overlap_group_fields The field groupings that will be used to deal with spatial overlaps. I.e. Every unique grouping of the indicated fields will be rasterized separately.
-#' @param out_tif_path Directory where output tif if exported and where vector is temporally stored prior to import
-#' @param pg_conn_param Keyring object of Postgres credentials
-#' @param ora_conn_param Keyring object of Oracle credentials
-#' @param crop_extent Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005
-#' @param dst_schema Schema to insert the newly created gr_skey and dst_tbl (Eg. non spatial table)
+#' @param src_type Format of data source. Raster option will only work when the raster matches the spatial resolution, alignment and projection (BC Albers) of the gr_skey grid (specified by 'template_tif' argument) imported using 'import_gr_skey_tif_to_pg_rast'. Options: gdb, oracle, raster, geopackage, gpkg, shapefile, shp
+#' @param src_path Path to input data. Note: use 'bcgw' when srctype = 'oracle' for whse oracle layers. Use full path and filename when srctype = 'gdb' or 'raster' or 'shp' or 'geopackage'
+#' @param src_lyr Input layer name. Note: provide oracle schema and layer name, e.g. 'WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly' when src_type = 'oracle'. Provide layername within the file geodatabase, e.g. 'tsa_boundaries_2020' when src_type = 'gdb'. Provide the shapefile name without extension, e.g. 'k3o_cfa' when src_type = 'shp' or 'shapefile'. Provide the layername within the geopackage, e.g. 'FireSeverity_Final' when 'src_type = 'gpkg' or 'geopackage'. Argument is not used in import when src_type = 'raster' - though it is imported into metadata table.
+#' @param dst_tbl Name of imported non spatial table in PostgreSQL
+#' @param query Optional argument to filter source layer. Where clause used to filter input dataset, e.g., fire_year = 2023 and BURN_SEVERITY_RATING in ('High','Medium').
+#' @param flds_to_keep Optional argument. By default, all fields are retained. Use this argument to filter fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name. 
+#' @param notes Optional argument. Notes field.
+#' @param overlap_ind TRUE or FALSE.  If TRUE, it indicates that the input spatial layer has overlaps and imported <dst_tbl>_gr_skey table will duplicate gr_skey records where spatial overlaps occur.  If FALSE, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)
+#' @param overlap_group_fields The field groupings that will be used to handle spatial overlaps. I.e. each unique combination of the specified fields will be rasterized separately.
+#' @param out_tif_path Directory where output tif is exported and where vector is temporally stored prior to import
+#' @param pg_conn_param Keyring object of Postgres credentials. Defaults to dadmtools::get_pg_conn_list()
+#' @param ora_conn_param Keyring object of Oracle credentials. Defaults to dadmtools::get_ora_conn_list()
+#' @param crop_extent Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005. Defaults to c(273287.5, 1870587.5, 367787.5, 1735787.5) 
+#' @param dst_schema Schema to insert the newly created gr_skey and dst_tbl (Eg. non spatial table). Defaults to "whse"
 #' @param raster_schema If import_rast_to_pg set to TRUE, the import schema for the raster. Defaults to "raster"
-#' @param fdw_schema If src_type=oracle, the schema to load the foreign data wrapper table, Defaults to "load"
-#' @param template_tif The file path to the gr_skey template geotiff
-#' @param mask_tif The file path to the geotiff to be used as a mask
-#' @param data_src_tbl Schema and table name of the metadata table in postgres that updates with any newly imported layer
-#' @param import_rast_to_pg If TRUE, raster is imported into database in raster_schema
+#' @param fdw_schema If src_type=oracle, the schema to load the foreign data wrapper table. Defaults to "load"
+#' @param template_tif The file path to the gr_skey template geotiff. Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif'
+#' @param mask_tif The file path to the geotiff to be used as a mask. Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif'
+#' @param data_src_tbl Schema and table name of the metadata table in postgres that updates with any newly imported layer. Defaults to 'whse.datasources'
+#' @param import_rast_to_pg If TRUE, raster is imported into database in raster_schema. Defaults to FALSE
 #'
 #'
 #' @return no return
 #' @export
 #'
-#' @examples coming soon
+#' @examples 
+#' ## Example of importing the vector: whse_admin_boundaries.adm_nr_districts_sp from BCGW into postgres database in gr_skey format:
+#' library(dadmtools)
+#' import_to_pg_gr_skey(
+#'  src_type             = 'oracle',
+#'  src_path             = 'bcgw',
+#'  src_lyr              = 'whse_admin_boundaries.adm_nr_districts_sp',
+#'  dst_tbl              = 'adm_nr_districts_sp',
+#'  query                = '',
+#'  flds_to_keep         = NA,
+#'  notes                = '',
+#'  overlap_ind          = FALSE,
+#'  overlap_group_fields = '',
+#'  out_tif_path         = 'C:\\projects\\output\\',
+#'  pg_conn_param        = dadmtools::get_pg_conn_list(),
+#'  ora_conn_param       = dadmtools::get_ora_conn_list(),
+#'  crop_extent          = c(273287.5, 1870587.5, 367787.5, 1735787.5),
+#'  dst_schema           = 'sandbox',
+#'  raster_schema        = 'raster',
+#'  fdw_schema           = 'load',
+#'  template_tif         = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+#'  mask_tif             = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
+#'  data_src_tbl         = 'whse.data_sources',
+#'  import_rast_to_pg    = FALSE,
+#'  grskey_schema        = NULL)
+#' 
+#' ## look at a summary of the imported data
+#' sql_to_df('SELECT adm.district_name, count(*) as ha FROM sandbox.adm_nr_districts_sp adm JOIN  sandbox.adm_nr_districts_sp_gr_skey adm_key ON adm.pgid = adm_key.pgid GROUP BY adm.district_name LIMIT 2', dadmtools::get_pg_conn_list())
+#'#                             district_name      ha
+#'# 1 100 Mile House Natural Resource District 1235763
+#'# 2 Campbell River Natural Resource District 1473460
+#' 
 
 
 import_to_pg_gr_skey <- function(
@@ -55,7 +89,11 @@ import_to_pg_gr_skey <- function(
 )
 
 {
-  #browser()
+
+
+
+
+
   cat("\n")
   cat(paste(rep("*", 80), collapse = ""), "\n")
   print(glue("Starting import of {src_path} | layername={src_lyr}..."))
@@ -81,7 +119,11 @@ import_to_pg_gr_skey <- function(
     return()
   }
 
-  print(paste("ovelap field is ", overlap_group_fields))
+  ## If user imported layers with overlap, print out the overlap field provided
+  if (overlap_ind) {
+    print(paste("Layer with overlap indicated by config_parameters.csv. Overlap field provided: ", overlap_group_fields))
+  }
+
   if (overlap_ind && is_blank(overlap_group_fields)) {
     print(glue("ERROR: Argument not provided for overlap_group_fields while OVERLAP_IND is set to TRUE "))
     return()
@@ -90,7 +132,8 @@ import_to_pg_gr_skey <- function(
 
   if(is.null(grskey_schema)){
     grskey_schema <- dst_schema
-    dst_gr_skey_tbl <- glue("{dst_tbl}_gr_skey")}else{
+    dst_gr_skey_tbl <- glue("{dst_tbl}_gr_skey")
+  } else {
     dst_gr_skey_tbl <- glue("{dst_tbl}")
   } ## destination table gr skey name
 
@@ -150,6 +193,7 @@ import_to_pg_gr_skey <- function(
     where_claus <- query
   }
 
+
   if(tolower(src_type) != 'raster') {
 
     if(tolower(src_type) == 'oracle'){
@@ -200,7 +244,6 @@ import_to_pg_gr_skey <- function(
                                 where         = query
       )
 
-      print(qry)
       cast_list <- c("MULTIPOLYGON","MULTIPOINT","MULTILINE")
       print(glue('Converting SQL query which joins FDW table: {fdw_schema}.{fdw_tbl} and {dst_schema}.{dst_tbl} and WHERE query into R Simple Feature Collection'))
       for (i in cast_list) {

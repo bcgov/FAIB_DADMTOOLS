@@ -6,7 +6,7 @@
 #' @param crop_extent list of c(ymin, ymax, xmin, xmax) in EPSG:3005, defaults to c(273287.5,1870587.5,367787.5,1735787.5)
 #' @param gr_skey_tbl Schema and table name of the pre-existing gr_skey table. Argument to be used with suffix and rslt_ind within in_csv. Defaults to "whse.all_bc_gr_skey"
 #' @param raster_schema If import_rast_to_pg = TRUE, schema of imported raster, defaults to "raster"
-#' @param template_tif The file path to the gr_skey geotiff to be used as a template raster, fefaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"
+#' @param template_tif The file path to the gr_skey geotiff to be used as a template raster, defaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"
 #' @param mask_tif The file path to the geotiff to be used as a mask, defaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif"
 #' @param data_src_tbl Schema and table name of the metadata table in postgres that updates with any newly imported layer. Defaults to "whse.data_sources"
 #' @param out_tif_path Directory where output tif if exported and where vector is temporally stored prior to import
