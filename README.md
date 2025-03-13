@@ -1,7 +1,7 @@
 # dadmtools
 Package of common FAIB Data Analysis and Data Management team functions, focusing on functions to import vector into PG in the gr_skey grid lookup table.
 
-### Install supporting software on PC
+### 1. Install supporting software on PC
 
 #### Postgres
  - Requires PostgreSQL database (version 12 or above). During installation, be sure to install the dependancies for `postgis` and `postgis_raster`. 
@@ -12,7 +12,7 @@ Package of common FAIB Data Analysis and Data Management team functions, focusin
 #### GDAL
  - Requires GDAL Version 3.4 or above (https://www.gisinternals.com/index.html). 
 
-### Environment Settings
+### 2. Environment Settings
 
 After Postgres installation, ensure that the connection details are in the Environment User Variables. For example:
 
@@ -35,7 +35,7 @@ After GDAL installation, be sure that GDAL_DATA and GDAL_DRIVER_PATH are install
   - variable = GDAL_DRIVER_PATH, value = C:\Program Files\GDAL\gdalplugins
 
 
-### PostgreSQL Required Extensions and Schemas
+### 3. PostgreSQL Required Extensions and Schemas
 
 1. Once PostgreSQL and dependancies are installed, enable database with the following extensions enabled:
  ```
@@ -50,7 +50,7 @@ CREATE EXTENSION oracle_fdw;
  CREATE SCHEMA whse;
  ```
 
-### Install Packages in R
+### 4. Install Packages in R
  - Installed version of R Version 4.0 or above (https://cran.r-project.org/bin/windows/base/)
 
  - Requires the following R packages:
@@ -66,7 +66,7 @@ CREATE EXTENSION oracle_fdw;
  ```
  
 
-### Run R scripts to setup raster process
+### 5. Set up Database Connections in R 
 The dadmtools library uses the Windows Credential Manager Keyring to manage passwords. Two keyings are required for most usage within the library. Instructions below show how to create two required keyrings: `localsql` and `oracle`. 
 
 Set up "localpsql" keyring:
@@ -115,13 +115,13 @@ Fix: update your oracle keyring with your new password
 key_set("dbpass", keyring = "oracle", prompt = 'Oracle keyring password:')
 ```
 
-### Importing Spatial Data into postgres
+### 6. Importing Spatial Data into postgres
 
-#### import_gr_skey_tif_to_pg_rast
+#### dadmtool library function: import_gr_skey_tif_to_pg_rast
 
 Before importing any spatial layers, you must first import a `gr_skey` raster (.tif) into PostgreSQL. This is done using the function: `import_gr_skey_tif_to_pg_rast`.
 
-**import_gr_skey_tif_to_pg_rast function description**
+**Function description**
 
 The function creates two tables in the PostgreSQL database:
 1. Raster table
@@ -139,7 +139,17 @@ The function creates two tables in the PostgreSQL database:
 
 **Function overview**
 
-The function takes the following inputs, with default values listed:
+Example function call using all defaults and specifying out_crop_tif_name:
+```
+import_gr_skey_tif_to_pg_rast(
+    out_crop_tif_name = 'C:\\projects\\data\\gr_skey_grid.tif'
+)
+```
+
+The function takes the following inputs, with default values listed below. A few notes:
+
+ - `template_tif`: must have a BC Albers (I.e. EPSG: 3005) coordinate reference system. For TSR, it is strongly recommended to provide a gr_skey raster with 100m cell resolution.
+ - `mask_tif`: Must have the same crs and resolution as `template_tif`.
 
 ```
 library(dadmtools)
@@ -156,23 +166,18 @@ import_gr_skey_tif_to_pg_rast(
 )
 ```
 
-Example function call using all defaults and specifying out_crop_tif_name:
-```
-import_gr_skey_tif_to_pg_rast(
-    out_crop_tif_name = 'C:\\projects\\data\\gr_skey_grid.tif'
-)
-```
-
-*Understanding `gr_skey`*
+**Understanding `gr_skey`**
  - The `gr_skey` is a globally unique identifier, where each hectare of land in BC is assigned a static integer value.
  - The table, `whse.all_bc_gr_skey`, is a vector reprentation (Point or Polygon) of the gr_skey raster where each row represents a single raster pixel (i.e., one hectare), identified by its `gr_skey` value.
+ - It allows for easy SQL joins using `gr_skey` with other tables imported using the same process and rasterized to the same grid.
 
 
-#### import_to_pg_gr_skey
+#### dadmtool library function: import_to_pg_gr_skey
 
-**import_to_pg_gr_skey function description**
+**Function description**
 
-If importing a vector, the function imports two tables into PostgreSQL:
+*Vector Import*
+If importing a *vector* (Ex. shp, fgdb, geopackage, etc), the function imports two tables into PostgreSQL:
 1. Vector attribute table with no geometry
  - The function, `import_to_pg_gr_skey`, imports the input vector layer attribute table into PostgreSQL.
  - A new unique incrementing integer primary key field is created: `pgid`
@@ -181,10 +186,21 @@ The function then rasterizes the input vector layer and converts the raster into
   - The `gr_skey` serves as the primary key.
   - The `pgid` field links the raster attribute table to the vector attribute table
 
- The function rasterizes using the gr_skey raster defined by argument: `template_tif` as the grid template and will be masked to raster defined by argument: `mask_tif`. See below code snippet for an example of importing a vector: `whse_admin_boundaries.adm_nr_districts_sp` into PostgreSQL in the gr_skey format:
+The function rasterizes using the gr_skey raster properties (e.g. resolution, cell size) as a template,  defined by argument: `template_tif`.  There is also a option to provide  a mask raster, defined by argument: `mask_tif`, to spatially filter out values from the input data. See below code snippet for an example of importing a vector: `whse_admin_boundaries.adm_nr_districts_sp` into PostgreSQL in the gr_skey format.
+
+*Raster Import*
+If importing a *raster* (Ex. Geotiff), the raster is required to have BC Albers coordinate reference system, (Ie. EPSG: 3005), the same grid definition as the `template_tif` and `mask_tif` provided to the `import_gr_skey_tif_to_pg_rast` function and only one band. For TSR, it is recommended to use the gr_skey grid. The function imports *one* table into PostgreSQL.
+
+1. Raster Attribute Table
+The function imports the raster attribute table including `gr_skey` and the raster value. 
+  - The `gr_skey` serves as the primary key.
+  - The `val` is the input raster value
+
+
+ **Function Example**
+Example of importing the vector: whse_admin_boundaries.adm_nr_districts_sp from BCGW into postgres database in gr_skey format:
  
  ```
- ## import whse_admin_boundaries.adm_nr_districts_sp from BCGW into postgres database
  import_to_pg_gr_skey(
   src_type             = 'oracle',
   src_path             = 'bcgw',
@@ -220,13 +236,11 @@ Raster attribute table: `sandbox.adm_nr_districts_sp_gr_skey`
 Entity Relationship diagram for newly imported tables:
 ![Image](https://github.com/user-attachments/assets/802bacd8-1222-4b83-9da5-b36570d271b1)
 
-The first table, `sandbox.adm_nr_districts_sp`, is the attribute table from the imported vector dataset. A new unique incrementing integer field, `pgid`, is added as the primary key.
-
-The second table, `sandbox.adm_nr_districts_sp_gr_skey`, establishes a link to the first table via the `pgid` field. It also includes the `gr_skey` field, an integer representing the cell value extracted from the `gr_skey` raster (.tif) specified by the `template_tif` argument. This is the same global ID referenced in the `import_gr_skey_tif_to_pg_rast` function description.  The `pgid` from the spatial polygon table is repeated for each pixel that overlaps with that polygon. Since each row represents one hectare, this structure makes it easy to perform area calculations and join with other table that contain `gr_skey`. Example query calculating area by Natural Resource District:
+Since each row in `sandbox.adm_nr_districts_sp_gr_skey` represents one hectare, this structure makes it easy to perform area calculations and join with other table that contain `gr_skey`. Example query calculating area in hectares by Natural Resource District:
 ```
 SELECT
     adm.district_name,
-    count(*)
+    count(*) as ha
 FROM
 sandbox.adm_nr_districts_sp adm
 JOIN sandbox.adm_nr_districts_sp_gr_skey adm_key ON adm.pgid = adm_key.pgid
@@ -234,20 +248,20 @@ GROUP BY
     adm.district_name
 ```
 
-#### batch_import_to_pg_gr_skey
+In order to import more than one layer at a time, use the batch import function which is explained next.
 
-To import many spatial layers, use the function: `batch_import_to_pg_gr_skey`. It replies on a configuration input csv file (i.e. see example [config_parameters.csv](config_parameters.csv))
+#### dadmtool library function: batch_import_to_pg_gr_skey
 
+To import many spatial layers, use the function: `batch_import_to_pg_gr_skey` which requires populating a configuration input csv file (i.e. see example [config_parameters.csv](config_parameters.csv))
 
- Using the example, The layer is imported into two to the grid imports and rasterizes layers into PostgreSQL. uses an input configuration file which is described below. An example configuation csv file is included within the root directory of this repository and linked above. It is recommended that you edit the provided example configuration file for your usage. The function: `batch_import_to_pg_gr_skey` 
+It is recommended that you edit the provided example configuration file for your usage. 
 
-Column names must match template above. Field description:
+**Data Dictionary:** 
+
 - `include` : Required argument whether to include layer when script is ran. 
     - 0 = exclude
     - 1 = include
-- `overlap_ind` : Required argument indicating whether layer to import contains overlap. If set to TRUE, the function will import duplicate gr_skey raster cells for each overlapping spatial feature with the corresponding pgid to relate to the attribute table.
-    - TRUE = Layer to import contains overlaps
-    - FALSE = Layer to import does not contain overlaps
+- `overlap_ind` : TRUE or FALSE.  If TRUE, it indicates that the input spatial layer has overlaps and imported <dst_tbl>_gr_skey table will duplicate gr_skey records where spatial overlaps occur.  If FALSE, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)
 - `src_type`: Type of source file. raster option will only work when the raster matches the spatial resolution (100x100), alignment and projection (BC Albers) of the gr_skey grid. Example gr_skey file: S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif
     - Options: `gdb, oracle, raster, geopackage, gpkg, shapefile, shp`
 - `src_path`: Source path.
@@ -267,9 +281,9 @@ Column names must match template above. Field description:
     - E.g. `rr_restriction is not null` OR `rr_restriction = '01_National Park'` OR `strgc_land_rsrce_plan_name like '%Klappan%'`
 - `flds_to_keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
     - E.g. `REGEN_OBLIGATION_IND,FREE_GROW_DECLARED_IND,OBJECTID`
-- `overlap_group_fields` : 
+- `overlap_group_fields` : The field groupings that will be used to handle spatial overlaps. I.e. each unique combination of the specified fields will be rasterized separately.
 - `notes` : Notes
-    - E.g. `This layer is very important because bee boop.`
+    - E.g. `Downloaded layer from URL.. etc.`
 
 #### Add datasets to postgres from csv input by calling
 
