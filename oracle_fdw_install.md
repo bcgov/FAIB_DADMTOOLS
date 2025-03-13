@@ -16,21 +16,22 @@
 - it will not work with the OSGEO4W oci installationas it is incomplete
 - you must use the official Oracle OCI install
 
-Download the following: instantclient-basiclite-windows.x64-19.10.0.0.0dbru.zip
+Download the latest version of the following: instantclient-basiclite-windows.x64-<latest version>.zip
 
 From : https://www.oracle.com/ca-en/database/technologies/instant-client/winx64-64-downloads.html
 
-Copy to extract to:
+The following steps assume you downloaded version 21.12 - change to reflect the version you downloaded.
+Copy and extract to:
 
-Unzip so that folder: instantclient_21_3  
+Unzip so that folder: instantclient_21_12
 is created.  
 
 Copy this folder to:   
 
-C:\Data\localApps\OCI\instantclient_21_3  
+C:\Data\localApps\OCI\instantclient_21_12
 
 Add  
-C:\Data\localApps\OCI\instantclient_21_3    
+C:\Data\localApps\OCI\instantclient_21_12
 C:\Data\localApps\OCI
 
 to **SYSTEMS** path
@@ -45,9 +46,9 @@ Downloads are also available on: G:\!Project\U5\SoftWare\PostgreSQL13
 
 ## Oracle Foreign Data Wrapper
 
-Download (matching PostgreSQL version)  
+Download the version that matches your PostgreSQL version. Hint: expand Assets to see the file names of the zipped executables. At the time of this documentation, it was: 
 
-oracle_fdw-2.3.0-pg11-win64.zip  
+oracle_fdw-2.5.0-pg14-win64.zip
 
 from: https://github.com/laurenz/oracle_fdw/releases
 
@@ -58,22 +59,22 @@ copy from:
 	- oracle_fdw.control  
 	- oracle_fdw--1.2.sql  
 	
-copy to:  
-- C:\Program Files\PostgreSQL\13\share\extension  
+copy to (your verson of):  
+- C:\Program Files\PostgreSQL\14\share\extension  
 
 copy from:  
 - lib  
 	- oracle_fdw.dll 
 	
-copy to  
-- C:\Program Files\PostgreSQL\13\lib    
+copy to (your verson of):  
+- C:\Program Files\PostgreSQL\14\lib
 
-**stop and restart the PostgreSQL server**
+**Stop and restart the PostgreSQL server**
 
 
 ## Adding the Extension in PostgreSQL
-in PostgreSQL interactive console add the extension:  
-\>create extension oracle_fdw;  
+in PostgreSQL interactive console (Eg. PgAdmin Query Tool or psql) add the extension:  
+\>`CREATE EXTENSION oracle_fdw;`
 
 \>\dx  
 <pre>

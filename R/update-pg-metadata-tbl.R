@@ -36,7 +36,7 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                                    dst_schema,
                                    pg_conn_param)
 {
-  #browser()
+
   print(glue("Inserting record into {data_src_tbl} for {dst_schema}.{dst_tbl}"))
   if(is_blank(flds_to_keep)) {
     flds_to_keep <- ""
@@ -100,7 +100,7 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                      flds_to_keep,
                      notes,
                      overlap_ind,
-                      overlap_group_fields
+                     overlap_group_fields
                     )
                      VALUES
                     (
@@ -114,7 +114,7 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                     {flds_to_keep},
                     {notes},
                     {overlap_ind},
-                      {overlap_group_fields}
+                    {overlap_group_fields}
                     )
                     ON CONFLICT (dst_schema, dst_tbl) DO UPDATE
                     SET
@@ -127,7 +127,6 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                     flds_to_keep = EXCLUDED.flds_to_keep,
                     notes = EXCLUDED.notes,
                     created_at = now();")
-  print(glue("Inserting record into {data_src_tbl} for {dst_schema}.{dst_tbl}"))
 
   tryCatch({
     # Code that might raise the error

@@ -36,7 +36,7 @@ batch_import_to_pg_gr_skey(
 
 \item{raster_schema}{If import_rast_to_pg = TRUE, schema of imported raster, defaults to "raster"}
 
-\item{template_tif}{The file path to the gr_skey geotiff to be used as a template raster, fefaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"}
+\item{template_tif}{The file path to the gr_skey geotiff to be used as a template raster, defaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"}
 
 \item{mask_tif}{The file path to the geotiff to be used as a mask, defaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif"}
 
