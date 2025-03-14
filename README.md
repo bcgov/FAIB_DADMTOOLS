@@ -117,7 +117,7 @@ key_set("dbpass", keyring = "oracle", prompt = 'Oracle keyring password:')
 
 ### 6. Importing Spatial Data into postgres
 
-#### dadmtool library function: import_gr_skey_tif_to_pg_rast
+#### a) dadmtool library function: import_gr_skey_tif_to_pg_rast
 
 Before importing any spatial layers, you must first import a `gr_skey` raster (.tif) into PostgreSQL. This is done using the function: `import_gr_skey_tif_to_pg_rast`.
 
@@ -151,6 +151,8 @@ The function takes the following inputs, with default values listed below. A few
  - `template_tif`: must have a BC Albers (I.e. EPSG: 3005) coordinate reference system. For TSR, it is strongly recommended to provide a gr_skey raster with 100m cell resolution.
  - `mask_tif`: Must have the same crs and resolution as `template_tif`.
 
+
+Function defaults:
 ```
 library(dadmtools)
 import_gr_skey_tif_to_pg_rast(
@@ -172,7 +174,7 @@ import_gr_skey_tif_to_pg_rast(
  - It allows for easy SQL joins using `gr_skey` with other tables imported using the same process and rasterized to the same grid.
 
 
-#### dadmtool library function: import_to_pg_gr_skey
+#### b-1) dadmtool library function: import_to_pg_gr_skey (import single layer)
 The function imports input vector or raster layer into PostgreSQL in gr_skey format.
 
 **Function description**
@@ -326,9 +328,9 @@ import_to_pg_gr_skey(
 
 In order to import more than one layer at a time, use the batch import function which is explained next.
 
-#### dadmtool library function: batch_import_to_pg_gr_skey
+#### b-2) dadmtool library function: batch_import_to_pg_gr_skey (batch import)
 
-To import many spatial layers, use the function: `batch_import_to_pg_gr_skey` which requires populating a configuration input csv file (i.e. see example [config_parameters.csv](config_parameters.csv))
+To import many spatial layers using the `import_to_pg_gr_skey` function - use the batch function: `batch_import_to_pg_gr_skey` which requires populating a configuration input csv file (i.e. see example [config_parameters.csv](config_parameters.csv))
 
 It is recommended that you edit the provided example configuration file for your usage. 
 
@@ -361,13 +363,9 @@ It is recommended that you edit the provided example configuration file for your
 - `notes` : Notes
     - E.g. `Downloaded layer from URL.. etc.`
 
-#### Add datasets to postgres from csv input by calling
+**Function Example**
 
-```
-batch_import_to_pg_gr_skey()
-```
-
-Function takes the following inputs. Default values listed below:
+`batch_import_to_pg_gr_skey` takes the following inputs. Default values listed below:
 
 ```
 batch_import_to_pg_gr_skey(
