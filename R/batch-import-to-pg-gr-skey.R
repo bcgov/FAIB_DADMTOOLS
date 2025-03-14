@@ -1,22 +1,31 @@
-#' Update FAIB hectares database from input csv of datasets
+#' Batch import spatial data into a gridded attribute format within PostgreSQL, structuring data according to the gr_skey grid system. 
+#' 
+#'Function supports both vector and raster inputs. For vector data (e.g., Shapefile, FGDB, GeoPackage), the function imports the attribute table into PostgreSQL and generates a corresponding raster attribute table, where each record represents a raster pixel (one hectare). The gr_skey field acts as a globally unique primary key, while pgid links the raster attributes to the vector attributes. Each record within the raster attribute table represents one pixel.
+#'For raster data (e.g., geotiff), the raster is required to have BC Albers coordinate reference system, (Ie. EPSG: 3005), the same grid definition as the 'template_tif' and 'mask_tif' provided to the 'import_gr_skey_tif_to_pg_rast' function and only one band. For TSR, it is recommended to use the gr_skey grid. The function imports the raster as a single attribute table. The table includes 'gr_skey', unique global cell id and the input raster pixel value. Each record represent one pixel.
 #'
-#' @param in_csv File path to data sources csv, Defaults to "config_parameters.csv"
+#'
+#' @param in_csv File path to input configuration csv, defaults to "config_parameters.csv"
 #' @param pg_conn_param Keyring object of Postgres credentials, defaults to dadmtools::get_pg_conn_list()
 #' @param ora_conn_param Keyring object of Oracle credentials, defaults to dadmtools::get_ora_conn_list()
 #' @param crop_extent list of c(ymin, ymax, xmin, xmax) in EPSG:3005, defaults to c(273287.5,1870587.5,367787.5,1735787.5)
-#' @param gr_skey_tbl Schema and table name of the pre-existing gr_skey table. Argument to be used with suffix and rslt_ind within in_csv. Defaults to "whse.all_bc_gr_skey"
+#' @param gr_skey_tbl Schema and table name of the pre-existing gr_skey table imported using function: 'import_gr_skey_tif_to_pg_rast'. Defaults to "whse.all_bc_gr_skey"
 #' @param raster_schema If import_rast_to_pg = TRUE, schema of imported raster, defaults to "raster"
 #' @param template_tif The file path to the gr_skey geotiff to be used as a template raster, defaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"
 #' @param mask_tif The file path to the geotiff to be used as a mask, defaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif"
 #' @param data_src_tbl Schema and table name of the metadata table in postgres that updates with any newly imported layer. Defaults to "whse.data_sources"
-#' @param out_tif_path Directory where output tif if exported and where vector is temporally stored prior to import
+#' @param out_tif_path Directory where output tif is exported and where vector is temporally stored prior to import
 #' @param import_rast_to_pg If TRUE, raster is imported into database in raster_schema. Defaults to FALSE
 #'
 #'
 #' @return no return
 #' @export
 #'
-#' @examples coming soon
+#' @examples 
+#' ## After updating config_parameters.csv with source data and arguments, run the following:
+#' batch_import_to_pg_gr_skey(
+#'    in_csv            = 'C:\\<specify path>\\config_parameters.csv', 
+#'    out_tif_path      = 'C:\\<specify path>\\'
+#' )
 
 batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv",
                                       out_tif_path,

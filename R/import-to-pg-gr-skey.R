@@ -1,7 +1,7 @@
 #' Imports spatial data into a gridded attribute format within PostgreSQL, structuring data according to the gr_skey grid system. 
 #' 
 #'Function supports both vector and raster inputs. For vector data (e.g., Shapefile, FGDB, GeoPackage), the function imports the attribute table into PostgreSQL and generates a corresponding raster attribute table, where each record represents a raster pixel (one hectare). The gr_skey field acts as a globally unique primary key, while pgid links the raster attributes to the vector attributes. Each record within the raster attribute table represents one pixel.
-#'For raster data (e.g., geotiff), the raster is required to have BC Albers coordinate reference system, (Ie. EPSG: 3005), the same grid definition as the 'template_tif' and 'mask_tif' provided to the 'import_gr_skey_tif_to_pg_rast' function and only one band. For TSR, it is recommended to use the gr_skey grid. #'The function imports the raster as a single attribute table. The table includes 'gr_skey', unique global cell id and the input raster pixel value. Each record represent one pixel.
+#'For raster data (e.g., geotiff), the raster is required to have BC Albers coordinate reference system, (Ie. EPSG: 3005), the same grid definition as the 'template_tif' and 'mask_tif' provided to the 'import_gr_skey_tif_to_pg_rast' function and only one band. For TSR, it is recommended to use the gr_skey grid. The function imports the raster as a single attribute table. The table includes 'gr_skey', unique global cell id and the input raster pixel value. Each record represent one pixel.
 #'
 #'
 #'
@@ -31,7 +31,8 @@
 #' @export
 #'
 #' @examples 
-#' ## Example of importing the vector: whse_admin_boundaries.adm_nr_districts_sp from BCGW into postgres database in gr_skey format:
+#' ## Example of importing the vector: whse_admin_boundaries.adm_nr_districts_sp 
+#' ## from BCGW into postgres database in gr_skey format:
 #' library(dadmtools)
 #' import_to_pg_gr_skey(
 #'  src_type             = 'oracle',
@@ -52,17 +53,90 @@
 #'  fdw_schema           = 'load',
 #'  template_tif         = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
 #'  mask_tif             = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
-#'  data_src_tbl         = 'whse.data_sources',
+#'  data_src_tbl         = 'sandbox.data_sources',
 #'  import_rast_to_pg    = FALSE,
 #'  grskey_schema        = NULL)
 #' 
 #' ## look at a summary of the imported data
 #' sql_to_df('SELECT adm.district_name, count(*) as ha FROM sandbox.adm_nr_districts_sp adm JOIN  sandbox.adm_nr_districts_sp_gr_skey adm_key ON adm.pgid = adm_key.pgid GROUP BY adm.district_name LIMIT 2', dadmtools::get_pg_conn_list())
 #'#                             district_name      ha
-#'# 1 100 Mile House Natural Resource District 1235763
-#'# 2 Campbell River Natural Resource District 1473460
+#'1 100 Mile House Natural Resource District 1235763
+#'2 Campbell River Natural Resource District 1473460
 #' 
-
+#' ## Example of importing a vector with overlaps: whse_forest_vegetation.pest_infestation_poly 
+#' ## from BCGW into postgres database in gr_skey format. The following imports the 
+#' ## pest_infestation_poly with a filter:
+#' ## WHERE PEST_SPECIES_CODE = 'IDW' AND CAPTURE_YEAR > 2019
+#' ## overlap_group_fields = 'CAPTURE_YEAR'. 
+#' ## In other words, each unique capture year where species_code = 'IDW' 
+#' ## will be imported separately so overlaps in capture_year will be captured.
+#' 
+#' library(dadmtools)
+#' import_to_pg_gr_skey(
+#'  src_type             = 'oracle',
+#'  src_path             = 'bcgw',
+#'  src_lyr              = 'whse_forest_vegetation.pest_infestation_poly',
+#'  dst_tbl              = 'pest_infestation_poly',
+#'  query                = "PEST_SPECIES_CODE = 'IDW' AND CAPTURE_YEAR > 2019",
+#'  flds_to_keep         = 'PEST_SPECIES_CODE, PEST_SEVERITY_CODE, CAPTURE_YEAR',
+#'  notes                = '',
+#'  overlap_ind          = TRUE,
+#'  overlap_group_fields = 'CAPTURE_YEAR',
+#'  out_tif_path         = 'C:\\projects\\output\\',
+#'  pg_conn_param        = dadmtools::get_pg_conn_list(),
+#'  ora_conn_param       = dadmtools::get_ora_conn_list(),
+#'  crop_extent          = c(273287.5, 1870587.5, 367787.5, 1735787.5),
+#'  dst_schema           = 'sandbox',
+#'  raster_schema        = 'raster',
+#'  fdw_schema           = 'load',
+#'  template_tif         = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+#'  mask_tif             = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
+#'  data_src_tbl         = 'sandbox.data_sources',
+#'  import_rast_to_pg    = FALSE,
+#'  grskey_schema        = NULL)
+#' 
+#' ## Example of querying the pest data within 100 Mile House Natural Resource District
+#' ## for capture_year 2020-2024.
+#' 
+#' query <- "SELECT 
+#' adm.district_name, 
+#' pest.capture_year,
+#' pest.PEST_SPECIES_CODE,
+#' pest.PEST_SEVERITY_CODE,
+#' count(*) as ha
+#' FROM 
+#' sandbox.pest_infestation_poly_gr_skey_overlap pest_key
+#' JOIN sandbox.pest_infestation_poly pest on pest.pgid = pest_key.pgid
+#' LEFT JOIN sandbox.adm_nr_districts_sp_gr_skey adm_key ON adm_key.gr_skey = pest_key.gr_skey 
+#' LEFT JOIN sandbox.adm_nr_districts_sp adm ON adm.pgid = adm_key.pgid 
+#' WHERE 
+#' 	adm.district_name = '100 Mile House Natural Resource District'
+#' AND
+#' 	pest.capture_year IN (2020, 2021, 2022, 2023, 2024)
+#' GROUP BY 
+#' 	adm.district_name, 
+#' 	pest.capture_year,
+#' 	pest.PEST_SPECIES_CODE,
+#' 	pest.PEST_SEVERITY_CODE
+#' ORDER BY 
+#' 	capture_year, count(*) DESC"
+#' 
+#' sql_to_df(query, dadmtools::get_pg_conn_list())
+#'                                
+#'                              district_name capture_year pest_species_code pest_severity_code    ha
+#'1  100 Mile House Natural Resource District         2020               IDW                  L     7
+#'2  100 Mile House Natural Resource District         2021               IDW                  M 10443
+#'3  100 Mile House Natural Resource District         2021               IDW                  L  2577
+#'4  100 Mile House Natural Resource District         2022               IDW                  M 39705
+#'5  100 Mile House Natural Resource District         2022               IDW                  L  4663
+#'6  100 Mile House Natural Resource District         2022               IDW                  S    15
+#'7  100 Mile House Natural Resource District         2023               IDW                  M 27305
+#'8  100 Mile House Natural Resource District         2023               IDW                  L  7836
+#'9  100 Mile House Natural Resource District         2023               IDW                  T  2036
+#'10 100 Mile House Natural Resource District         2024               IDW                  L 89344
+#'11 100 Mile House Natural Resource District         2024               IDW                  S 29418
+#'12 100 Mile House Natural Resource District         2024               IDW                  M 23195
+#' 
 
 import_to_pg_gr_skey <- function(
                                 src_type,
@@ -129,15 +203,18 @@ import_to_pg_gr_skey <- function(
     return()
   }
 
-
+  ## if user did not specify grskey_schema, overwrite grskey_schema with dst_schema
   if(is.null(grskey_schema)){
     grskey_schema <- dst_schema
     dst_gr_skey_tbl <- glue("{dst_tbl}_gr_skey")
   } else {
     dst_gr_skey_tbl <- glue("{dst_tbl}")
-  } ## destination table gr skey name
+  } 
 
-  if(overlap_ind){dst_gr_skey_tbl <- glue("{dst_gr_skey_tbl}_overlap")}
+  ## if overlap, give gr_skey table  a different name
+  if(overlap_ind){
+    dst_gr_skey_tbl <- glue("{dst_gr_skey_tbl}_overlap")
+  }
 
   pk_id = "pgid"
   no_data_value = 0
@@ -458,7 +535,7 @@ import_to_pg_gr_skey <- function(
           )
 
           if (is.null(in_df)){
-            print("ERROR: Could not coonvert Raster to GR_SKEY table")
+            print("ERROR: Could not convert Raster to GR_SKEY table")
             return()
           }
 
@@ -505,7 +582,7 @@ import_to_pg_gr_skey <- function(
   if(tolower(src_type) == 'raster') {
 
     if (overlap_ind) {
-      print("ERROR: Overlaps_ind must be false for rasters")
+      print("ERROR: overlap_ind must be set to FALSE for rasters")
             return()
     }
 
@@ -602,5 +679,6 @@ if(!overlap_ind){
     overlap_ind = overlap_ind ,
     overlap_group_fields = overlap_group_fields
   )
+
 }
 
