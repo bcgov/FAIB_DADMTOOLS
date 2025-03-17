@@ -15,6 +15,7 @@
 #'
 #' @examples coming soon
 
+## consider renaming to update_resultant_field_metadata_tbl
 update_resultant_field_tbl <- function(
                                     field_names = NULL,
                                     src_field_names = NULL,

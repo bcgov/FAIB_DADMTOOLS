@@ -2,7 +2,8 @@
 % Please edit documentation in R/batch-add-fields-to-resultant.R
 \name{batch_add_fields_to_resultant}
 \alias{batch_add_fields_to_resultant}
-\title{Update the resultant table with fields from previously imported datasets}
+\title{Update the resultant table with fields from previously imported datasets
+A table with gr_skey needs to exist prior to running this function}
 \usage{
 batch_add_fields_to_resultant(
   in_csv = "batch_add_fields_to_resultant.csv",
@@ -19,6 +20,7 @@ nothing is returned
 }
 \description{
 Update the resultant table with fields from previously imported datasets
+A table with gr_skey needs to exist prior to running this function
 }
 \examples{
 coming soon

@@ -106,7 +106,7 @@ add_fields_to_resultant  <- function(
     print("fields_to_include fields are not all in join table ")
   }
 
-  if (!is.null(updated_field_names)){
+  if (!is.null(updated_field_names)) {
     validate_vector <- function(vec) {
       # Check if vector is not character
       if (!is.character(vec)) {
@@ -171,11 +171,11 @@ add_fields_to_resultant  <- function(
     } else {
       resultant_cols <- setdiff(resultant_cols, fields_to_update_new_names)
     }
-    
+
     final_resultant_fields <- paste0('rslt.', resultant_cols)
 
     #create vector of new fields to add
-    if(is.null(updated_field_names)){
+    if(is.null(updated_field_names)) {
       if(include_prefix) {
         final_join_vect <- paste0(prefix,'_',fields_to_include)
         final_join_fields <- paste0('att.',fields_to_include, ' as ',prefix,'_',fields_to_include)}else{
@@ -183,7 +183,7 @@ add_fields_to_resultant  <- function(
         final_join_fields <- paste0('att.',fields_to_include)
       }
     } else {
-      if(include_prefix){
+      if(include_prefix) {
         final_join_vect <- paste0(prefix,'_',updated_field_names)
         final_join_fields <- paste0('att.',fields_to_include, ' as ',prefix,'_',updated_field_names)
       } else {
@@ -196,20 +196,22 @@ add_fields_to_resultant  <- function(
     if(is.null(updated_field_names)) {
       if(include_prefix) {
         final_join_vect <- paste0(prefix,'_',fields_to_include)
-        final_join_fields <- paste0('att.',fields_to_include, ' as ',prefix,'_',fields_to_include)}else{
+        final_join_fields <- paste0('att.', fields_to_include, ' as ',prefix, '_', fields_to_include)
+      } else {
         final_join_vect <- paste0(fields_to_add)
-        final_join_fields <- paste0('att.',fields_to_add)
+        final_join_fields <- paste0('att.', fields_to_add)
       }
     } else {
       if(include_prefix){
         final_join_vect <- paste0(prefix,'_',updated_field_names)
-        final_join_fields <- paste0('att.',fields_to_include, ' as ',prefix,'_',updated_field_names)}else{
-          final_join_vect <- paste0(fields_to_add_new_names)
+        final_join_fields <- paste0('att.',fields_to_include, ' as ',prefix,'_',updated_field_names)
+      } else {
+        final_join_vect <- paste0(fields_to_add_new_names)
         final_join_fields <- paste0('att.',fields_to_add_new_names)
       }
+
     }
   }
-
 
   final_join_fields <- paste0(final_join_fields,collapse = ",")
   final_resultant_fields <- paste0(final_resultant_fields,collapse = ",")
