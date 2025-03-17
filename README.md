@@ -117,7 +117,7 @@ key_set("dbpass", keyring = "oracle", prompt = 'Oracle keyring password:')
 
 ### 6. Importing Spatial Data into postgres
 
-#### dadmtool library function: import_gr_skey_tif_to_pg_rast
+#### a) dadmtool library function: import_gr_skey_tif_to_pg_rast
 
 Before importing any spatial layers, you must first import a `gr_skey` raster (.tif) into PostgreSQL. This is done using the function: `import_gr_skey_tif_to_pg_rast`.
 
@@ -151,6 +151,8 @@ The function takes the following inputs, with default values listed below. A few
  - `template_tif`: must have a BC Albers (I.e. EPSG: 3005) coordinate reference system. For TSR, it is strongly recommended to provide a gr_skey raster with 100m cell resolution.
  - `mask_tif`: Must have the same crs and resolution as `template_tif`.
 
+
+Function defaults:
 ```
 library(dadmtools)
 import_gr_skey_tif_to_pg_rast(
@@ -172,7 +174,8 @@ import_gr_skey_tif_to_pg_rast(
  - It allows for easy SQL joins using `gr_skey` with other tables imported using the same process and rasterized to the same grid.
 
 
-#### dadmtool library function: import_to_pg_gr_skey
+#### b-1) dadmtool library function: import_to_pg_gr_skey (import single layer)
+The function imports input vector or raster layer into PostgreSQL in gr_skey format.
 
 **Function description**
 
@@ -247,12 +250,87 @@ JOIN sandbox.adm_nr_districts_sp_gr_skey adm_key ON adm.pgid = adm_key.pgid
 GROUP BY 
     adm.district_name
 ```
+ **Overlap Function Example**
+Example of importing a vector with overlaps: whse_forest_vegetation.pest_infestation_poly from BCGW into postgres database in gr_skey format. The following imports the pest_infestation_poly with a filter:
+PEST_SPECIES_CODE = 'IDW' AND CAPTURE_YEAR > 2019
+and 
+overlap_group_fields = 'CAPTURE_YEAR'. 
+In other words, each unique capture year > 2019 where species_code = 'IDW' will be imported separately so overlaps in capture_year will be captured.
+
+```
+library(dadmtools)
+import_to_pg_gr_skey(
+ src_type             = 'oracle',
+ src_path             = 'bcgw',
+ src_lyr              = 'whse_forest_vegetation.pest_infestation_poly',
+ dst_tbl              = 'pest_infestation_poly',
+ query                = "PEST_SPECIES_CODE = 'IDW' AND CAPTURE_YEAR > 2019",
+ flds_to_keep         = 'PEST_SPECIES_CODE, PEST_SEVERITY_CODE, CAPTURE_YEAR',
+ notes                = '',
+ overlap_ind          = TRUE,
+ overlap_group_fields = 'CAPTURE_YEAR',
+ out_tif_path         = 'C:\\projects\\output\\',
+ pg_conn_param        = dadmtools::get_pg_conn_list(),
+ ora_conn_param       = dadmtools::get_ora_conn_list(),
+ crop_extent          = c(273287.5, 1870587.5, 367787.5, 1735787.5),
+ dst_schema           = 'sandbox',
+ raster_schema        = 'raster',
+ fdw_schema           = 'load',
+ template_tif         = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+ mask_tif             = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
+ data_src_tbl         = 'sandbox.data_sources',
+ import_rast_to_pg    = FALSE,
+ grskey_schema        = NULL)
+
+ ## Example of querying the pest data within 100 Mile House Natural Resource District
+ ## for capture_year 2020-2024.
+ 
+ query <- "SELECT 
+ adm.district_name, 
+ pest.capture_year,
+ pest.PEST_SPECIES_CODE,
+ pest.PEST_SEVERITY_CODE,
+ count(*) as ha
+ FROM 
+ sandbox.pest_infestation_poly_gr_skey_overlap pest_key
+ JOIN sandbox.pest_infestation_poly pest on pest.pgid = pest_key.pgid
+ LEFT JOIN sandbox.adm_nr_districts_sp_gr_skey adm_key ON adm_key.gr_skey = pest_key.gr_skey 
+ LEFT JOIN sandbox.adm_nr_districts_sp adm ON adm.pgid = adm_key.pgid 
+ WHERE 
+ 	adm.district_name = '100 Mile House Natural Resource District'
+ AND
+ 	pest.capture_year IN (2020, 2021, 2022, 2023, 2024)
+ GROUP BY 
+ 	adm.district_name, 
+ 	pest.capture_year,
+ 	pest.PEST_SPECIES_CODE,
+ 	pest.PEST_SEVERITY_CODE
+ ORDER BY 
+ 	capture_year, count(*) DESC"
+ 
+ sql_to_df(query, dadmtools::get_pg_conn_list())
+                                
+                              district_name capture_year pest_species_code pest_severity_code    ha
+1  100 Mile House Natural Resource District         2020               IDW                  L     7
+2  100 Mile House Natural Resource District         2021               IDW                  M 10443
+3  100 Mile House Natural Resource District         2021               IDW                  L  2577
+4  100 Mile House Natural Resource District         2022               IDW                  M 39705
+5  100 Mile House Natural Resource District         2022               IDW                  L  4663
+6  100 Mile House Natural Resource District         2022               IDW                  S    15
+7  100 Mile House Natural Resource District         2023               IDW                  M 27305
+8  100 Mile House Natural Resource District         2023               IDW                  L  7836
+9  100 Mile House Natural Resource District         2023               IDW                  T  2036
+10 100 Mile House Natural Resource District         2024               IDW                  L 89344
+11 100 Mile House Natural Resource District         2024               IDW                  S 29418
+12 100 Mile House Natural Resource District         2024               IDW                  M 23195
+```
+ 
 
 In order to import more than one layer at a time, use the batch import function which is explained next.
 
-#### dadmtool library function: batch_import_to_pg_gr_skey
+#### b-2) dadmtool library function: batch_import_to_pg_gr_skey (batch import)
 
-To import many spatial layers, use the function: `batch_import_to_pg_gr_skey` which requires populating a configuration input csv file (i.e. see example [config_parameters.csv](config_parameters.csv))
+To import many spatial layers using the `import_to_pg_gr_skey` function - use the batch function: `batch_import_to_pg_gr_skey` which requires populating a configuration input csv file (i.e. see example [config_parameters.csv](config_parameters.csv))
 
 It is recommended that you edit the provided example configuration file for your usage. 
 
@@ -262,7 +340,7 @@ It is recommended that you edit the provided example configuration file for your
     - 0 = exclude
     - 1 = include
 - `overlap_ind` : TRUE or FALSE.  If TRUE, it indicates that the input spatial layer has overlaps and imported <dst_tbl>_gr_skey table will duplicate gr_skey records where spatial overlaps occur.  If FALSE, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)
-- `src_type`: Type of source file. raster option will only work when the raster matches the spatial resolution (100x100), alignment and projection (BC Albers) of the gr_skey grid. Example gr_skey file: S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif
+- `src_type`: Format of data source. Raster option will only work when the raster matches the spatial resolution (100x100), alignment and projection (BC Albers) of the gr_skey grid (specified by `template_tif` argument) imported using `import_gr_skey_tif_to_pg_rast`.
     - Options: `gdb, oracle, raster, geopackage, gpkg, shapefile, shp`
 - `src_path`: Source path.
     - When `srctype = oracle` then `bcgw`
@@ -275,9 +353,9 @@ It is recommended that you edit the provided example configuration file for your
     - When `src_type = raster`, argument not used in import. It is imported into metadata table.
 - `dst_schema` : Postgres destination schema name.
     - E.g. `whse`
-- `dst_tbl` : Postgres destination table name.
+- `dst_tbl` : Name of imported non spatial table in PostgreSQL
     - E.g. `forest_harvesting_restrictions_july2023`
-- `query` : Optional argument to filter source layer. When `src_path = 'bcgw'`, argument is applied to postgres fdw layer. Otherwise, argument used within ogr2ogr call.
+- `query` : Optional argument to filter source layer. Where clause used to filter input dataset.
     - E.g. `rr_restriction is not null` OR `rr_restriction = '01_National Park'` OR `strgc_land_rsrce_plan_name like '%Klappan%'`
 - `flds_to_keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
     - E.g. `REGEN_OBLIGATION_IND,FREE_GROW_DECLARED_IND,OBJECTID`
@@ -285,13 +363,9 @@ It is recommended that you edit the provided example configuration file for your
 - `notes` : Notes
     - E.g. `Downloaded layer from URL.. etc.`
 
-#### Add datasets to postgres from csv input by calling
+**Function Example**
 
-```
-batch_import_to_pg_gr_skey()
-```
-
-Function takes the following inputs. Default values listed below:
+`batch_import_to_pg_gr_skey` takes the following inputs. Default values listed below:
 
 ```
 batch_import_to_pg_gr_skey(

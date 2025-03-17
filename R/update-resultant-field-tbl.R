@@ -15,6 +15,7 @@
 #'
 #' @examples coming soon
 
+## consider renaming to update_resultant_field_metadata_tbl
 update_resultant_field_tbl <- function(
                                     field_names = NULL,
                                     src_field_names = NULL,
@@ -29,7 +30,7 @@ update_resultant_field_tbl <- function(
                                     pg_conn_param)
 
 {
-  #browser()
+
   sql <- glue("CREATE TABLE IF NOT EXISTS {out_schema}.{out_name}_flds (
                 field_name varchar(150),
                 src_field_name varchar(150),
