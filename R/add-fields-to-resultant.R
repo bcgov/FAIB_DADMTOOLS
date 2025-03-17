@@ -173,6 +173,8 @@ add_fields_to_resultant  <- function(
         final_join_fields <- paste0('att.',fields_to_include, ' as ', updated_field_names)} }
 
   }else{
+    final_resultant_fields <- paste0('rslt.', resultant_cols)
+
     if(is.null(updated_field_names)){
       if(include_prefix){
         final_join_vect <- paste0(prefix,'_',fields_to_include)
