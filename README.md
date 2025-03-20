@@ -125,17 +125,17 @@ Before importing any spatial layers, you must first import a `gr_skey` raster (.
 
 The function creates two tables in the PostgreSQL database:
 1. Raster table
- - Default name: `raster.grskey_bc_land`
- - You can specify a different schema using the `rast_sch` argument and a different table name using the `pg_rast_name` argument.
+- Default name: `raster.grskey_bc_land`
+- You can specify a different schema using the `rast_sch` argument and a different table name using the `pg_rast_name` argument.
 
 2. Vector Table (Geometry Representation)
- - Default name: `whse.all_bc_gr_skey`
- - Fields:
+- Default name: `whse.all_bc_gr_skey`
+- Fields:
   - `gr_skey integer`
   - `geom geometry(Point,3005) OR geom geometry(Polygon,3005)`
- - You can specify a different schema and table name using the `dst_tbl` argument (format: "schema_name.table_name").
- - This table contains a geometry column (geom), representing raster centroids by default.
- - You can choose either "Centroid" or "Polygon" using the `geom_type` argument. The function defaults to "Centroid".
+- You can specify a different schema and table name using the `dst_tbl` argument (format: "schema_name.table_name").
+- This table contains a geometry column (geom), representing raster centroids by default.
+- You can choose either "Centroid" or "Polygon" using the `geom_type` argument. The function defaults to "Centroid".
 
 **Function overview**
 
