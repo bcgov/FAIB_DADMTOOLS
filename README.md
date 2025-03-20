@@ -325,8 +325,8 @@ import_to_pg_gr_skey(
 12 100 Mile House Natural Resource District         2024               IDW                  M 23195
 ```
  
+<span style="color: red;">Note: In order to import more than one layer at a time, use the batch import function which is explained next.!</span>
 
-In order to import more than one layer at a time, use the batch import function which is explained next.
 
 ### 6 b-2) dadmtool library function: batch_import_to_pg_gr_skey (batch import)
 
@@ -435,7 +435,7 @@ This approach ensures that the resultant table is incrementally built as new fie
 - `notes ` (optional): Notes
 
 
-### dadmtool library function: batch_add_field_to_resultant
+### dadmtool library function: batch_add_fields_to_resultant
 
 ```
 batch_add_fields_to_resultant(
