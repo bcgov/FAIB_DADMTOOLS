@@ -117,7 +117,7 @@ key_set("dbpass", keyring = "oracle", prompt = 'Oracle keyring password:')
 
 ### 6. Importing Spatial Data into postgres
 
-#### a) dadmtool library function: import_gr_skey_tif_to_pg_rast
+### a) dadmtool library function: import_gr_skey_tif_to_pg_rast
 
 Before importing any spatial layers, you must first import a `gr_skey` raster (.tif) into PostgreSQL. This is done using the function: `import_gr_skey_tif_to_pg_rast`.
 
@@ -148,8 +148,8 @@ import_gr_skey_tif_to_pg_rast(
 
 The function takes the following inputs, with default values listed below. A few notes:
 
- - `template_tif`: must have a BC Albers (I.e. EPSG: 3005) coordinate reference system. For TSR, it is strongly recommended to provide a gr_skey raster with 100m cell resolution.
- - `mask_tif`: Must have the same crs and resolution as `template_tif`.
+ - `template_tif`: must have a BC Albers (I.e. EPSG: 3005) coordinate reference system. For TSR, it is recommended to provide a gr_skey raster with 100m cell resolution in BC Albers/EPSG:3005.
+ - `mask_tif`: Must have the same coordinate reference system and resolution as `template_tif`.
 
 
 Function defaults:
@@ -174,8 +174,8 @@ import_gr_skey_tif_to_pg_rast(
  - It allows for easy SQL joins using `gr_skey` with other tables imported using the same process and rasterized to the same grid.
 
 
-#### b-1) dadmtool library function: import_to_pg_gr_skey (import single layer)
-The function imports input vector or raster layer into PostgreSQL in gr_skey format.
+### 6 b-1) dadmtool library function: import_to_pg_gr_skey (import single layer)
+Now that you've imported a gr_skey table (step 6a), you can import other types of spatial layers such as rasters, feature classes within gdb's, geopackages, shapefiles etc. The function: `import_to_pg_gr_skey` imports input vector or raster layer into PostgreSQL in gr_skey format.
 
 **Function description**
 
@@ -328,7 +328,7 @@ import_to_pg_gr_skey(
 
 In order to import more than one layer at a time, use the batch import function which is explained next.
 
-#### b-2) dadmtool library function: batch_import_to_pg_gr_skey (batch import)
+### 6 b-2) dadmtool library function: batch_import_to_pg_gr_skey (batch import)
 
 To import many spatial layers using the `import_to_pg_gr_skey` function - use the batch function: `batch_import_to_pg_gr_skey` which requires populating a configuration input csv file (i.e. see example [config_parameters.csv](config_parameters.csv))
 
@@ -435,7 +435,14 @@ This approach ensures that the resultant table is incrementally built as new fie
 - `notes ` (optional): Notes
 
 
-#### dadmtool library function: batch_add_field_to_resultant
+### dadmtool library function: batch_add_field_to_resultant
+
+```
+batch_add_fields_to_resultant(
+  in_csv            = 'C:\\path\\to\\batch_add_fields_to_resultant.csv',
+  pg_conn_param     = dadmtools::get_pg_conn_list()
+)
+```
 
 
 [![Lifecycle:Experimental](https://img.shields.io/badge/Lifecycle-Experimental-339999)](<Redirect-URL>)
