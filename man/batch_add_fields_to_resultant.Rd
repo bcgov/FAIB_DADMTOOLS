@@ -2,8 +2,7 @@
 % Please edit documentation in R/batch-add-fields-to-resultant.R
 \name{batch_add_fields_to_resultant}
 \alias{batch_add_fields_to_resultant}
-\title{Update the resultant table with fields from previously imported datasets
-A table with gr_skey needs to exist prior to running this function}
+\title{Once layers have been imported using batch_import_to_pg_gr_skey or import_to_pg_gr_skey, build a flat, denormalized table, also known as a resultant table using this batch function. The function requires an existing table (e.g. sandbox.all_bc_gr_skey) with joining key (e.g. gr_skey) to build the resultant table off of. Requires populating a configuration input csv file (e.g. see example on git repository called batch_add_fields_to_resultant.csv and description in the README.)}
 \usage{
 batch_add_fields_to_resultant(
   in_csv = "batch_add_fields_to_resultant.csv",
@@ -11,17 +10,20 @@ batch_add_fields_to_resultant(
 )
 }
 \arguments{
-\item{in_csv}{File path to batch add fields csv, Defaults to "batch_add_fields_to_resultant.csv"}
+\item{in_csv}{File path to input csv, defaults to "batch_add_fields_to_resultant.csv". See example csv and README for instructions in git repository: https://github.com/bcgov/FAIB_DADMTOOLS/tree/main}
 
-\item{pg_conn_param}{named list of postgres connection parameters (see get_pg_conn_list() function for more details)}
+\item{pg_conn_param}{named list of postgres connection parameters (i.e. get_pg_conn_list())}
 }
 \value{
 nothing is returned
 }
 \description{
-Update the resultant table with fields from previously imported datasets
-A table with gr_skey needs to exist prior to running this function
+Once layers have been imported using batch_import_to_pg_gr_skey or import_to_pg_gr_skey, build a flat, denormalized table, also known as a resultant table using this batch function. The function requires an existing table (e.g. sandbox.all_bc_gr_skey) with joining key (e.g. gr_skey) to build the resultant table off of. Requires populating a configuration input csv file (e.g. see example on git repository called batch_add_fields_to_resultant.csv and description in the README.)
 }
 \examples{
-coming soon
+Download and edit example input batch_add_fields_to_resultant.csv from https://github.com/bcgov/FAIB_DADMTOOLS/tree/main. Example of function run:
+batch_add_fields_to_resultant(
+   in_csv           = "batch_add_fields_to_resultant.csv",
+   pg_conn_param     = dadmtools::get_pg_conn_list()
+)
 }

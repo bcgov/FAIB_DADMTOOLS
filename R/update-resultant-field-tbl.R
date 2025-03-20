@@ -30,7 +30,6 @@ update_resultant_field_tbl <- function(
                                     pg_conn_param)
 
 {
-
   sql <- glue("CREATE TABLE IF NOT EXISTS {out_schema}.{out_name}_flds (
                 field_name varchar(150),
                 src_field_name varchar(150),

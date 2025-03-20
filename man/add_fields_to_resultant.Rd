@@ -2,59 +2,59 @@
 % Please edit documentation in R/add-fields-to-resultant.R
 \name{add_fields_to_resultant}
 \alias{add_fields_to_resultant}
-\title{Update the resultant table with fields from previously imported datasets.}
+\title{Build or update a flat, denormalized table, also known as a resultant table, with fields from previously imported datasets.}
 \usage{
 add_fields_to_resultant(
-  resultant_table_output_name,
-  join_gr_skey_table,
-  fields_to_include,
-  join_attribute_table = NULL,
+  new_resultant_name,
+  gr_skey_table,
+  included_fields,
+  attribute_table = NULL,
   overwrite_fields = FALSE,
-  resultant_table = "resultant",
+  current_resultant_table = "resultant",
   pg_conn_param = dadmtools::get_pg_conn_list(),
   key_resultant_tbl = "gr_skey",
   key_grskey_tbl = "gr_skey",
   key_join_tbl = "pgid",
-  updated_field_names = NULL,
+  update_field_names = NULL,
   include_prefix = FALSE,
   prefix = NULL,
   overwrite_resultant_table = FALSE
 )
 }
 \arguments{
-\item{resultant_table_output_name}{user selected name of the output resultant table. Note: Include schema in the name.}
+\item{new_resultant_name}{(required): The user-defined name for the output resultant table, including the schema. E.g. sandbox.tsa_resultant}
 
-\item{join_gr_skey_table}{the name of the table containing the key (e.g. gr_skey) to join to resultant key.}
+\item{gr_skey_table}{(required): The name of the table containing the key (e.g., gr_skey) used to join with the resultant key. E.g. sandbox.adm_nr_districts_sp_gr_skey}
 
-\item{fields_to_include}{vector of fields to include from joining tables.}
+\item{included_fields}{(required): A vector of fields to include from joining tables (e.g. district_name, org_unit)}
 
-\item{join_attribute_table}{the name of the attribute table containing the key (e.g. pgid) to join to gr_skey table. Attributes from this table will be in the final resultant table. If the table name is left blank, gr_skey table attributes will be used in the final resultant table.}
+\item{attribute_table}{(optional): The name of the attribute table containing the key (e.g., pgid) used to join with `gr_skey_table`. Attributes from this table will be included in the final resultant table. If `attribute_table` is not provided, the attributes specified in `included_fields` will be selected from `gr_skey_table` for the final resultant table.}
 
-\item{overwrite_fields}{DEFAULT:FALSE. TRUE = New Fields will overwrite any fields that already exists in the current Resultant table. FALSE = Existing Resultant table fields will not be overwritten.}
+\item{overwrite_fields}{(required): A logical value (TRUE or FALSE) indicating whether to overwrite existing fields with new field names specified in `update_field_names`. Default : FALSE. TRUE = New Fields will overwrite any fields that already exists in the current Resultant table. FALSE = Existing Resultant table fields will not be overwritten.}
 
-\item{resultant_table}{name of the existing resultant table.}
+\item{current_resultant_table}{(required): Name of the existing resultant table (e.g. sandbox.all_bc_gr_skey)}
 
-\item{pg_conn_param}{named list of postgres connection parameters (see get_pg_conn_list() function for more details)}
+\item{pg_conn_param}{(required): named list of postgres connection parameters (e.g. get_pg_conn_list())}
 
-\item{key_resultant_tbl}{DEFAULT:'gr_skey'. join key in resultant table (e.g. gr_skey)}
+\item{key_resultant_tbl}{(required): Default: 'gr_skey'. The join key in resultant table (e.g. gr_skey)}
 
-\item{key_grskey_tbl}{DEFAULT:'gr_skey'. join key in gr_key table (e.g. gr_skey)}
+\item{key_grskey_tbl}{(required): Default:'gr_skey'. The join key in 'gr_skey_table' (e.g. gr_skey)}
 
-\item{key_join_tbl}{DEFAULT:'pgid'. join key in attribute table (e.g. pgid)}
+\item{key_join_tbl}{(optional): Default:'pgid'. The join key in 'attribute_table' (e.g. pgid). Only used if `attribute_table` is provided.}
 
-\item{updated_field_names}{OPTIONAL vector of updated fields names to include int final resultant table.}
+\item{update_field_names}{(optional):  A vector of new field names to use in the final resultant table, replacing those specified in 'included_fields'. The number of field names in this vector must match the number in 'included_fields'. (e.g. admin_district_name, admin_org_unit)}
 
-\item{include_prefix}{DEFAULT:FALSE. TRUE = a prefix will be added to new field names. FALSE = no prefix will be added to field names.}
+\item{include_prefix}{(required): A logical value (TRUE or FALSE) indicating whether to add prefix to resultant field names. If TRUE, `prefix` is required.}
 
-\item{prefix}{the prefix to be added to the beginning of new field names}
+\item{prefix}{(optional): A prefix to prepend to field names in the resultant table. By default, it updates 'included_fields', but if 'update_field_names' is provided, the prefix will be applied to those instead.}
 
-\item{overwrite_resultant_table}{DEFAULT:FALSE. TRUE = any table with the resultant_table_output_name will be overwritten. FALSE = Resultant tbale will not be overwritten.}
+\item{overwrite_resultant_table}{(required): A logical value (TRUE or FALSE) indicating whether to overwrite the 'new_resultant_name'}
 }
 \value{
 nothing is returned
 }
 \description{
-Update the resultant table with fields from previously imported datasets.
+Build or update a flat, denormalized table, also known as a resultant table, with fields from previously imported datasets.
 }
 \examples{
 coming soon
