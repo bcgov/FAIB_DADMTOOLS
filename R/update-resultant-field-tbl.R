@@ -49,19 +49,12 @@ update_resultant_field_tbl <- function(
   metadata_tbl_fields <- dadmtools::sql_to_df(query,pg_conn_param)$field_name
 
   drop_columns <- c(setdiff(metadata_tbl_fields,resultant_field_names), intersect(metadata_tbl_fields,field_names))
-  print(drop_columns)
-
-
-
 
   for (fld in drop_columns) {
     drop_sql <- glue("DELETE FROM {out_schema}.{out_name}_flds WHERE field_name = '{fld}';")
     dadmtools::run_sql_r(drop_sql, pg_conn_param )
-    print("Column {fld} dropped successfully.")
   }
 
-  print(length(field_names))
-  print(field_names[1])
   for (i in seq_along(field_names)) {
     field_names_val <- field_names[i]
     src_field_names_val <- src_field_names[i]
@@ -78,8 +71,6 @@ update_resultant_field_tbl <- function(
               VALUES ('{as.character(field_names_val)}',
                       '{as.character(src_field_names_val)}', '{src_attribute_table_name}', '{src_attribute_table_schema}',
                       '{src_gr_skey_table}', '{src_gr_skey_schema}');")
-
-    print(query)
     dadmtools::run_sql_r(query, pg_conn_param)
 
   }
@@ -92,18 +83,18 @@ update_resultant_field_tbl <- function(
   metadata_tbl_fields <- dadmtools::sql_to_df(query,pg_conn_param)$field_name
 
   add_resultant_columns <- setdiff(resultant_field_names,metadata_tbl_fields)
-  print(add_resultant_columns)
 
   if (length(add_resultant_columns) > 0){
-  for (i in (1:length(add_resultant_columns))) {
+    for (i in (1:length(add_resultant_columns))) {
+      query <- glue("INSERT INTO {out_schema}.{out_name}_flds
+                    (field_name,src_field_name,src_attribute_table_name,src_attribute_table_schema,src_gr_skey_table,src_gr_skey_schema )
+                    VALUES ('{add_resultant_columns[i]}','{add_resultant_columns[i]}',NULL,NULL,NULL, NULL );")
 
-    query <- glue("INSERT INTO {out_schema}.{out_name}_flds
-                  (field_name,src_field_name,src_attribute_table_name,src_attribute_table_schema,src_gr_skey_table,src_gr_skey_schema )
-                  VALUES ('{add_resultant_columns[i]}','{add_resultant_columns[i]}',NULL,NULL,NULL, NULL )
-  ;")
-    print(query)
-    dadmtools::run_sql_r(query, pg_conn_param)
-  }}
+      dadmtools::run_sql_r(query, pg_conn_param)
+    }
+  }
+
+  print(glue('Updated {out_schema}.{out_name}_flds.'))
 
 
 }

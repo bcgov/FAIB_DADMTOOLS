@@ -102,32 +102,24 @@ batch_add_fields_to_resultant  <- function(
 
     included_fields <- unlist(strsplit(included_fields, ","))
 
-    print('loop print')
-    for (i in c(overwrite_resultant_table,
-                overwrite_fields,
-                include_prefix,
-                new_resultant_name,
-                gr_skey_table,
-                attribute_table,
-                current_resultant_table,
-                included_fields,
-                update_field_names,
-                prefix,
-                key_resultant_tbl,
-                key_grskey_tbl,
-                key_join_tbl,
-                notes )) {
-      print(i)
-    }
-    print('attribute_table')
-    print(attribute_table)
-    print('key_join_tbl')
-    print(key_join_tbl)
+    # print('loop print')
+    # for (i in c(overwrite_resultant_table,
+    #             overwrite_fields,
+    #             include_prefix,
+    #             new_resultant_name,
+    #             gr_skey_table,
+    #             attribute_table,
+    #             current_resultant_table,
+    #             included_fields,
+    #             update_field_names,
+    #             prefix,
+    #             key_resultant_tbl,
+    #             key_grskey_tbl,
+    #             key_join_tbl,
+    #             notes )) {
+    #   print(i)
+    # }
 
-    if(length(included_fields) == length(update_field_names)) {
-      print(TRUE)
-    }
-    print('about to call add_fields_to_resultant')
     dadmtools::add_fields_to_resultant( new_resultant_name        = new_resultant_name,
                                         gr_skey_table             = gr_skey_table ,
                                         included_fields           = included_fields,

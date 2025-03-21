@@ -40,29 +40,33 @@ add_fields_to_resultant  <- function(
 {
 
   today_date <- format(Sys.time(), "%Y-%m-%d %I:%M:%S %p")
-  #### GET TABLE NAMES WITHOUT SCHEMA
+  #### get current_resultant_table without schema
   if (grepl("\\.", current_resultant_table)) {
     resultant_schema <- strsplit(current_resultant_table, "\\.")[[1]][[1]]
     resultant_table_no_schema <- strsplit(current_resultant_table, "\\.")[[1]][[2]]
   } else {
+    ## provided without schema, default to public schema
     resultant_table_no_schema <- current_resultant_table
     resultant_schema <- 'public'
   }
 
-
+  #### get gr_skey_table without schema
   if (grepl("\\.", gr_skey_table)) {
     gr_skey_table_schema <- strsplit(gr_skey_table, "\\.")[[1]][[1]]
     gr_skey_table_no_schema <- strsplit(gr_skey_table, "\\.")[[1]][[2]]
   } else {
+    ## provided without schema, default to public schema
     gr_skey_table_no_schema <- gr_skey_table
     gr_skey_table_schema <- 'public'
   }
 
+  #### get attribute_table without schema
   if(!is.null(attribute_table)){
     if (grepl("\\.", attribute_table)) {
       attribute_table_schema <- strsplit(attribute_table, "\\.")[[1]][[1]]
       attribute_table_no_schema <- strsplit(attribute_table, "\\.")[[1]][[2]]
     } else {
+      ## provided without schema, default to public schema
       attribute_table_no_schema <- attribute_table
       attribute_table_schema <- 'public'
     }
@@ -71,29 +75,27 @@ add_fields_to_resultant  <- function(
     attribute_table_no_schema <- NULL
   }
 
-
+  #### get new_resultant_name without schema
   if (grepl("\\.", new_resultant_name)) {
     resultant_output_schema <- strsplit(new_resultant_name, "\\.")[[1]][[1]]
     resultant_table_output_no_schema <- strsplit(new_resultant_name, "\\.")[[1]][[2]]
   } else {
+    ## provided without schema, default to public schema
     resultant_table_output_no_schema <- new_resultant_name
     resultant_output_schema <- 'public'
   }
 
-  print(paste('Updated length is:',length(update_field_names)))
-  print(paste('included_fields length is:',length(included_fields)))
-  
-  ####VERIFY FIELDS TO BE ADDED TO RESULTANT
+
+  #### Ensure update_field_names and included_fields are the same length
   if (!is.null(update_field_names) ) {
-    if (length(update_field_names) == length(included_fields)) {
-      print("field lengths match")
-    } else {
-      print(glue("ERROR: update_field_names vector length does not match included_fields vector length"))
+    if (length(update_field_names) != length(included_fields)) {
+      print(glue("ERROR: number of fields provided in update_field_names does not match included_fields"))
       stop()
     }
   }
 
-  if(!is.null(attribute_table)) {
+  #### retrieve all fields from attribute_table if exists, otherwise from gr_skey_table
+  if (!is.null(attribute_table)) {
     join_table_fields_query <- paste0("SELECT column_name FROM information_schema.columns WHERE table_name = '", attribute_table_no_schema, "' and table_schema = '",attribute_table_schema,"';")
     join_table_fields_all <- dadmtools::sql_to_df(join_table_fields_query,pg_conn_param)$column_name
   } else {
@@ -101,144 +103,141 @@ add_fields_to_resultant  <- function(
       join_table_fields_all <- dadmtools::sql_to_df(join_table_fields_query,pg_conn_param)$column_name
   }
 
-  if (all(sapply(included_fields, function(x) (x %in%  join_table_fields_all)  ))) {
-    print("included_fields look good")
-  } else {
-    print("included_fields fields are not all in join table ")
+  #### ensure that included fields are within join_table_fields_all (i.e. fields from attribute_table if exists, otherwise from gr_skey_table)
+  if (!(all(sapply(included_fields, function(x) (x %in%  join_table_fields_all))))) {
+    included_fields_str <- paste(included_fields, collapse = ", ")
+    if (!is.null(attribute_table)) {
+      print(glue("WARNING: included_fields: {included_fields_str} are not all in attribute_table: {attribute_table}"))
+    } else {
+      print(glue("WARNING: included_fields: {included_fields_str} are not all in gr_skey_table: {gr_skey_table}"))
+    }
   }
 
+  ## ensure update_field_names is a valid vector
   if (!is.null(update_field_names)) {
     validate_vector <- function(vec) {
       # Check if vector is not character
       if (!is.character(vec)) {
-        stop("ERROR: The updated field names must be a character vector.")
+        stop(glue("ERROR: The update_field_names: {update_field_names} must be a character vector."))
       }
 
       # Check if any value starts with a number or a special character
       if (any(grepl("^[0-9]", vec) | grepl("^[^a-zA-Z0-9]", vec))) {
-        stop("ERROR: updated field names must not start with a number or a special character.")
+        stop(glue("ERROR: update_field_names: {update_field_names} must not start with a number or a special character."))
       }
-
-      print("Vector is valid!")
     }
-
     validate_vector(update_field_names)
   }
 
-  ###### Get the column names of the resultant table
-  resultant_cols_query <- paste0("SELECT column_name FROM information_schema.columns WHERE table_name = '", resultant_table_no_schema, "' and  table_schema = '",resultant_schema, "';")
-  resultant_cols <- dadmtools::sql_to_df(resultant_cols_query,pg_conn_param)$column_name
+  #### Get the column names of the current_resultant_table
+  resultant_cols_query <- paste0("SELECT column_name FROM information_schema.columns WHERE table_name = '", resultant_table_no_schema, "' and  table_schema = '", resultant_schema, "';")
+  current_resultant_cols <- dadmtools::sql_to_df(resultant_cols_query,pg_conn_param)$column_name
 
 
-  #remove resultant keys from field vectors if in the final field names
-  if(!include_prefix){
-    if(is.null(update_field_names)){
-      indices_to_remove <- which(included_fields == key_resultant_tbl)
-      if (length(indices_to_remove > 0)){
-      included_fields <- included_fields[-indices_to_remove]}
-    } else {
-      indices_to_remove <- which(update_field_names == key_resultant_tbl)
-      if (length(indices_to_remove > 0)) {
-        included_fields <- included_fields[-indices_to_remove]
-      }
-      if (length(indices_to_remove > 0)) {
-        update_field_names <- update_field_names[-indices_to_remove]
-      }
+  #### remove resultant keys (ie. gr_skey) from included_fields or update_field_names if in the final field names
+  if (is.null(update_field_names)){
+    indices_to_remove <- which(included_fields == key_resultant_tbl)
+    if (length(indices_to_remove > 0)){
+      included_fields <- included_fields[-indices_to_remove]
+    }
+  } else {
+    indices_to_remove <- which(update_field_names == key_resultant_tbl)
+    #### remove key_resultant_tbl (ie. gr_skey) from included_fields & update_field_names
+    if (length(indices_to_remove > 0)) {
+      included_fields <- included_fields[-indices_to_remove]
+    }
+    if (length(indices_to_remove > 0)) {
+      update_field_names <- update_field_names[-indices_to_remove]
     }
   }
 
-
-  ###### Determine fields to add or update
+  #### Determine fields to add
+  #### remove any columns existing in current_resultant_cols from included_fields
   if (include_prefix) {
-    fields_to_add <- paste0(prefix,'_',included_fields)[!(paste0(prefix,'_',included_fields) %in% resultant_cols)]
-    fields_to_add_new_names <- paste0(prefix,'_',update_field_names)[!(paste0(prefix,'_',update_field_names) %in% resultant_cols)]
+    fields_to_add <- paste0(prefix,'_', included_fields)[!(paste0(prefix, '_', included_fields) %in% current_resultant_cols)]
+    fields_to_add_new_names <- paste0(prefix,'_',update_field_names)[!(paste0(prefix,'_',update_field_names) %in% current_resultant_cols)]
   } else {
-    fields_to_add <- included_fields[!(included_fields %in% resultant_cols)]
-    fields_to_add_new_names <- update_field_names[!(update_field_names %in% resultant_cols)]
+    fields_to_add <- included_fields[!(included_fields %in% current_resultant_cols)]
+    fields_to_add_new_names <- update_field_names[!(update_field_names %in% current_resultant_cols)]
+  }
+  
+  #### Determine fields to update
+  if (include_prefix) {
+    fields_to_update <- paste0(prefix,'_',included_fields)[(paste0(prefix,'_',included_fields) %in% current_resultant_cols)]
+    fields_to_update_new_names <- paste0(prefix,'_',update_field_names)[(paste0(prefix,'_',update_field_names) %in% current_resultant_cols)]
+  } else {
+    fields_to_update <- included_fields[(included_fields %in% current_resultant_cols)]
+    fields_to_update_new_names <- update_field_names[(update_field_names %in% current_resultant_cols)]
   }
 
-  if (include_prefix) {
-    fields_to_update <- paste0(prefix,'_',included_fields)[(paste0(prefix,'_',included_fields) %in% resultant_cols)]
-    fields_to_update_new_names <- paste0(prefix,'_',update_field_names)[(paste0(prefix,'_',update_field_names) %in% resultant_cols)]
-  } else {
-    fields_to_update <- included_fields[(included_fields %in% resultant_cols)]
-    fields_to_update_new_names <- update_field_names[(update_field_names %in% resultant_cols)]
-  }
-
-  ######Set field names for select case
-  if(overwrite_fields) {
-    #remove new fields from resultant fields vector
+  #### Set field names for select case
+  if (overwrite_fields) {
     if(is.null(update_field_names)){
-      resultant_cols <- setdiff(resultant_cols, fields_to_update)
+      current_resultant_cols <- setdiff(current_resultant_cols, fields_to_update)
     } else {
-      resultant_cols <- setdiff(resultant_cols, fields_to_update_new_names)
+      current_resultant_cols <- setdiff(current_resultant_cols, fields_to_update_new_names)
     }
 
-    final_resultant_fields <- paste0('rslt.', resultant_cols)
+    final_resultant_fields <- paste0('rslt.', current_resultant_cols)
 
-    #create vector of new fields to add
+    #### create vector of new fields to add
     if(is.null(update_field_names)) {
       if(include_prefix) {
-        print('1')
-        final_join_vect <- paste0(prefix,'_',included_fields)
-        final_join_fields <- paste0('att.',included_fields, ' as ',prefix,'_',included_fields)
+        final_join_vect <- paste0(prefix,'_', included_fields)
+        final_join_fields <- paste0('att.', included_fields, ' as ', prefix, '_', included_fields)
       } else {
-        print('2')
+        
         final_join_vect <- paste0(included_fields)
         final_join_fields <- paste0('att.',included_fields)
       }
     } else {
       if(include_prefix) {
-        print('3')
-        final_join_vect <- paste0(prefix,'_',update_field_names)
-        final_join_fields <- paste0('att.',included_fields, ' as ',prefix,'_',update_field_names)
+        final_join_vect <- paste0(prefix,'_', update_field_names)
+        final_join_fields <- paste0('att.', included_fields, ' as ', prefix, '_', update_field_names)
       } else {
-        print('4')
         final_join_vect <- paste0( update_field_names)
-        final_join_fields <- paste0('att.',included_fields, ' as ', update_field_names)
+        final_join_fields <- paste0('att.', included_fields, ' as ', update_field_names)
       } 
     }
 
   } else {
-    print('5')
-    final_resultant_fields <- paste0('rslt.', resultant_cols)
+    final_resultant_fields <- paste0('rslt.', current_resultant_cols)
 
-    if(is.null(update_field_names)){
-      print('6')
-      if(include_prefix){
-        ## why is this included_fields and line 218 fields_to_add
+    if (is.null(update_field_names)) {
+      if (include_prefix) {
         final_join_vect <- paste0(prefix,'_',included_fields)
         final_join_fields <- paste0('att.', included_fields, ' as ', prefix, '_', included_fields)
       } else {
-        print('7')
-        final_join_vect <- paste0(fields_to_add)
-        final_join_fields <- paste0('att.', fields_to_add)
+        if (length(fields_to_add) > 0) {
+          final_join_vect <- paste0(fields_to_add)
+          final_join_fields <- paste0('att.', fields_to_add)
+        } else {
+          final_join_vect <- NULL
+          final_join_fields <- NULL
+        }
       }
     } else {
       if(include_prefix){
-        print('8')
         final_join_vect <- paste0(prefix,'_',update_field_names)
-        final_join_fields <- paste0('att.',included_fields, ' as ',prefix,'_',update_field_names)
+        final_join_fields <- paste0('att.',included_fields, ' as ', prefix, '_', update_field_names)
       } else {
-        print('9')
         final_join_vect <- paste0(fields_to_add_new_names)
-        final_join_fields <- paste0('att.',fields_to_add_new_names)
+        final_join_fields <- paste0('att.', fields_to_add_new_names)
       }
-
     }
   }
 
-  final_join_fields <- paste0(final_join_fields,collapse = ",")
-  final_resultant_fields <- paste0(final_resultant_fields,collapse = ",")
-
-
+  final_all_fields <- c(final_join_fields, final_resultant_fields)
+  final_all_fields <- paste0(final_all_fields,collapse = ",")
+  # final_join_fields <- paste0(final_join_fields,collapse = ",")
+  # final_resultant_fields <- paste0(final_resultant_fields, collapse = ",")
 
   if (overwrite_resultant_table) {
     run_sql_r(glue("DROP TABLE IF EXISTS {new_resultant_name}_4398349023_temp;"), pg_conn_param)
     if(!is.null(attribute_table)) {
       run_sql_r(glue("CREATE TABLE {new_resultant_name}_4398349023_temp AS
         SELECT
-          {final_resultant_fields},{final_join_fields}
+          {final_all_fields}
         FROM
         {current_resultant_table} rslt
         LEFT JOIN {gr_skey_table} g on rslt.{key_resultant_tbl} = g.{key_grskey_tbl}
@@ -246,7 +245,7 @@ add_fields_to_resultant  <- function(
     } else {
       run_sql_r(glue("CREATE TABLE {new_resultant_name}_4398349023_temp AS
         SELECT
-          {final_resultant_fields},{final_join_fields}
+          {final_all_fields}
         FROM
         {current_resultant_table} rslt
         LEFT JOIN {gr_skey_table} att on rslt.{key_resultant_tbl} = att.{key_grskey_tbl};"), pg_conn_param)
@@ -259,7 +258,6 @@ add_fields_to_resultant  <- function(
                                               TABLE last added fields from {gr_skey_table};'")
     dadmtools::run_sql_r(dst_tbl_comment, pg_conn_param)
     dadmtools::run_sql_r(glue("ANALYZE {new_resultant_name};"), pg_conn_param)
-    print("Resultant table created")
 
   } else {
     output_tbl_exists <- (dadmtools::sql_to_df(glue("SELECT EXISTS (
@@ -279,7 +277,7 @@ add_fields_to_resultant  <- function(
       if(!is.null(attribute_table)) {
         run_sql_r(glue("CREATE TABLE {new_resultant_name} AS
                         SELECT
-                          {final_resultant_fields},{final_join_fields}
+                          {final_all_fields}
                         FROM
                         {current_resultant_table} rslt
                         LEFT JOIN {gr_skey_table} g on rslt.{key_resultant_tbl} = g.{key_grskey_tbl}
@@ -287,7 +285,7 @@ add_fields_to_resultant  <- function(
       } else {
         run_sql_r(glue("CREATE TABLE {new_resultant_name} AS
         SELECT
-          {final_resultant_fields},{final_join_fields}
+          {final_all_fields}
         FROM
         {current_resultant_table} rslt
         LEFT JOIN {gr_skey_table} att on rslt.{key_resultant_tbl} = att.{key_grskey_tbl};"), pg_conn_param)
@@ -299,7 +297,6 @@ add_fields_to_resultant  <- function(
                           TABLE last added fields from {gr_skey_table};;'")
       dadmtools::run_sql_r(dst_tbl_comment, pg_conn_param)
       dadmtools::run_sql_r(glue("ANALYZE {new_resultant_name};"), pg_conn_param)
-      print("Resultant table created")
     }
   }
 
