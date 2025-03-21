@@ -227,7 +227,7 @@ add_fields_to_resultant  <- function(
     }
   }
 
-  final_all_fields <- c(final_join_fields, final_resultant_fields)
+  final_all_fields <- c(final_resultant_fields, final_join_fields)
   final_all_fields <- paste0(final_all_fields,collapse = ",")
   # final_join_fields <- paste0(final_join_fields,collapse = ",")
   # final_resultant_fields <- paste0(final_resultant_fields, collapse = ",")
