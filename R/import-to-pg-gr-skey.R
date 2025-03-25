@@ -374,6 +374,9 @@ import_to_pg_gr_skey <- function(
             out_tif_name = glue("{dst_tbl}.tif"),
             datatype     = 'INT4U',
             nodata       = no_data_value)
+			
+		  print('Removing TEMP files created by TERRA')
+		  terra::tmpFiles(remove = TRUE)
 
           in_df <- dadmtools::tif_to_gr_skey_tbl(
             src_tif_filename = dst_ras_filename,
