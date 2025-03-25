@@ -557,13 +557,6 @@ import_to_pg_gr_skey <- function(
 
         print(glue('Created PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
 
-
-
-
-
-
-
-
       }
 
       if (src_type %in% c("shapefile", "shp")) {
@@ -685,6 +678,7 @@ if(!overlap_ind){
     overlap_ind = overlap_ind ,
     overlap_group_fields = overlap_group_fields
   )
-
+  #--Removing TEMP raster files created by TERRA/gdal_rasterize
+  terra::tmpFiles(remove = TRUE)
 }
 
