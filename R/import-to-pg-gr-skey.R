@@ -375,7 +375,7 @@ import_to_pg_gr_skey <- function(
             datatype     = 'INT4U',
             nodata       = no_data_value)
 			
-		  print('Removing TEMP files created by TERRA')
+		  #--Removing TEMP raster files created by TERRA/gdal_rasterize
 		  terra::tmpFiles(remove = TRUE)
 
           in_df <- dadmtools::tif_to_gr_skey_tbl(
@@ -529,6 +529,9 @@ import_to_pg_gr_skey <- function(
             where         = where_clause_overlap
           )
 
+		  #--Removing TEMP raster files created by TERRA/gdal_rasterize
+		  terra::tmpFiles(remove = TRUE)
+		  
           in_df <- dadmtools::tif_to_gr_skey_tbl(
             src_tif_filename = dst_ras_filename,
             crop_extent      = crop_extent,
