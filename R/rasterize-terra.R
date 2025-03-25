@@ -25,7 +25,7 @@ rasterize_terra <- function(src_sf,
                           datatype ='INT4S',
                           nodata = 0)
 {
-
+  print('Welcome to the Jungle!')
   dest_tif <- file.path(out_tif_path, out_tif_name)
 
   # Check if the file exists
