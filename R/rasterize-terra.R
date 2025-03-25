@@ -25,7 +25,6 @@ rasterize_terra <- function(src_sf,
                           datatype ='INT4S',
                           nodata = 0)
 {
-
   dest_tif <- file.path(out_tif_path, out_tif_name)
 
   # Check if the file exists
@@ -50,7 +49,6 @@ rasterize_terra <- function(src_sf,
     }
   print(glue("Writing raster: {dest_tif} using datatype: {datatype}"))
   terra::writeRaster(rast_band, dest_tif, datatype = datatype, overwrite = TRUE, NAflag = nodata)
-
   terra::tmpFiles(remove=TRUE)
   print('Raster created successfully.')
   return(dest_tif)

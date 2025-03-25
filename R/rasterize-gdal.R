@@ -70,7 +70,7 @@ rasterize_gdal <- function(
   print(glue("Writing raster: {dst_ras_filename} using datatype: {datatype}"))
   print(paste('gdal_rasterize', datatype, comp, value, proj, extent_string, cell_size, src, dst_ras_filename, sql, nodata))
   print(system2('gdal_rasterize',args = c(datatype, comp, value, proj, extent_string, cell_size, src, dst_ras_filename, sql, nodata), stderr = TRUE))
-
+  terra::tmpFiles(remove=TRUE)
   print('Raster created successfully.')
   return(dst_ras_filename)
 

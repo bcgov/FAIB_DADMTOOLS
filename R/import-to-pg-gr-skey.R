@@ -374,6 +374,9 @@ import_to_pg_gr_skey <- function(
             out_tif_name = glue("{dst_tbl}.tif"),
             datatype     = 'INT4U',
             nodata       = no_data_value)
+			
+		  #--Removing TEMP raster files created by TERRA/gdal_rasterize
+		  terra::tmpFiles(remove = TRUE)
 
           in_df <- dadmtools::tif_to_gr_skey_tbl(
             src_tif_filename = dst_ras_filename,
@@ -526,6 +529,9 @@ import_to_pg_gr_skey <- function(
             where         = where_clause_overlap
           )
 
+		  #--Removing TEMP raster files created by TERRA/gdal_rasterize
+		  terra::tmpFiles(remove = TRUE)
+		  
           in_df <- dadmtools::tif_to_gr_skey_tbl(
             src_tif_filename = dst_ras_filename,
             crop_extent      = crop_extent,
@@ -550,13 +556,6 @@ import_to_pg_gr_skey <- function(
         }
 
         print(glue('Created PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
-
-
-
-
-
-
-
 
       }
 
@@ -679,6 +678,7 @@ if(!overlap_ind){
     overlap_ind = overlap_ind ,
     overlap_group_fields = overlap_group_fields
   )
-
+  #--Removing TEMP raster files created by TERRA/gdal_rasterize
+  terra::tmpFiles(remove = TRUE)
 }
 
