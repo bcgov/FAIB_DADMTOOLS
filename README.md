@@ -67,7 +67,7 @@ CREATE EXTENSION oracle_fdw;
  
 
 ### 5. Set up Database Connections in R 
-The dadmtools library uses the Windows Credential Manager Keyring to manage passwords. Two keyings are required for most usage within the library. Instructions below show how to create two required keyrings: `localsql` and `oracle`. 
+The dadmtools library uses the Windows Credential Manager Keyring to manage passwords. Two keyrings are recommended for most usage within the library. Instructions below show how to create two required keyrings: `localsql` and `oracle`. 
 
 Set up "localpsql" keyring:
 ```
