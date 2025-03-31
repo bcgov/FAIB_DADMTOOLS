@@ -5,6 +5,7 @@
 #' @param pg_conn_param Named list with the following parameters Driver,host,user,dbname,password,port,schema
 #' @param overwrite overwrite output T or F
 #' @param append append output T or F
+#' @param append output_schema Name of output pg schema.  Default = Null
 #'
 #' @return no return
 #' @export
@@ -12,14 +13,22 @@
 #' @examples df_to_pg(pg_tbl = 'pgTableName', in_df = in_df, pg_conn_params = get_pg_conn_list(), overwrite = 'TRUE', append = 'FALSE')
 
 
-df_to_pg <- function(pg_tbl, 
-                    in_df, 
-                    pg_conn_param, 
-                    overwrite = TRUE, 
-                    append = FALSE
+df_to_pg <- function(pg_tbl,
+                    in_df,
+                    pg_conn_param,
+                    overwrite = TRUE,
+                    append = FALSE,
+                    output_schema = NULL
                 )
 {
-  in_df <- lowercase_df_colnames(in_df)
+
+  if (is.null(output_schema)){
+    in_df <- lowercase_df_colnames(in_df)}else{
+
+      in_df <- lowercase_df_colnames(in_df)
+      pg_tbl <- DBI::Id(schema = output_schema, table =pg_tbl )
+       }
+
   conn <- dbConnect(pg_conn_param["driver"][[1]],
                   host = pg_conn_param["host"][[1]],
                   user = pg_conn_param["user"][[1]],

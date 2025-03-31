@@ -19,11 +19,11 @@ import_gr_skey_tif_to_pg_rast(
 )
 }
 \arguments{
-\item{out_crop_tif_name}{filename of the written output tif}
+\item{out_crop_tif_name}{filename of the written output tif, Ex. 'C:\\projects\\data\\gr_skey_grid.tif'}
 
-\item{template_tif}{The file path to the gr_skey template geotiff, defaults to  "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"}
+\item{template_tif}{The file path to the gr_skey template geotiff. `template_tif` and `mask_tif` must be the same resolution and projection must be BC Albers or EPSG: 3005. Defaults to  "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"}
 
-\item{mask_tif}{The file path to the geotiff to be used as a mask, defaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif"}
+\item{mask_tif}{The file path to the geotiff to be used as a mask. `template_tif` and `mask_tif` must be the same resolution and projection must be BC Albers or EPSG: 3005. Defaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif"}
 
 \item{crop_extent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005, defaults to c(273287.5,1870587.5,367787.5,1735787.5)}
 

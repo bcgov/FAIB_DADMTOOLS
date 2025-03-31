@@ -2,23 +2,22 @@
 % Please edit documentation in R/import-to-pg-gr-skey.R
 \name{import_to_pg_gr_skey}
 \alias{import_to_pg_gr_skey}
-\title{Update FAIB hectares database from input dataset}
+\title{Imports spatial data into a gridded attribute format within PostgreSQL, structuring data according to the gr_skey grid system.}
 \usage{
 import_to_pg_gr_skey(
-  rslt_ind,
   src_type,
   src_path,
   src_lyr,
-  suffix,
   dst_tbl,
   query,
   flds_to_keep,
   notes,
+  overlap_ind,
+  overlap_group_fields,
   out_tif_path,
   pg_conn_param = dadmtools::get_pg_conn_list(),
   ora_conn_param = dadmtools::get_ora_conn_list(),
   crop_extent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
-  gr_skey_tbl = "whse.all_bc_gr_skey",
   dst_schema = "whse",
   raster_schema = "raster",
   fdw_schema = "load",
@@ -27,58 +26,163 @@ import_to_pg_gr_skey(
   mask_tif =
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
   data_src_tbl = "whse.data_sources",
-  import_rast_to_pg = FALSE
+  import_rast_to_pg = FALSE,
+  grskey_schema = NULL
 )
 }
 \arguments{
-\item{rslt_ind}{Used in combination with gr_skey_tbl and suffix arguments. 1 = include (i.e. will add primary key to gr_skey tbl) 0 = not included (i.e. will not add primary key to gr_skey table)}
+\item{src_type}{Format of data source. Raster option will only work when the raster matches the spatial resolution, alignment and projection (BC Albers) of the gr_skey grid (specified by 'template_tif' argument) imported using 'import_gr_skey_tif_to_pg_rast'. Options: gdb, oracle, raster, geopackage, gpkg, shapefile, shp}
 
-\item{src_type}{Format of data source, Options: gdb, oracle, postgres, geopackage, raster, shp}
+\item{src_path}{Path to input data. Note: use 'bcgw' when srctype = 'oracle' for whse oracle layers. Use full path and filename when srctype = 'gdb' or 'raster' or 'shp' or 'geopackage'}
 
-\item{src_path}{Path to input data. Note use "bcgw" for whse oracle layers}
+\item{src_lyr}{Input layer name. Note: provide oracle schema and layer name, e.g. 'WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly' when src_type = 'oracle'. Provide layername within the file geodatabase, e.g. 'tsa_boundaries_2020' when src_type = 'gdb'. Provide the shapefile name without extension, e.g. 'k3o_cfa' when src_type = 'shp' or 'shapefile'. Provide the layername within the geopackage, e.g. 'FireSeverity_Final' when 'src_type = 'gpkg' or 'geopackage'. Argument is not used in import when src_type = 'raster' - though it is imported into metadata table.}
 
-\item{src_lyr}{Input layer name}
+\item{dst_tbl}{Name of imported non spatial table in PostgreSQL}
 
-\item{suffix}{Use in combination with rslt_ind and gr_skey_tbl. Suffix to be added to the primary key field name in the gr_skey table}
+\item{query}{Optional argument to filter source layer. Where clause used to filter input dataset, e.g., fire_year = 2023 and BURN_SEVERITY_RATING in ('High','Medium').}
 
-\item{dst_tbl}{Name of output non spatial table}
+\item{flds_to_keep}{Optional argument. By default, all fields are retained. Use this argument to filter fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name.}
 
-\item{query}{Where clause used to filter input dataset, Eg. fire_year = 2023 and BURN_SEVERITY_RATING in ('High','Medium')}
+\item{notes}{Optional argument. Notes field.}
 
-\item{flds_to_keep}{Fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name}
+\item{overlap_ind}{TRUE or FALSE.  If TRUE, it indicates that the input spatial layer has overlaps and imported <dst_tbl>_gr_skey table will duplicate gr_skey records where spatial overlaps occur.  If FALSE, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)}
 
-\item{notes}{Notes field}
+\item{overlap_group_fields}{The field groupings that will be used to handle spatial overlaps. I.e. each unique combination of the specified fields will be rasterized separately.}
 
-\item{out_tif_path}{Directory where output tif if exported and where vector is temporally stored prior to import}
+\item{out_tif_path}{Directory where output tif is exported and where vector is temporally stored prior to import}
 
-\item{pg_conn_param}{Keyring object of Postgres credentials}
+\item{pg_conn_param}{Keyring object of Postgres credentials. Defaults to dadmtools::get_pg_conn_list()}
 
-\item{ora_conn_param}{Keyring object of Oracle credentials}
+\item{ora_conn_param}{Keyring object of Oracle credentials. Defaults to dadmtools::get_ora_conn_list()}
 
-\item{crop_extent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005}
+\item{crop_extent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005. Defaults to c(273287.5, 1870587.5, 367787.5, 1735787.5)}
 
-\item{gr_skey_tbl}{Used in combination with Schema and table name of the pre-existing foreign key lookup gr_skey table. Argument to be used with suffix and rslt_ind within in_csv.}
-
-\item{dst_schema}{Schema to insert the newly created gr_skey and dst_tbl (Eg. non spatial table)}
+\item{dst_schema}{Schema to insert the newly created gr_skey and dst_tbl (Eg. non spatial table). Defaults to "whse"}
 
 \item{raster_schema}{If import_rast_to_pg set to TRUE, the import schema for the raster. Defaults to "raster"}
 
-\item{fdw_schema}{If src_type=oracle, the schema to load the foreign data wrapper table, Defaults to "load"}
+\item{fdw_schema}{If src_type=oracle, the schema to load the foreign data wrapper table. Defaults to "load"}
 
-\item{template_tif}{The file path to the gr_skey template geotiff}
+\item{template_tif}{The file path to the gr_skey template geotiff. Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif'}
 
-\item{mask_tif}{The file path to the geotiff to be used as a mask}
+\item{mask_tif}{The file path to the geotiff to be used as a mask. Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif'}
 
-\item{data_src_tbl}{Schema and table name of the metadata table in postgres that updates with any newly imported layer}
+\item{data_src_tbl}{Schema and table name of the metadata table in postgres that updates with any newly imported layer. Defaults to 'whse.datasources'}
 
-\item{import_rast_to_pg}{If TRUE, raster is imported into database in raster_schema}
+\item{import_rast_to_pg}{If TRUE, raster is imported into database in raster_schema. Defaults to FALSE}
 }
 \value{
 no return
 }
 \description{
-Update FAIB hectares database from input dataset
+Function supports both vector and raster inputs. For vector data (e.g., Shapefile, FGDB, GeoPackage), the function imports the attribute table into PostgreSQL and generates a corresponding raster attribute table, where each record represents a raster pixel (one hectare). The gr_skey field acts as a globally unique primary key, while pgid links the raster attributes to the vector attributes. Each record within the raster attribute table represents one pixel.
+For raster data (e.g., geotiff), the raster is required to have BC Albers coordinate reference system, (Ie. EPSG: 3005), the same grid definition as the 'template_tif' and 'mask_tif' provided to the 'import_gr_skey_tif_to_pg_rast' function and only one band. For TSR, it is recommended to use the gr_skey grid. The function imports the raster as a single attribute table. The table includes 'gr_skey', unique global cell id and the input raster pixel value. Each record represent one pixel.
 }
 \examples{
-coming soon
+## Example of importing the vector: whse_admin_boundaries.adm_nr_districts_sp 
+## from BCGW into postgres database in gr_skey format:
+library(dadmtools)
+import_to_pg_gr_skey(
+ src_type             = 'oracle',
+ src_path             = 'bcgw',
+ src_lyr              = 'whse_admin_boundaries.adm_nr_districts_sp',
+ dst_tbl              = 'adm_nr_districts_sp',
+ query                = '',
+ flds_to_keep         = NA,
+ notes                = '',
+ overlap_ind          = FALSE,
+ overlap_group_fields = '',
+ out_tif_path         = 'C:\\\\projects\\\\output\\\\',
+ pg_conn_param        = dadmtools::get_pg_conn_list(),
+ ora_conn_param       = dadmtools::get_ora_conn_list(),
+ crop_extent          = c(273287.5, 1870587.5, 367787.5, 1735787.5),
+ dst_schema           = 'sandbox',
+ raster_schema        = 'raster',
+ fdw_schema           = 'load',
+ template_tif         = 'S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\bc_01ha_gr_skey.tif',
+ mask_tif             = 'S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif',
+ data_src_tbl         = 'sandbox.data_sources',
+ import_rast_to_pg    = FALSE,
+ grskey_schema        = NULL)
+
+## look at a summary of the imported data
+sql_to_df('SELECT adm.district_name, count(*) as ha FROM sandbox.adm_nr_districts_sp adm JOIN  sandbox.adm_nr_districts_sp_gr_skey adm_key ON adm.pgid = adm_key.pgid GROUP BY adm.district_name LIMIT 2', dadmtools::get_pg_conn_list())
+#                             district_name      ha
+1 100 Mile House Natural Resource District 1235763
+2 Campbell River Natural Resource District 1473460
+
+## Example of importing a vector with overlaps: whse_forest_vegetation.pest_infestation_poly 
+## from BCGW into postgres database in gr_skey format. The following imports the 
+## pest_infestation_poly with a filter:
+## WHERE PEST_SPECIES_CODE = 'IDW' AND CAPTURE_YEAR > 2019
+## overlap_group_fields = 'CAPTURE_YEAR'. 
+## In other words, each unique capture year where species_code = 'IDW' 
+## will be imported separately so overlaps in capture_year will be captured.
+
+library(dadmtools)
+import_to_pg_gr_skey(
+ src_type             = 'oracle',
+ src_path             = 'bcgw',
+ src_lyr              = 'whse_forest_vegetation.pest_infestation_poly',
+ dst_tbl              = 'pest_infestation_poly',
+ query                = "PEST_SPECIES_CODE = 'IDW' AND CAPTURE_YEAR > 2019",
+ flds_to_keep         = 'PEST_SPECIES_CODE, PEST_SEVERITY_CODE, CAPTURE_YEAR',
+ notes                = '',
+ overlap_ind          = TRUE,
+ overlap_group_fields = 'CAPTURE_YEAR',
+ out_tif_path         = 'C:\\\\projects\\\\output\\\\',
+ pg_conn_param        = dadmtools::get_pg_conn_list(),
+ ora_conn_param       = dadmtools::get_ora_conn_list(),
+ crop_extent          = c(273287.5, 1870587.5, 367787.5, 1735787.5),
+ dst_schema           = 'sandbox',
+ raster_schema        = 'raster',
+ fdw_schema           = 'load',
+ template_tif         = 'S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\bc_01ha_gr_skey.tif',
+ mask_tif             = 'S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif',
+ data_src_tbl         = 'sandbox.data_sources',
+ import_rast_to_pg    = FALSE,
+ grskey_schema        = NULL)
+
+## Example of querying the pest data within 100 Mile House Natural Resource District
+## for capture_year 2020-2024.
+
+query <- "SELECT 
+adm.district_name, 
+pest.capture_year,
+pest.PEST_SPECIES_CODE,
+pest.PEST_SEVERITY_CODE,
+count(*) as ha
+FROM 
+sandbox.pest_infestation_poly_gr_skey_overlap pest_key
+JOIN sandbox.pest_infestation_poly pest on pest.pgid = pest_key.pgid
+LEFT JOIN sandbox.adm_nr_districts_sp_gr_skey adm_key ON adm_key.gr_skey = pest_key.gr_skey 
+LEFT JOIN sandbox.adm_nr_districts_sp adm ON adm.pgid = adm_key.pgid 
+WHERE 
+	adm.district_name = '100 Mile House Natural Resource District'
+AND
+	pest.capture_year IN (2020, 2021, 2022, 2023, 2024)
+GROUP BY 
+	adm.district_name, 
+	pest.capture_year,
+	pest.PEST_SPECIES_CODE,
+	pest.PEST_SEVERITY_CODE
+ORDER BY 
+	capture_year, count(*) DESC"
+
+sql_to_df(query, dadmtools::get_pg_conn_list())
+                               
+                             district_name capture_year pest_species_code pest_severity_code    ha
+1  100 Mile House Natural Resource District         2020               IDW                  L     7
+2  100 Mile House Natural Resource District         2021               IDW                  M 10443
+3  100 Mile House Natural Resource District         2021               IDW                  L  2577
+4  100 Mile House Natural Resource District         2022               IDW                  M 39705
+5  100 Mile House Natural Resource District         2022               IDW                  L  4663
+6  100 Mile House Natural Resource District         2022               IDW                  S    15
+7  100 Mile House Natural Resource District         2023               IDW                  M 27305
+8  100 Mile House Natural Resource District         2023               IDW                  L  7836
+9  100 Mile House Natural Resource District         2023               IDW                  T  2036
+10 100 Mile House Natural Resource District         2024               IDW                  L 89344
+11 100 Mile House Natural Resource District         2024               IDW                  S 29418
+12 100 Mile House Natural Resource District         2024               IDW                  M 23195
+
 }

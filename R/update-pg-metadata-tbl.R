@@ -5,12 +5,12 @@
 #' @param src_path source path (e.g. "w:/test/tes.gdb" or 'bcgw')
 #' @param src_lyr data source  (e.g. 'veg_comp_poly' or  'whse_forest_vegetation.f_own')
 #' @param pk primary of data source e.g. objectid
-#' @param suffix suffix used in resultant columns that were kept form the data source (e.g. "vri2021")
 #' @param query where statement used to filter data source
 #' @param inc 1 or 0,  indicates if data source is in PG
-#' @param rslt_ind indicates the pk is in the  pg resultant or not
 #' @param flds_to_keep string of fields kept from data input (e.g. "feature_id,proj_age_1,live_stand_volume_125")
 #' @param notes coming soon
+#' @param overlap_ind True or False.  If true, it indicates that a duplicae gr_skeys will be in output gr_skey table where spatial overlaps occur.  If false, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)
+#' @param overlap_group_fields The field groupings that will be used to deal with spatial overlaps. I.e. Every unique grouping of the indicated fields will be rasterized separately.
 #' @param dst_tbl coming soon
 #' @param dst_schema coming soon
 #' @param pg_conn_param coming soon
@@ -26,16 +26,17 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                                    src_path,
                                    src_lyr,
                                    pk,
-                                   suffix,
                                    query,
                                    inc,
-                                   rslt_ind,
                                    flds_to_keep,
                                    notes,
+                                   overlap_ind,
+                                   overlap_group_fields,
                                    dst_tbl,
                                    dst_schema,
                                    pg_conn_param)
 {
+
   print(glue("Inserting record into {data_src_tbl} for {dst_schema}.{dst_tbl}"))
   if(is_blank(flds_to_keep)) {
     flds_to_keep <- ""
@@ -61,11 +62,11 @@ update_pg_metadata_tbl <- function(data_src_tbl,
   src_path     <- dbQuoteString(connz, src_path)
   src_lyr      <- dbQuoteString(connz, src_lyr)
   pk           <- dbQuoteString(connz, pk)
-  suffix       <- dbQuoteString(connz, suffix)
   dst_schema   <- dbQuoteString(connz, dst_schema)
   dst_tbl      <- dbQuoteString(connz, dst_tbl)
-  rslt_ind     <- dbQuoteString(connz, rslt_ind)
   flds_to_keep <- dbQuoteString(connz, flds_to_keep)
+  overlap_ind <- dbQuoteString(connz, as.character(overlap_ind))
+  overlap_group_fields <- dbQuoteString(connz, overlap_group_fields)
   on.exit(RPostgres::dbDisconnect(connz))
 
 
@@ -75,13 +76,13 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                       src_path varchar,
                       src_lyr varchar,
                       primary_key varchar,
-                      suffix varchar,
                       dst_schema varchar,
                       dst_tbl varchar,
                       query varchar,
-                      rslt_ind integer,
                       flds_to_keep varchar,
                       notes varchar,
+                      overlap_ind varchar,
+                      overlap_group_fields varchar,
                       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                       CONSTRAINT data_sources_unique UNIQUE (dst_schema, dst_tbl)
                     );")
@@ -93,13 +94,13 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                      src_path,
                      src_lyr,
                      primary_key,
-                     suffix,
                      dst_schema,
                      dst_tbl,
                      query,
-                     rslt_ind,
                      flds_to_keep,
-                     notes
+                     notes,
+                     overlap_ind,
+                     overlap_group_fields
                     )
                      VALUES
                     (
@@ -107,13 +108,13 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                     {src_path},
                     {src_lyr},
                     {pk},
-                    {suffix},
                     {dst_schema},
                     {dst_tbl},
                     {query},
-                    {rslt_ind},
                     {flds_to_keep},
-                    {notes}
+                    {notes},
+                    {overlap_ind},
+                    {overlap_group_fields}
                     )
                     ON CONFLICT (dst_schema, dst_tbl) DO UPDATE
                     SET
@@ -121,14 +122,11 @@ update_pg_metadata_tbl <- function(data_src_tbl,
                     src_path = EXCLUDED.src_path,
                     src_lyr = EXCLUDED.src_lyr,
                     primary_key = EXCLUDED.primary_key,
-                    suffix = EXCLUDED.suffix,
                     dst_schema = EXCLUDED.dst_schema,
                     query = EXCLUDED.query,
-                    rslt_ind = EXCLUDED.rslt_ind,
                     flds_to_keep = EXCLUDED.flds_to_keep,
                     notes = EXCLUDED.notes,
                     created_at = now();")
-  print(glue("Inserting record into {data_src_tbl} for {dst_schema}.{dst_tbl}"))
 
   tryCatch({
     # Code that might raise the error
