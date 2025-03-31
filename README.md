@@ -35,7 +35,7 @@ After GDAL installation, be sure that GDAL_DATA and GDAL_DRIVER_PATH are install
   - variable = GDAL_DRIVER_PATH, value = C:\Program Files\GDAL\gdalplugins
 
 
-### 3. PostgreSQL Required Extensions and Schemas
+### 3. PostgreSQL Required Extensions and Recommended Schemas
 
 1. Once PostgreSQL and dependancies are installed, enable database with the following extensions enabled:
  ```
@@ -44,7 +44,7 @@ CREATE EXTENSION postgis_raster;
 CREATE EXTENSION oracle_fdw;
  ```
 
-2. Create two required schemas:
+2. Create two recommended schemas:
  ```
  CREATE SCHEMA raster;
  CREATE SCHEMA whse;
