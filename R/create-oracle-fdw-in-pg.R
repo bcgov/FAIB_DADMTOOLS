@@ -7,7 +7,6 @@
 #' @param out_schema name of schema where foreign table will be imported
 #'
 #' @return string of output foreign table (schema.in_table)
-##' @export
 #'
 #' @examples coming soon
 

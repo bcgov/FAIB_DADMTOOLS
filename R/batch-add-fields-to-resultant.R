@@ -3,7 +3,6 @@
 #' @param pg_conn_param named list of postgres connection parameters (i.e. get_pg_conn_list())
 #'
 #' @return nothing is returned
-#' @export
 #'
 #' @examples 
 #' Download and edit example input batch_add_fields_to_resultant.csv from https://github.com/bcgov/FAIB_DADMTOOLS/tree/main. Example of function run:

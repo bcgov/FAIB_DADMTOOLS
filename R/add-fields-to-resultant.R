@@ -15,7 +15,6 @@
 #' @param overwrite_resultant_table (required): A logical value (TRUE or FALSE) indicating whether to overwrite the 'new_resultant_name'
 #'
 #' @return nothing is returned
-#' @export
 #'
 #' @examples coming soon
 

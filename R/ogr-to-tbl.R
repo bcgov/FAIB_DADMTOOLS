@@ -11,7 +11,6 @@
 #' @param tbl_comment Set to TRUE if GDAL is installed on machine e.g. TRUE
 #'
 #' @return no return
-#' @export
 #'
 #' @examples coming soon
 

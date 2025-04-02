@@ -5,7 +5,6 @@
 #' @param template_ras template pg raster with the same the resolution and extent of the input raster
 #' @param pg_conn_param Keyring object of Postgres credentials
 #' @return nothing is returned
-#' @export
 #'
 #' @examples coming soon
 

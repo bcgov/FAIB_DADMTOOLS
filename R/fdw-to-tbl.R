@@ -11,7 +11,6 @@
 #' @param where optional
 #'
 #' @return None
-#' @export
 #'
 #' @examples coming soon
 

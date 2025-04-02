@@ -7,7 +7,6 @@
 #' @param fdw_schema Defaults to "load"
 #' @param where Optionalm defaults to NULL
 #' @return sql string
-#' @export
 #'
 #' @examples coming soon
 
