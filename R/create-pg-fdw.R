@@ -7,12 +7,12 @@
 #' @param out_schema name of schema where foreign table will be imported
 #'
 #' @return string of output foreign table (schema.in_table)
-#' @export
+##' @export
 #'
 #' @examples coming soon
 
 
-create_pg_fdw <- function(in_table, ora_conn_param, pg_conn_param, out_server_name, out_schema) {
+create_oracle_fdw_in_pg <- function(in_table, ora_conn_param, pg_conn_param, out_server_name, out_schema) {
 
   ora_server <- ora_conn_param["server"][[1]]
   idir <- ora_conn_param["user"][[1]]

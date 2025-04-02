@@ -279,7 +279,7 @@ import_to_pg_gr_skey <- function(
 
       fdw_tbl  <- strsplit(src_lyr, "\\.")[[1]][[2]]
       ## Create a FDW table in PG
-      fklyr <- create_pg_fdw(src_lyr, ora_conn_param, pg_conn_param, 'oradb', fdw_schema)
+      fklyr <- create_oracle_fdw_in_pg(src_lyr, ora_conn_param, pg_conn_param, 'oradb', fdw_schema)
 
       connz <- dbConnect(pg_conn_param["driver"][[1]],
                        host     = pg_conn_param["host"][[1]],
