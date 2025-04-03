@@ -11,7 +11,6 @@
 #' @param pg_conn_param params
 #'
 #' @return nothing is returned
-#' @export
 #'
 #' @examples coming soon
 

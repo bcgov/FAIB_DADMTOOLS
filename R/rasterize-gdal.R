@@ -12,7 +12,6 @@
 #' @param datatype  default Int64
 #'
 #' @return output tif name
-#' @export
 #'
 #' @examples comming soon
 

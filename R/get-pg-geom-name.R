@@ -5,7 +5,6 @@
 #' @param pg_conn_param Named list with the following parameters Driver,host,user,dbname,password,port,schema
 #'
 #' @return returns field name of geometry field
-#' @export
 #'
 #' @examples coming soon
 

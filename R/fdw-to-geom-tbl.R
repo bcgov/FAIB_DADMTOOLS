@@ -7,7 +7,6 @@
 #' @param ora_conn_param coming soon
 #' @param fdw_schema coming soon
 #' @return None
-#' @export
 #'
 #' @examples coming soon
 

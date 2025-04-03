@@ -15,7 +15,6 @@
 #' @param dst_schema coming soon
 #' @param pg_conn_param coming soon
 #' @return no return
-#' @export
 #'
 #' @examples coming soon
 

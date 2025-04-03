@@ -57,7 +57,6 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
     overlap_ind   <- as.logical(gsub("[[:space:]]","",toupper(in_file[row, "overlap_ind"])))
     group_field   <- gsub("[[:space:]]","",tolower(in_file[row, "overlap_group_fields"])) ## group field to be used in the resultant table
 
-
      ## checks
     if (any(c(is_blank(src_type), is_blank(src_path), is_blank(src_lyr), is_blank(dst_tbl), is_blank(out_tif_path)))){
       print("ERROR: Argument not provided, one of src_type, src_path, src_lyr, dst_tbl, out_tif_path was left blank. Exiting script.")
