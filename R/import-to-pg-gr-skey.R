@@ -670,5 +670,7 @@ if(!overlap_ind){
     overlap_group_fields = overlap_group_fields
   )
 
+  terra::tmpFiles(remove=TRUE)
+
 }
 
