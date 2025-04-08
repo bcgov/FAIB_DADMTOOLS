@@ -79,7 +79,7 @@ Function supports both vector and raster inputs. For vector data (e.g., Shapefil
 For raster data (e.g., geotiff), the raster is required to have BC Albers coordinate reference system, (Ie. EPSG: 3005), the same grid definition as the 'template_tif' and 'mask_tif' provided to the 'import_gr_skey_tif_to_pg_rast' function and only one band. For TSR, it is recommended to use the gr_skey grid. The function imports the raster as a single attribute table. The table includes 'gr_skey', unique global cell id and the input raster pixel value. Each record represent one pixel.
 }
 \examples{
-## Example of importing the vector: whse_admin_boundaries.adm_nr_districts_sp 
+## Example of importing the vector: whse_admin_boundaries.adm_nr_districts_sp
 ## from BCGW into postgres database in gr_skey format:
 library(dadmtools)
 import_to_pg_gr_skey(
@@ -111,12 +111,12 @@ sql_to_df('SELECT adm.district_name, count(*) as ha FROM sandbox.adm_nr_district
 1 100 Mile House Natural Resource District 1235763
 2 Campbell River Natural Resource District 1473460
 
-## Example of importing a vector with overlaps: whse_forest_vegetation.pest_infestation_poly 
-## from BCGW into postgres database in gr_skey format. The following imports the 
+## Example of importing a vector with overlaps: whse_forest_vegetation.pest_infestation_poly
+## from BCGW into postgres database in gr_skey format. The following imports the
 ## pest_infestation_poly with a filter:
 ## WHERE PEST_SPECIES_CODE = 'IDW' AND CAPTURE_YEAR > 2019
-## overlap_group_fields = 'CAPTURE_YEAR'. 
-## In other words, each unique capture year where species_code = 'IDW' 
+## overlap_group_fields = 'CAPTURE_YEAR'.
+## In other words, each unique capture year where species_code = 'IDW'
 ## will be imported separately so overlaps in capture_year will be captured.
 
 library(dadmtools)
@@ -146,31 +146,31 @@ import_to_pg_gr_skey(
 ## Example of querying the pest data within 100 Mile House Natural Resource District
 ## for capture_year 2020-2024.
 
-query <- "SELECT 
-adm.district_name, 
+query <- "SELECT
+adm.district_name,
 pest.capture_year,
 pest.PEST_SPECIES_CODE,
 pest.PEST_SEVERITY_CODE,
 count(*) as ha
-FROM 
+FROM
 sandbox.pest_infestation_poly_gr_skey_overlap pest_key
 JOIN sandbox.pest_infestation_poly pest on pest.pgid = pest_key.pgid
-LEFT JOIN sandbox.adm_nr_districts_sp_gr_skey adm_key ON adm_key.gr_skey = pest_key.gr_skey 
-LEFT JOIN sandbox.adm_nr_districts_sp adm ON adm.pgid = adm_key.pgid 
-WHERE 
+LEFT JOIN sandbox.adm_nr_districts_sp_gr_skey adm_key ON adm_key.gr_skey = pest_key.gr_skey
+LEFT JOIN sandbox.adm_nr_districts_sp adm ON adm.pgid = adm_key.pgid
+WHERE
 	adm.district_name = '100 Mile House Natural Resource District'
 AND
 	pest.capture_year IN (2020, 2021, 2022, 2023, 2024)
-GROUP BY 
-	adm.district_name, 
+GROUP BY
+	adm.district_name,
 	pest.capture_year,
 	pest.PEST_SPECIES_CODE,
 	pest.PEST_SEVERITY_CODE
-ORDER BY 
+ORDER BY
 	capture_year, count(*) DESC"
 
 sql_to_df(query, dadmtools::get_pg_conn_list())
-                               
+
                              district_name capture_year pest_species_code pest_severity_code    ha
 1  100 Mile House Natural Resource District         2020               IDW                  L     7
 2  100 Mile House Natural Resource District         2021               IDW                  M 10443

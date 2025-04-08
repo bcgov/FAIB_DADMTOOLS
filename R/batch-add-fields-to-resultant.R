@@ -4,7 +4,7 @@
 #'
 #' @return nothing is returned
 #'
-#' @examples 
+#' @examples
 #' Download and edit example input batch_add_fields_to_resultant.csv from https://github.com/bcgov/FAIB_DADMTOOLS/tree/main. Example of function run:
 #' batch_add_fields_to_resultant(
 #'    in_csv           = "batch_add_fields_to_resultant.csv",
@@ -44,14 +44,14 @@ batch_add_fields_to_resultant  <- function(
 
     ## checks
     check_blanks <- list(
-      overwrite_resultant_table = overwrite_resultant_table, 
-      overwrite_fields = overwrite_fields, 
-      include_prefix = include_prefix, 
-      new_resultant_name = new_resultant_name, 
-      gr_skey_table = gr_skey_table, 
-      current_resultant_table = current_resultant_table, 
-      included_fields = included_fields, 
-      key_resultant_tbl = key_resultant_tbl, 
+      overwrite_resultant_table = overwrite_resultant_table,
+      overwrite_fields = overwrite_fields,
+      include_prefix = include_prefix,
+      new_resultant_name = new_resultant_name,
+      gr_skey_table = gr_skey_table,
+      current_resultant_table = current_resultant_table,
+      included_fields = included_fields,
+      key_resultant_tbl = key_resultant_tbl,
       key_grskey_tbl = key_grskey_tbl
     )
 
@@ -101,25 +101,8 @@ batch_add_fields_to_resultant  <- function(
 
     included_fields <- unlist(strsplit(included_fields, ","))
 
-    # print('loop print')
-    # for (i in c(overwrite_resultant_table,
-    #             overwrite_fields,
-    #             include_prefix,
-    #             new_resultant_name,
-    #             gr_skey_table,
-    #             attribute_table,
-    #             current_resultant_table,
-    #             included_fields,
-    #             update_field_names,
-    #             prefix,
-    #             key_resultant_tbl,
-    #             key_grskey_tbl,
-    #             key_join_tbl,
-    #             notes )) {
-    #   print(i)
-    # }
 
-    dadmtools::add_fields_to_resultant( new_resultant_name        = new_resultant_name,
+    dadmtools:::add_fields_to_resultant( new_resultant_name        = new_resultant_name,
                                         gr_skey_table             = gr_skey_table ,
                                         included_fields           = included_fields,
                                         attribute_table           = attribute_table,

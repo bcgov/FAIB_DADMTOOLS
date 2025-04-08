@@ -292,7 +292,7 @@ import_to_pg_gr_skey <- function(
       # Create Non Spatial Table with attributes from FDW
       # =============================================================================
       print(glue("Creating non-spatial PG table: {dst_schema}.{dst_tbl} from FDW table: {fdw_schema}.{fdw_tbl}"))
-      dadmtools::fdw_to_tbl(
+      dadmtools:::fdw_to_tbl(
         src_tbl       = fdw_tbl,
         src_schema    = fdw_schema,
         dst_tbl       = dst_tbl,
@@ -309,10 +309,14 @@ import_to_pg_gr_skey <- function(
       # Create GR SKEY Spatial Table
       # =============================================================================
 
-      if(overlap_ind){select_flds <- paste0(c(pk_id,paste0('non_spatial.',strsplit(overlap_group_fields, ",")[[1]])),collapse = ",")}else{select_flds <- pk_id}
+      if(overlap_ind) {
+        select_flds <- paste0(c(pk_id,paste0('non_spatial.',strsplit(overlap_group_fields, ",")[[1]])),collapse = ",")
+      } else {
+        select_flds <- pk_id
+      }
 
       ## Create a SQL query including the spatial field and primary key field of a Foreign Data Wrapper table
-      qry <- get_sql_fdw_id_geom(dst_tbl      = dst_tbl,
+      qry <- dadmtools:::get_sql_fdw_id_geom(dst_tbl      = dst_tbl,
                                 dst_schema    = dst_schema,
                                 ora_tbl       = src_lyr,
                                 pk            = select_flds,
@@ -336,7 +340,7 @@ import_to_pg_gr_skey <- function(
 
       if(!overlap_ind) {
         ## Rasterize using TERRA
-        dst_ras_filename <- rasterize_terra(
+        dst_ras_filename <- dadmtools::rasterize_terra(
           src_sf       = in_sf,
           field        = pk_id,
           template_tif = template_tif,
@@ -366,7 +370,7 @@ import_to_pg_gr_skey <- function(
           filtered_df <- merge(in_sf, row, by = fields)
 
           ## Rasterize using TERRA
-          dst_ras_filename <- rasterize_terra(
+          dst_ras_filename <- dadmtools::rasterize_terra(
             src_sf       = filtered_df,
             field        = pk_id,
             template_tif = template_tif,
@@ -431,7 +435,7 @@ import_to_pg_gr_skey <- function(
       # Create Non Spatial Table with attributes from FDW
       # =============================================================================
       print(glue("Creating non-spatial PG table: {dst_schema}.{dst_tbl} from source: {src_path}|layername={src_lyr}"))
-      dadmtools::ogr_to_tbl(
+      dadmtools:::ogr_to_tbl(
                             src           = src_path,
                             dst_tbl       = dst_tbl,
                             pg_conn_param = pg_conn_param,
@@ -450,7 +454,7 @@ import_to_pg_gr_skey <- function(
 
       if(!overlap_ind) {
         #Create tif from input
-        dst_ras_filename <- rasterize_gdal(
+        dst_ras_filename <- dadmtools:::rasterize_gdal(
                                     in_lyr        = src_lyr,
                                     field         = pk_id,
                                     out_tif_path  = out_tif_path,
@@ -496,12 +500,17 @@ import_to_pg_gr_skey <- function(
         for (i in 1:nrow(overlap_groups_df)) {
           row <- overlap_groups_df[i, ,drop = FALSE]  # Get the row as a dataframe
           print(row)
-          if(is.null(where_claus)){where_clause_overlap <- NULL}else{where_clause_overlap <- glue("({where_claus})")}
+          if (is.null(where_claus)) {
+            where_clause_overlap <- NULL
+          } else {
+            where_clause_overlap <- glue("({where_claus})")
+          }
+
           for (col in names(row)) {
             value <- row[1,col]
             if (is.null(value) | is.na(value)) {
               colquery = glue("{col} is Null")
-            }else{
+            } else {
               colquery = glue("{col} = {value}")
             }
             if(is.null(where_clause_overlap)){where_clause_overlap <- colquery}else{where_clause_overlap <- glue("{where_clause_overlap} and {colquery}")}
@@ -509,10 +518,13 @@ import_to_pg_gr_skey <- function(
           print(where_clause_overlap)
 
 
-          if(!dadmtools::is_blank(where_claus)  ){src_lyr_rasterize <- glue("{src_lyr} where {where_claus}" )}
-        else{src_lyr_rasterize <- src_lyr}
+          if(!dadmtools::is_blank(where_claus)){
+            src_lyr_rasterize <- glue("{src_lyr} where {where_claus}" )
+          } else {
+            src_lyr_rasterize <- src_lyr
+          }
 
-          dst_ras_filename <- rasterize_gdal(
+          dst_ras_filename <- dadmtools:::rasterize_gdal(
             in_lyr        = src_lyr_rasterize,
             field         = pk_id,
             out_tif_path  = out_tif_path,
@@ -599,6 +611,7 @@ if(!overlap_ind){
   dst_gr_skey_tbl_pg_obj <- RPostgres::Id(schema = grskey_schema, table = dst_gr_skey_tbl)
   print(glue('Creating PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
   dadmtools::run_sql_r(glue("DROP TABLE IF EXISTS {grskey_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
+
   if (tolower(src_type) == 'raster') {
     band_field_name <- 'val'
   } else {
@@ -654,7 +667,7 @@ if(!overlap_ind){
   dadmtools::run_sql_r(glue("ANALYZE {grskey_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
 
 
-  dadmtools::update_pg_metadata_tbl(
+  dadmtools:::update_pg_metadata_tbl(
     data_src_tbl    = data_src_tbl,
     src_type        = src_type,
     src_path        = old_src_path,
