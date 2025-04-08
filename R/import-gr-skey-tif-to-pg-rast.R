@@ -47,7 +47,8 @@ import_gr_skey_tif_to_pg_rast <- function(
   make_rast[make_rast <= 0] <- NA
   gr_skey_rast <- terra::mask(gr_skey_rast, make_rast, datatype = "INT4S")
   writeRaster(gr_skey_rast, out_crop_tif_name, datatype = "INT4S", overwrite = TRUE)
-
+  terra::tmpFiles(remove=TRUE)
+  
   #GR_SKEY_RASTER to PG
   host <- pg_conn_param["host"][[1]]
   user <- pg_conn_param["user"][[1]]

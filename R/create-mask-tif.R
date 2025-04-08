@@ -42,5 +42,6 @@ create_mask_tif <- function(
   rast_band[!is.na(rast_band)]  <- 1
 
   terra::writeRaster(rast_band, dest, datatype = datatype, overwrite = TRUE)
+  terra::tmpFiles(remove=TRUE)
   return(dest)
 }

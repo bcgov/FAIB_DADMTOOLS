@@ -159,7 +159,7 @@ add_fields_to_resultant  <- function(
     fields_to_add <- included_fields[!(included_fields %in% current_resultant_cols)]
     fields_to_add_new_names <- update_field_names[!(update_field_names %in% current_resultant_cols)]
   }
-  
+
   #### Determine fields to update
   if (include_prefix) {
     fields_to_update <- paste0(prefix,'_',included_fields)[(paste0(prefix,'_',included_fields) %in% current_resultant_cols)]
@@ -185,7 +185,7 @@ add_fields_to_resultant  <- function(
         final_join_vect <- paste0(prefix,'_', included_fields)
         final_join_fields <- paste0('att.', included_fields, ' as ', prefix, '_', included_fields)
       } else {
-        
+
         final_join_vect <- paste0(included_fields)
         final_join_fields <- paste0('att.',included_fields)
       }
@@ -196,7 +196,7 @@ add_fields_to_resultant  <- function(
       } else {
         final_join_vect <- paste0( update_field_names)
         final_join_fields <- paste0('att.', included_fields, ' as ', update_field_names)
-      } 
+      }
     }
 
   } else {
@@ -271,7 +271,7 @@ add_fields_to_resultant  <- function(
 
     if(output_tbl_exists) {
       print(glue("ERROR: Output resultant table already exists"))
-      stop()  
+      stop()
     } else {
       if(!is.null(attribute_table)) {
         run_sql_r(glue("CREATE TABLE {new_resultant_name} AS
@@ -299,7 +299,7 @@ add_fields_to_resultant  <- function(
     }
   }
 
-  dadmtools::update_resultant_field_tbl(
+  dadmtools:::update_resultant_field_tbl(
                           field_names = final_join_vect,
                           included_fields,
                           resultant_table_no_schema,
