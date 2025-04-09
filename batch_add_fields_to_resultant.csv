@@ -1,5 +1,5 @@
-include,overwrite_resultant_table,overwrite_fields,include_prefix,new_resultant_name,gr_skey_table,attribute_table,current_resultant_table,included_fields,update_field_names,prefix,key_resultant_tbl,key_grskey_tbl ,key_join_tbl,notes
-1,TRUE,TRUE,FALSE,gr_skey.tsa38_resultant,gr_skey.cut_block_all_bc_jan28,att.cut_block_all_bc_jan28,gr_skey.tsa38_gr_skey,"harvest_start_year_calendar,opening_id",,,gr_skey,gr_skey,pgid,
-1,TRUE,TRUE,FALSE,gr_skey.tsa38_resultant,gr_skey.wcp_wildlife_habitat_area_poly_overlap_duplicates_as_array,,gr_skey.tsa38_resultant,"common_species_name_array,timber_harvest_code_array","common_species_name,timber_harvest_code",,gr_skey,gr_skey,,
-1,TRUE,TRUE,TRUE,gr_skey.tsa38_resultant,gr_skey.fadm_tfl_all_sp,att.fadm_tfl_all_sp,gr_skey.tsa38_resultant,forest_file_id,,tfl,gr_skey,gr_skey,pgid,
-1,TRUE,TRUE,FALSE,gr_skey.tsa38_resultant,gr_skey.aspect,,gr_skey.tsa38_resultant,val,aspect_perc,,gr_skey,gr_skey,,
+include,input_gr_skey_table,input_attribute_table,input_fields_to_include,output_field_names,prefix,key_field_grskey_table ,key_field_attribute_table ,key_field_resultant_table ,notes
+1,gr_skey.cut_block_all_bc_jan28,att.cut_block_all_bc_jan28,"harvest_start_year_calendar,opening_id",,,gr_skey,pgid,gr_skey,
+1,gr_skey.wcp_wildlife_habitat_area_poly_overlap_duplicates_as_array,,"common_species_name_array,timber_harvest_code_array","common_species_name,timber_harvest_code",,gr_skey,pgid,gr_skey,
+1,gr_skey.fadm_tfl_all_sp,att.fadm_tfl_all_sp,forest_file_id,,tfl,gr_skey,pgid,gr_skey,
+1,gr_skey.aspect,,val,aspect_perc,,gr_skey,pgid,gr_skey,
