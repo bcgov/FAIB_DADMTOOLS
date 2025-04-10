@@ -1,4 +1,8 @@
-src_type,src_path,src_lyr,suffix,dst_schema,dst_tbl,query,inc,rslt_ind,flds_to_keep,notes
-gdb,W:\FOR\VIC\HTS\ANA\Workarea\PROVINCIAL\provincial.gdb,tsa_boundaries_2020,tsa,whse,tsa_boundaries_2020,"tsa_fid in (38, 39)",1,0,tsa_fid,important notes
-oracle,bcgw,WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly,bec,whse,bec_biogeoclimatic_poly,,0,1,,less important notes
-raster,D:\Projects\PSPL_2022\IAIAN_VERSION\R_SCRIPTS\inputs\raster\prov_aspect100_Shift.tif,aspect,asp,whse,aspect,,0,0,,neato
+include,overlap_ind,src_type,src_path,src_lyr,dst_schema,dst_tbl,query,flds_to_keep,overlap_group_fields,notes
+0,TRUE,gdb,W:\FOR\VIC\HTS\ANA\Workarea\PROVINCIAL\provincial.gdb,tsa_boundaries_2020,whse,tsa_boundaries_2020,tsa_fid in (38),,tsa_number,
+0,FALSE,oracle,bcgw,WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly,whse,bec_biogeoclimatic_poly,,,,
+0,FALSE,raster,D:\Projects\PSPL_2022\IAIAN_VERSION\R_SCRIPTS\inputs\raster\prov_aspect100_Shift.tif,aspect,att,aspect,,,,from intetnal faib datasets
+1,FALSE,oracle,bcgw,whse_admin_boundaries.fadm_tfl_all_sp,whse,fadm_tfl_all_sp,,,,
+0,FALSE,gdb,W:\FOR\VIC\HTS\DAM\Projects\Consolidated_Cutblocks\2025\January\outputs\ccInputs.gdb,Cut_Block_all_BC,att,Cut_Block_all_BC_jan28,,,,"updated January 28, 2025"
+1,TRUE,oracle,bcgw,WHSE_WILDLIFE_MANAGEMENT.WCP_WILDLIFE_HABITAT_AREA_POLY,sandbox,WCP_WILDLIFE_HABITAT_AREA_POLY,,,TIMBER_HARVEST_CODE,
+0,FALSE,gdb,D:\Data\Inputs\thlb.gdb,thlb,whse,thlb_test2,,,,"updated January 28, 2025"

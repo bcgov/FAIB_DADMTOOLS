@@ -7,7 +7,6 @@
 #' @param fdw_schema Defaults to "load"
 #' @param where Optionalm defaults to NULL
 #' @return sql string
-#' @export
 #'
 #' @examples coming soon
 
@@ -28,7 +27,7 @@ get_sql_fdw_id_geom<- function(dst_tbl,
   }
 
   ## retrieve the geometry name
-  geom_name <- dadmtools::get_pg_geom_name(fdw_schema, ora_tbl, pg_conn_param)
+  geom_name <- dadmtools:::get_pg_geom_name(fdw_schema, ora_tbl, pg_conn_param)
     ## post process the where statement
   if(!is.null(where)) {
     if(startsWith(trimws(where), "where")) {

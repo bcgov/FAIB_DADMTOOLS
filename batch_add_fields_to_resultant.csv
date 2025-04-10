@@ -1,0 +1,5 @@
+include,input_gr_skey_table,input_attribute_table,input_fields_to_include,output_field_names,prefix,key_field_grskey_table ,key_field_attribute_table ,key_field_resultant_table ,notes
+1,gr_skey.cut_block_all_bc_jan28,att.cut_block_all_bc_jan28,"harvest_start_year_calendar,opening_id",,,gr_skey,pgid,gr_skey,
+1,gr_skey.wcp_wildlife_habitat_area_poly_overlap_duplicates_as_array,,"common_species_name_array,timber_harvest_code_array","common_species_name,timber_harvest_code",,gr_skey,pgid,gr_skey,
+1,gr_skey.fadm_tfl_all_sp,att.fadm_tfl_all_sp,forest_file_id,,tfl,gr_skey,pgid,gr_skey,
+1,gr_skey.aspect,,val,aspect_perc,,gr_skey,pgid,gr_skey,

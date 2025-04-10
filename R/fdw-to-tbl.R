@@ -11,7 +11,6 @@
 #' @param where optional
 #'
 #' @return None
-#' @export
 #'
 #' @examples coming soon
 
@@ -33,7 +32,7 @@ fdw_to_tbl <- function(src_tbl,
     src_tbl <- src_tbl
   }
 
-  geom_name <- dadmtools::get_pg_geom_name(src_schema, src_tbl, pg_conn_param)
+  geom_name <- dadmtools:::get_pg_geom_name(src_schema, src_tbl, pg_conn_param)
 
   if(where == '' || is.null(where) || is.na(where)) {
     where <- ''

@@ -7,7 +7,6 @@
 #' @param filter_suffix_vect vector of suffixes to be included in string
 #' @param metadata_tbl Boolean to say whether in_df is based on metadata pg (TRUE) or config_parameters.csv (FALSE). If metadata_tbl = TRUE, schema and pk are taken from data_sources table entries rather than from argument.
 #' @return String
-#' @export
 #'
 #' @examples str_sql_joins(base_join_tbl = "whse.all_bc_gr_skey", schema= "whse", pk = "pgid", in_df = read.csv("config_parameters.csv"))
 #' @examples str_sql_joins(base_join_tbl = "whse.all_bc_gr_skey", schema= "whse", pk = "pgid", in_df = read.csv("config_parameters.csv"), filter_suffix_vect=c("sev_ras", "tsa"))

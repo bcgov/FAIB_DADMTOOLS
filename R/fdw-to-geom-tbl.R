@@ -7,7 +7,6 @@
 #' @param ora_conn_param coming soon
 #' @param fdw_schema coming soon
 #' @return None
-#' @export
 #'
 #' @examples coming soon
 
@@ -20,7 +19,7 @@ fdw_to_geom_tbl <- function(ora_tbl, out_tbl, pk, out_schema, ora_conn_param, fd
     ora_tbl_no_schema <- fdwTblName
   }
   ora_tbl_no_schema <- paste(ora_tbl_no_schema, "_sp")
-  geom_name <- dadmtools::get_pg_geom_name(fdw_schema, ora_tbl_no_schema, ora_conn_param)
+  geom_name <- dadmtools:::get_pg_geom_name(fdw_schema, ora_tbl_no_schema, ora_conn_param)
   out_name_schema <- glue::glue("{out_schema}.{out_tbl}")
   sql <-  glue::glue_sql("SELECT 'SELECT ' || array_to_string(ARRAY(SELECT 'o' || '.' || c.column_name
                                             FROM information_schema.columns As c

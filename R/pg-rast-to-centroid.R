@@ -6,7 +6,6 @@
 #' @param pg_conn_param Keyring object of Postgres credentials
 #'
 #' @return coming soon
-#' @export
 #'
 #' @examples coming soon
 

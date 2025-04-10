@@ -1,9 +1,9 @@
 #' Import Grskey TIF 2 pg table
 #'
-#' @param template_tif The file path to the gr_skey template geotiff, defaults to  "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"
-#' @param mask_tif The file path to the geotiff to be used as a mask, defaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif"
+#' @param template_tif The file path to the gr_skey template geotiff. `template_tif` and `mask_tif` must be the same resolution and projection must be BC Albers or EPSG: 3005. Defaults to  "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"
+#' @param mask_tif The file path to the geotiff to be used as a mask. `template_tif` and `mask_tif` must be the same resolution and projection must be BC Albers or EPSG: 3005. Defaults to "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif"
 #' @param crop_extent Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005, defaults to c(273287.5,1870587.5,367787.5,1735787.5)
-#' @param out_crop_tif_name filename of the written output tif
+#' @param out_crop_tif_name filename of the written output tif, Ex. 'C:\\projects\\data\\gr_skey_grid.tif'
 #' @param pg_conn_param Keyring object of Postgres credentials, defaults to dadmtools::get_pg_conn_list()
 #' @param dst_tbl Destination table of the imported gr_skey_tbl table (format: schema_name.table_name), defaults to "whse.all_bc_gr_skey"
 #' @param rast_sch Destination schema, defaults to "raster"
@@ -47,7 +47,8 @@ import_gr_skey_tif_to_pg_rast <- function(
   make_rast[make_rast <= 0] <- NA
   gr_skey_rast <- terra::mask(gr_skey_rast, make_rast, datatype = "INT4S")
   writeRaster(gr_skey_rast, out_crop_tif_name, datatype = "INT4S", overwrite = TRUE)
-
+  terra::tmpFiles(remove=TRUE)
+  
   #GR_SKEY_RASTER to PG
   host <- pg_conn_param["host"][[1]]
   user <- pg_conn_param["user"][[1]]

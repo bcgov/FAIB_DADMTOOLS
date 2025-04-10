@@ -11,7 +11,6 @@
 #' @param tbl_comment Set to TRUE if GDAL is installed on machine e.g. TRUE
 #'
 #' @return no return
-#' @export
 #'
 #' @examples coming soon
 
@@ -128,4 +127,28 @@ ogr_to_tbl <- function(src,
   dadmtools::run_sql_r(glue("ALTER TABLE {dst_schema}.{dst_tbl} ADD PRIMARY KEY ({pk});"), pg_conn_param)
   dadmtools::run_sql_r(tbl_comment, pg_conn_param)
   dadmtools::run_sql_r(glue("ANALYZE {dst_schema}.{dst_tbl};"), pg_conn_param)
+
+  #Convert Real field types to Numeric
+  query <- glue("
+  SELECT table_name, column_name
+  FROM information_schema.columns
+  WHERE table_schema = '{dst_schema}' and table_name = '{dst_tbl}' AND data_type = 'real';")
+
+  real_columns <-  dadmtools::sql_to_df(query,pg_conn_param)
+  print(real_columns)
+
+  if (nrow(real_columns) > 0) {
+  # Step 3: Loop over columns and convert them to NUMERIC
+  for (i in 1:nrow(real_columns)) {
+    column_name <- real_columns$column_name[i]
+
+    # Create the ALTER TABLE query
+    alter_query <- glue("ALTER TABLE {dst_schema}.{dst_tbl} ALTER COLUMN {column_name} SET DATA TYPE NUMERIC;")
+
+    dadmtools::run_sql_r(alter_query,pg_conn_param)}}
+
+
+
+
+
   }
