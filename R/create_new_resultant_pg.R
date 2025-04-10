@@ -1,35 +1,31 @@
-#' Creates a resultant table (i.e. a flat, denormalized table) using this function. The function requires populating a configuration input csv file with the desired inputs tables and fields to include in the newly created resultant. See example on git repository create_new_resultant_inputs.csv and description in the README.)
+#' Creates a resultant table (i.e. a flat, denormalized table) using this function. The function requires populating a configuration input csv file with the desired inputs tables and fields to include in the newly created resultant. See example on git repository root directory create_new_resultant_inputs.csv and description in the README.)
 #' @param in_csv File path to input csv, defaults to "create_new_resultant_inputs.csv". See example csv and README for instructions in git repository: https://github.com/bcgov/FAIB_DADMTOOLS/tree/main.
-#' @param resultant_name the name of the output resultant table
-#' @param key_field_resultant_table global id field used to join to the input gr_skey tbale.  Default value is gr_skey
-#' @param pg_conn_param named list of postgres connection parameters (i.e. get_pg_conn_list())
+#' @param resultant_name The name of the output resultant table
+#' @param key_field_resultant_table  Optional argument. Global id field used to join to the input gr_skey tbale.  Defaults to is gr_skey
+#' @param pg_conn_param Named list of postgres connection parameters (i.e. get_pg_conn_list())
 #'
 #' @return resultant_name
 #'
 #' @examples
-#' Download and edit example input batch_add_fields_to_resultant.csv from https://github.com/bcgov/FAIB_DADMTOOLS/tree/main. Example of function run:
-#' batch_add_fields_to_resultant(
-#'    in_csv           = "create_new_resultant_inputs.csv",
-#'    resultant_name = 'tsr25_resultant'
-#'    pg_conn_param     = dadmtools::get_pg_conn_list()
+#' ## Download and edit example input create_new_resultant_inputs.csv from https://github.com/bcgov/FAIB_DADMTOOLS/tree/main. Example of function run:
+#' create_new_resultant_pg(
+#'    in_csv                    = "create_new_resultant_inputs.csv",
+#'    resultant_name            = 'public.tsr25_resultant',
+#'    key_field_resultant_table = 'gr_skey',
+#'    pg_conn_param             = dadmtools::get_pg_conn_list()
 #')
 
 
 create_new_resultant_pg  <- function(
-    in_csv           = "create_new_resultant_inputs.csv",
-    resultant_name ,
+    in_csv                    = "create_new_resultant_inputs.csv",
+    resultant_name,
     key_field_resultant_table = 'gr_skey',
-    pg_conn_param     = dadmtools::get_pg_conn_list()
+    pg_conn_param             = dadmtools::get_pg_conn_list()
 )
-
 
 {
 
-
-#####Check if resultant name already exists
   #### get resultant_name without schema
-
-  #browser()
 
   if (grepl("\\.", resultant_name)) {
     resultant_table_schema <- strsplit(resultant_name, "\\.")[[1]][[1]]
@@ -40,13 +36,14 @@ create_new_resultant_pg  <- function(
     resultant_table_schema <- 'public'
   }
 
+  #### Check if resultant name already exists
   resultant_blank_pg <- !dadmtools::is_blank(dadmtools::sql_to_df(
   glue("SELECT table_name FROM information_schema.tables
-        WHERE  table_schema = '{resultant_table_schema}'
-       and table_name = '{resultant_table_no_schema}'"), pg_conn_param)$table_name)
+        WHERE table_schema = '{resultant_table_schema}'
+        AND table_name = '{resultant_table_no_schema}'"), pg_conn_param)$table_name)
 
   if(resultant_blank_pg){
-    print(glue("Resultant table name {resultant_name} already exists"))
+    print(glue("Resultant table name: {resultant_name} already exists, please provide a table name that does not exist."))
     stop()
   }
 
@@ -77,7 +74,7 @@ create_new_resultant_pg  <- function(
     update_field_names        <- gsub("[[:space:]]","",tolower(in_file[row, "output_field_names"]))
     prefix                    <- gsub("[[:space:]]","",tolower(in_file[row, "prefix"]))
     key_grskey_tbl            <- gsub("[[:space:]]","",tolower(in_file[row, "key_field_grskey_table"]))
-    key_attribute_tbl              <- gsub("[[:space:]]","",tolower(in_file[row, "key_field_attribute_table"]))
+    key_attribute_tbl         <- gsub("[[:space:]]","",tolower(in_file[row, "key_field_attribute_table"]))
     notes                     <- in_file[row, "notes"]
 
 
@@ -109,7 +106,7 @@ create_new_resultant_pg  <- function(
 
 
 
-    ####Get vector list of all fields (minus keys)if all input fields are selected indicated by a * ####
+    #### Get vector list of all fields (minus keys) if all input fields are selected indicated by a * 
     if (included_fields == "*") {
 
 
@@ -119,19 +116,13 @@ create_new_resultant_pg  <- function(
           table_schema = '{attribute_table_schema}';")
 
       all_attribute_fields <- dadmtools::sql_to_df(qry, pg_conn_param )$column_name
-      included_fields <- setdiff(all_attribute_fields, c(key_field_resultant_table,key_attribute_tbl, key_grskey_tbl))
+      included_fields <- setdiff(all_attribute_fields, c(key_field_resultant_table, key_attribute_tbl, key_grskey_tbl))
       update_field_names <- included_fields
-
-
     }
-
-
-
 
 
     ######################### checks#########################################
     check_blanks <- list(
-
       gr_skey_table = gr_skey_table,
       resultant_name = resultant_name,
       included_fields = included_fields,
@@ -312,11 +303,14 @@ create_new_resultant_pg  <- function(
 
 #####Create a temp resultant table with gr-skey from all the tables
   resultant_name_temp <- glue("{resultant_name}_dadmtools_temp")
-  qry <- glue("Create table {resultant_name_temp} as  ",
+  ## if tmp table already exists (from a failed previous run, drop & recreate it)
+  qry <- glue("DROP TABLE IF EXISTS {resultant_name_temp};")
+  dadmtools::run_sql_r(qry, pg_conn_param)
+  qry <- glue("CREATE TABLE {resultant_name_temp} AS  ",
               paste(paste0("(SELECT gr_skey FROM ", gr_skey_table_accumulator, ")"), collapse = " UNION"))
   dadmtools::run_sql_r(qry,pg_conn_param)
 
-#browser()
+
 #####Create final table using the final_full_select_field_name_accumulator,attribute_table_join_string_accumulator, and
 #####gr_skey_table_join_string_accumulator
 final_fields <-  paste(unname(final_full_select_field_name_accumulator), collapse = ',')
@@ -324,7 +318,7 @@ gr_skey_joins <- paste(unname(gr_skey_table_join_string_accumulator), collapse =
 attribute_joins <- paste(unname(attribute_table_join_string_accumulator), collapse = ' ')
 
 #Create final table
-qry <- glue("create table {resultant_name} as
+qry <- glue("CREATE TABLE {resultant_name} as
             Select a.{key_field_resultant_table} ,{final_fields} from {resultant_name_temp} a {gr_skey_joins} {attribute_joins};")
 print(qry)
 dadmtools::run_sql_r(qry, pg_conn_param)
@@ -372,7 +366,7 @@ dadmtools::run_sql_r(glue("ANALYZE {resultant_name}_data_sources;"), pg_conn_par
 
 
 #drop temp table
-qry <- glue("drop table if exists  {resultant_name_temp}; ")
+qry <- glue("DROP TABLE IF EXISTS {resultant_name_temp}; ")
 dadmtools::run_sql_r(qry, pg_conn_param)
 
 

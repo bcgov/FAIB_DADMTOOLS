@@ -397,26 +397,26 @@ Once layers have been imported, to build a flat, denormalized table, also known 
 
 Example configuration input csv file:
 
-| include | input_gr_skey_table | input_attribute_table | input_fields_to_include | output_field_names | prefix | key_field_grskey_table | key_field_attribute_table  | key_field_resultant_table | notes |                
-|---------|---------------------|-----------------------|-------------------------|--------------------|--------|------------------------|----------------------------|---------------------------|-------|
-| 1       | whse.active_permits_gr_skey  | whse.active_permits  | cutting_permit_id,file_type_code | ap    | gr_skey | pgid	 | gr_skey |
-| 1       | whse.active_permits_gr_skey  | whse.active_permits  | * | new | | gr_skey | pgid	 | gr_skey |
-| 1       | whse.cut_block_all_bc_gr_skey | whse.cut_block_all_bc  | cc_harvest_start_date,cc_harvest_mid_year_calendar,cc_opening_id |  | gr_skey | pgid	 | gr_skey |
+| include | input_gr_skey_table | input_attribute_table | input_fields_to_include | output_field_names | prefix | key_field_grskey_table | key_field_attribute_table  | notes |                
+|---------|---------------------|-----------------------|-------------------------|--------------------|--------|------------------------|----------------------------|-------|
+| 1       | whse.active_permits_gr_skey  | whse.active_permits  | cutting_permit_id,file_type_code | ap    | gr_skey | pgid	  |
+| 1       | whse.active_permits_gr_skey  | whse.active_permits  | * | new | | gr_skey | pgid |
+| 1       | whse.cut_block_all_bc_gr_skey | whse.cut_block_all_bc  | cc_harvest_start_date,cc_harvest_mid_year_calendar,cc_opening_id |  | gr_skey | pgid	 |
 
 **Guidelines for create_new_resultant_pg Filling function**
 
 When running the create_new_resultant_pg function
- 1. Enter a `resultant_table` 
- 2.  Use the default key_field_resultant_table value of 'gr_skey' unless using a differen global id value 
+ 1. Provide a `resultant_table` 
+ 2. Use the default key_field_resultant_table value of 'gr_skey' unless using a different global id value 
  3. Enter pg connection list to the pg_conn_param argumnet unless using default dadmtools::get_pg_conn_list() function to retrieve the conenction lsit
 
 **Guidelines for Filling create_new_resultant_inputs.csv parameter file**
 
- 1. Set include to 0 to skip including rows to any rows in csv
- 2.  Provide input attribute and associated gr_skey tables to join fields from.  If no attribute table exist, leave input_attribute_table column blank
- 3. Provide list of fields from each input dataset to include in the newly created resultant.  Fields name must be seperated by a comma with no space in between.  Use * if using all the fields from the input attribute table
- 4.  Provide list of updated fields names for each field provided in the input_fields_to_include column . This list must be the same length as the lsit provided in the input_fields_to_include column
- 5.  Provde a prefix if you want resultant field names to have it tagged onto the front 
+ 1. Set the include column to 0 to exclude any rows from being included in the CSV output.
+ 2. Specify the input attribute table and the corresponding gr_skey table that contain the fields you want to join. If there is no attribute table, leave the input_attribute_table cell blank.
+ 3. In the input_fields_to_include column, list the fields from each input dataset that should be included in the resulting dataset. Separate field names with commas and do not use spaces. Use * to include all fields from the input attribute table.
+ 4. (Optional) Use the output_field_names column to provide new names for each field listed in input_fields_to_include. The number of names must match the number of input fields. If a prefix is specified (see next step), it will be applied to each output field name.
+ 5. Provide a prefix if you want it added to the beginning of each output field name.
 
 **Data Dictionary:** 
 
@@ -425,12 +425,11 @@ When running the create_new_resultant_pg function
     - 1 = include
 - `input_gr_skey_table` (required): The name of the table containing the key (e.g., gr_skey) used to join with the resultant key. E.g. `sandbox.adm_nr_districts_sp_gr_skey`
 - `input_attribute_table` (optional): The name of the attribute table containing the key (e.g., pgid) used to join with `gr_skey_table`. Attributes from this table will be included in the final resultant table. If `attribute_table` is not provided, the attributes specified in `included_fields` will be selected from `gr_skey_table` for the final resultant table.
-- `input_fields_to_include` (required): A vector of fields to include from joining tables (e.g. district_name, org_unit)
+- `input_fields_to_include` (required): A vector of fields to include from joining tables (e.g. district_name, org_unit). To include all fields, use *
 - `output_field_names` (optional):  A vector of new field names to use in the final resultant table, replacing those specified in `included_fields`. The number of field names in this vector must match the number in `included_fields`. (e.g. admin_district_name, admin_org_unit)
-- `prefix` (optional): A prefix to prepend to field names in the resultant table. By default, it updates `included_fields`, but if `update_field_names` is provided, the prefix will be applied to those instead.
+- `prefix` (optional): A prefix to prepend to field names in the resultant table. By default, it updates `included_fields`, but if `output_field_names` is provided, the prefix will be applied to those instead.
 - `key_field_grskey_table ` (required): Default: 'gr_skey'. The join key in gr_skey table (e.g. gr_skey)
 - `key_field_attribute_table  ` (optional): Default:'pgid'. The join key in attribute table (e.g. pgid). Only used if `attribute_table` is provided.
-- `key_field_resultant_table  ` (required): Default: 'gr_skey'. The join key in resultant table (e.g. gr_skey) 
 - `notes ` (optional): Notes
 
 
@@ -438,10 +437,10 @@ When running the create_new_resultant_pg function
 
 ```
 create_new_resultant_pg(
-  in_csv            = 'C:\\path\\to\\batch_add_fields_to_resultant.csv',
-  resultant_table = MUST PROVIDE,
+  in_csv                    = 'C:\\path\\to\\batch_add_fields_to_resultant.csv',
+  resultant_name            = MUST PROVIDE,
   key_field_resultant_table = 'gr_skey',
-  pg_conn_param     = dadmtools::get_pg_conn_list()
+  pg_conn_param             = dadmtools::get_pg_conn_list()
 )
 ```
 

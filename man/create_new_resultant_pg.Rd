@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_new_resultant_pg.R
 \name{create_new_resultant_pg}
 \alias{create_new_resultant_pg}
-\title{Creates a resultant table (i.e. a flat, denormalized table) using this function. The function requires populating a configuration input csv file with the desired inputs tables and fields to include in the newly created resultant. See example on git repository create_new_resultant_inputs.csv and description in the README.)}
+\title{Creates a resultant table (i.e. a flat, denormalized table) using this function. The function requires populating a configuration input csv file with the desired inputs tables and fields to include in the newly created resultant. See example on git repository root directory create_new_resultant_inputs.csv and description in the README.)}
 \usage{
 create_new_resultant_pg(
   in_csv = "create_new_resultant_inputs.csv",
@@ -14,23 +14,24 @@ create_new_resultant_pg(
 \arguments{
 \item{in_csv}{File path to input csv, defaults to "create_new_resultant_inputs.csv". See example csv and README for instructions in git repository: https://github.com/bcgov/FAIB_DADMTOOLS/tree/main.}
 
-\item{resultant_name}{the name of the output resultant table}
+\item{resultant_name}{The name of the output resultant table}
 
-\item{key_field_resultant_table}{global id field used to join to the input gr_skey tbale.  Default value is gr_skey}
+\item{key_field_resultant_table}{Optional argument. Global id field used to join to the input gr_skey tbale.  Defaults to is gr_skey}
 
-\item{pg_conn_param}{named list of postgres connection parameters (i.e. get_pg_conn_list())}
+\item{pg_conn_param}{Named list of postgres connection parameters (i.e. get_pg_conn_list())}
 }
 \value{
 resultant_name
 }
 \description{
-Creates a resultant table (i.e. a flat, denormalized table) using this function. The function requires populating a configuration input csv file with the desired inputs tables and fields to include in the newly created resultant. See example on git repository create_new_resultant_inputs.csv and description in the README.)
+Creates a resultant table (i.e. a flat, denormalized table) using this function. The function requires populating a configuration input csv file with the desired inputs tables and fields to include in the newly created resultant. See example on git repository root directory create_new_resultant_inputs.csv and description in the README.)
 }
 \examples{
-Download and edit example input batch_add_fields_to_resultant.csv from https://github.com/bcgov/FAIB_DADMTOOLS/tree/main. Example of function run:
-batch_add_fields_to_resultant(
-   in_csv           = "create_new_resultant_inputs.csv",
-   resultant_name = 'tsr25_resultant'
-   pg_conn_param     = dadmtools::get_pg_conn_list()
+## Download and edit example input create_new_resultant_inputs.csv from https://github.com/bcgov/FAIB_DADMTOOLS/tree/main. Example of function run:
+create_new_resultant_pg(
+   in_csv                    = "create_new_resultant_inputs.csv",
+   resultant_name            = 'public.tsr25_resultant',
+   key_field_resultant_table = 'gr_skey',
+   pg_conn_param             = dadmtools::get_pg_conn_list()
 )
 }
