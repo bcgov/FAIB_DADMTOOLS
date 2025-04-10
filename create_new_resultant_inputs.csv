@@ -1,8 +1,8 @@
-include,input_gr_skey_table,input_attribute_table,input_fields_to_include,output_field_names,prefix,key_field_grskey_table ,key_field_attribute_table ,key_field_resultant_table ,notes
-1,whse.active_permits_gr_skey,whse.active_permits,"cutting_permit_id,file_type_code",,ap,gr_skey,pgid,gr_skey,
-1,whse.cut_block_all_bc_gr_skey,whse.cut_block_all_bc,"harvest_start_date,harvest_mid_year_calendar,opening_id",,,gr_skey,pgid,gr_skey,
-1,whse.wcp_wildlife_habitat_area_poly_conditional_gr_skey,whse.wcp_wildlife_habitat_area_poly_conditional,"timber_harvest_code,tag","timber_harvest_code_test,tag_test",wha,gr_skey,objectid,gr_skey,
-1,whse.wcp_ungulate_winter_range_sp_gr_skey,whse.wcp_ungulate_winter_range_sp,"uwr_number,timber_harvest_code","uwr_number_test,timber_harvest_code_test",,gr_skey,pgid,gr_skey,
-1,whse.active_permits_gr_skey,whse.active_permits,*,,new,gr_skey,pgid,gr_skey,
-1,whse.all_thlb_gr_skey_jan_2025,,THLB_FACT,,,gr_skey,pgid,gr_skey,
-1,whse.all_thlb_gr_skey_jan_2025,,THLB_FACT,,try2,gr_skey,pgid,gr_skey,
+include,input_gr_skey_table,input_attribute_table,input_fields_to_include,output_field_names,prefix,key_field_grskey_table ,key_field_attribute_table ,notes
+1,whse.active_permits_gr_skey,whse.active_permits,"cutting_permit_id,file_type_code",,ap,gr_skey,pgid,notes on whse.active_permits
+1,whse.cut_block_all_bc_gr_skey,whse.cut_block_all_bc,"harvest_start_date,harvest_mid_year_calendar,opening_id",,,gr_skey,pgid,
+1,whse.wcp_wildlife_habitat_area_poly_conditional_gr_skey,whse.wcp_wildlife_habitat_area_poly_conditional,"timber_harvest_code,tag","timber_harvest_code_test,tag_test",wha,gr_skey,objectid,
+1,whse.wcp_ungulate_winter_range_sp_gr_skey,whse.wcp_ungulate_winter_range_sp,"uwr_number,timber_harvest_code","uwr_number_test,timber_harvest_code_test",,gr_skey,pgid,
+1,whse.active_permits_gr_skey,whse.active_permits,*,,new,gr_skey,pgid,
+1,whse.all_thlb_gr_skey_jan_2025,,THLB_FACT,,,gr_skey,pgid,
+1,whse.all_thlb_gr_skey_jan_2025,,THLB_FACT,,try2,gr_skey,pgid,
