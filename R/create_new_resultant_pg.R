@@ -5,6 +5,7 @@
 #' @param pg_conn_param Named list of postgres connection parameters (i.e. get_pg_conn_list())
 #'
 #' @return resultant_name
+#' @export
 #'
 #' @examples
 #' ## Download and edit example input create_new_resultant_inputs.csv from https://github.com/bcgov/FAIB_DADMTOOLS/tree/main. Example of function run:
@@ -106,7 +107,7 @@ create_new_resultant_pg  <- function(
 
 
 
-    #### Get vector list of all fields (minus keys) if all input fields are selected indicated by a * 
+    #### Get vector list of all fields (minus keys) if all input fields are selected indicated by a *
     if (included_fields == "*") {
 
 
