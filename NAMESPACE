@@ -2,6 +2,7 @@
 
 export(batch_import_to_pg_gr_skey)
 export(create_mask_tif)
+export(create_new_resultant_pg)
 export(df_to_pg)
 export(get_gr_skey_extent)
 export(get_ora_conn_list)

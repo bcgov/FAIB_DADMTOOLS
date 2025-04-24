@@ -17,7 +17,7 @@
 #' @param out_tif_path Directory where output tif is exported and where vector is temporally stored prior to import
 #' @param pg_conn_param Keyring object of Postgres credentials. Defaults to dadmtools::get_pg_conn_list()
 #' @param ora_conn_param Keyring object of Oracle credentials. Defaults to dadmtools::get_ora_conn_list()
-#' @param crop_extent Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005. Defaults to c(273287.5, 1870587.5, 367787.5, 1735787.5)
+#' @param crop_extent Raster crop extent, list of c(xmin, xmax, ymin, ymax) in EPSG:3005. Defaults to c(273287.5, 1870587.5, 367787.5, 1735787.5)
 #' @param dst_schema Schema to insert the newly created gr_skey and dst_tbl (Eg. non spatial table). Defaults to "whse"
 #' @param raster_schema If import_rast_to_pg set to TRUE, the import schema for the raster. Defaults to "raster"
 #' @param fdw_schema If src_type=oracle, the schema to load the foreign data wrapper table. Defaults to "load"

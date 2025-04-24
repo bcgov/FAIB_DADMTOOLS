@@ -55,7 +55,7 @@ import_to_pg_gr_skey(
 
 \item{ora_conn_param}{Keyring object of Oracle credentials. Defaults to dadmtools::get_ora_conn_list()}
 
-\item{crop_extent}{Raster crop extent, list of c(ymin, ymax, xmin, xmax) in EPSG:3005. Defaults to c(273287.5, 1870587.5, 367787.5, 1735787.5)}
+\item{crop_extent}{Raster crop extent, list of c(xmin, xmax, ymin, ymax) in EPSG:3005. Defaults to c(273287.5, 1870587.5, 367787.5, 1735787.5)}
 
 \item{dst_schema}{Schema to insert the newly created gr_skey and dst_tbl (Eg. non spatial table). Defaults to "whse"}
 
