@@ -1,6 +1,6 @@
 #' Creates a resultant table (i.e. a flat, denormalized table) using this function. The function requires populating a configuration input csv file with the desired inputs tables and fields to include in the newly created resultant. See example on git repository root directory create_new_resultant_inputs.csv and description in the README.)
 #' @param in_csv File path to input csv, defaults to "create_new_resultant_inputs.csv". See example csv and README for instructions in git repository: https://github.com/bcgov/FAIB_DADMTOOLS/tree/main.
-#' @param resultant_name The name of the output resultant table
+#' @param resultant_name The name of the output resultant table and schema (ie. 'public.tsa25_resultant')
 #' @param key_field_resultant_table  Optional argument. Global id field used to join to the input gr_skey tbale.  Defaults to is gr_skey
 #' @param pg_conn_param Named list of postgres connection parameters (i.e. get_pg_conn_list())
 #'
