@@ -14,7 +14,7 @@ create_new_resultant_pg(
 \arguments{
 \item{in_csv}{File path to input csv, defaults to "create_new_resultant_inputs.csv". See example csv and README for instructions in git repository: https://github.com/bcgov/FAIB_DADMTOOLS/tree/main.}
 
-\item{resultant_name}{The name of the output resultant table}
+\item{resultant_name}{The name of the output resultant table and schema (ie. 'public.tsa25_resultant')}
 
 \item{key_field_resultant_table}{Optional argument. Global id field used to join to the input gr_skey tbale.  Defaults to is gr_skey}
 

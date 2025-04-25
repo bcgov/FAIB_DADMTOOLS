@@ -392,7 +392,7 @@ batch_import_to_pg_gr_skey(
 )
 ```
 
-### 7. Creating resultant table
+### 7. Creating resultant table (create_new_resultant_pg)
 Once layers have been imported, to build a flat, denormalized table, also known as a resultant table, use the batch function `create_new_resultant_pg` to create a resultant table. It requires populating a configuration input csv file (i.e. see example [create_new_resultant_inputs.csv](create_new_resultant_inputs.csv))
 
 Example configuration input csv file:
@@ -441,6 +441,58 @@ create_new_resultant_pg(
   resultant_name            = MUST PROVIDE,
   key_field_resultant_table = 'gr_skey',
   pg_conn_param             = dadmtools::get_pg_conn_list()
+)
+```
+### 8. Creating and updating resultant table 
+Once layers have been imported, to build a flat, denormalized table, also known as a resultant table, use the batch function `batch_add_field_to_resultant` to create a resultant table. It requires populating a configuration input csv file (i.e. see example [batch_add_fields_to_resultant.csv](batch_add_fields_to_resultant.csv))
+
+Example configuration input csv file:
+
+| include | overwrite_resultant_table | overwrite_fields | include_prefix | new_resultant_name       | gr_skey_table                               | attribute_table                      | current_resultant_table | included_fields                     | update_field_names       | prefix | key_resultant_tbl | key_grskey_tbl | key_join_tbl | notes                  |
+|---------|---------------------------|------------------|----------------|--------------------------|---------------------------------------------|--------------------------------------|-------------------------|------------------------------------|-------------------------|--------|------------------|---------------|-------------|------------------------|
+| 1       | True                      | False            | False          | sandbox.tsa_resultant    | sandbox.adm_nr_districts_sp_gr_skey        | sandbox.adm_nr_districts_sp         | sandbox.tsa_gr_skey     | district_name, org_unit          |                      |     | gr_skey         | gr_skey       | pgid        | this layer rocks       |
+| 1       | True                      | False            | True           | sandbox.tsa_resultant    | sandbox.f_own_gr_skey                      | sandbox.f_own                        | sandbox.tsa_resultant   | own, schedule, data_source       | own, sched, source       | own    | gr_skey         | gr_skey       | pgid        | this layer is radical  |
+| 1       | True                      | False            | True           | sandbox.tsa_resultant    | sandbox.bec_biogeoclimatic_poly_gr_skey    | sandbox.bec_biogeoclimatic_poly      | sandbox.tsa_resultant   | zone, subzone, variant, phase    |  bec                    |     | gr_skey         | gr_skey       | pgid        | this layer is tubular  |
+
+**Guidelines for Filling Out the Table**
+
+If you are creating a resultant table derived from multiple rows in the input configuration file (as shown in the example above), follow these steps:
+ 1. Set `overwrite_resultant_table` to TRUE for each row you intend to contributes to the resultant table.
+ 2. Use the same `new_resultant_name` for all related rows to ensure they are combined into the same final table. (e.x. `sandbox.tsa_resultant`)
+ 3. For the first row:
+   - Enter the actual name of the existing table in `current_resultant_table` (e.x. `sandbox.tsa_gr_skey`)
+ 4. For all subsequent rows:
+   - Instead of using the original table name, set `current_resultant_table` to the `new_resultant_name` value (e.x. `sandbox.tsa_resultant`). This ensures that the resultant table from the first iteration is used as the input for the next.
+
+This approach ensures that the resultant table is incrementally built as new fields are added in each row.
+
+**Data Dictionary:** 
+
+- `include` (required): An integer (0 or 1) indicating whether to include the layer in the resultant table.
+    - 0 = exclude
+    - 1 = include
+- `overwrite_resultant_table` (required):  A logical value (TRUE or FALSE) indicating whether to overwrite the `new_resultant_name`. Must be TRUE if `new_resultant_name` is the same as `current_resultant_table`.
+- `overwrite_fields` (required): A logical value (TRUE or FALSE) indicating whether to overwrite existing fields if field name collision exists between new columns to add (specified by `included_fields`, or `update_field_names`, if provided) and existing columns in `current_resultant_table`. 
+- `include_prefix` (required): A logical value (TRUE or FALSE) indicating whether to add prefix to resultant field names. If TRUE, `prefix` is required.
+- `new_resultant_name` (required): The user-defined name for the output resultant table, including the schema. E.g. `sandbox.tsa_resultant`. If  `new_resultant_name` the same as `current_resultant_table`, set `overwrite_resultant_table` to TRUE.
+- `gr_skey_table` (required): The name of the table containing the key (e.g., gr_skey) used to join with the resultant key. E.g. `sandbox.adm_nr_districts_sp_gr_skey`
+- `attribute_table` (optional): The name of the attribute table containing the key (e.g., pgid) used to join with `gr_skey_table`. Attributes from this table will be included in the final resultant table. If `attribute_table` is not provided, the attributes specified in `included_fields` will be selected from `gr_skey_table` for the final resultant table.
+- `current_resultant_table` (required): Name of the existing resultant table (e.g. sandbox.all_bc_gr_skey)
+- `included_fields` (required): A vector of fields to include from joining tables (e.g. district_name, org_unit)
+- `update_field_names` (optional):  A vector of new field names to use in the final resultant table, replacing those specified in `included_fields`. The number of field names in this vector must match the number in `included_fields`. (e.g. admin_district_name, admin_org_unit)
+- `prefix` (optional): A prefix to prepend to field names in the resultant table. By default, it updates `included_fields`, but if `update_field_names` is provided, the prefix will be applied to those instead.
+- `key_resultant_tbl` (required): Default: 'gr_skey'. The join key in resultant table (e.g. gr_skey)
+- `key_grskey_tbl ` (required): Default:'gr_skey'. The join key in `gr_skey_table` (e.g. gr_skey)
+- `key_join_tbl ` (optional): Default:'pgid'. The join key in attribute table (e.g. pgid). Only used if `attribute_table` is provided.
+- `notes ` (optional): Notes
+
+
+### dadmtool library function: batch_add_fields_to_resultant
+
+```
+batch_add_fields_to_resultant(
+  in_csv            = 'C:\\path\\to\\batch_add_fields_to_resultant.csv',
+  pg_conn_param     = dadmtools::get_pg_conn_list()
 )
 ```
 
