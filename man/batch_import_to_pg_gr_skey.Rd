@@ -54,7 +54,7 @@ For raster data (e.g., geotiff), the raster is required to have BC Albers coordi
 \examples{
 ## After updating config_parameters.csv with source data and arguments, run the following:
 batch_import_to_pg_gr_skey(
-   in_csv            = 'C:\\\\<specify path>\\\\config_parameters.csv', 
+   in_csv            = 'C:\\\\<specify path>\\\\config_parameters.csv',
    out_tif_path      = 'C:\\\\<specify path>\\\\'
 )
 }
