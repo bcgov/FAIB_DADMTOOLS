@@ -29,11 +29,12 @@ After installed the Oracle Instant Client, ensure to follow the instructions in 
   - C:\Data\localApps\OCI
   - C:\Data\localApps\OCI\instant_client_23_4
 
-After GDAL installation, be sure that GDAL_DATA and GDAL_DRIVER_PATH are installed in the System Variables. For example:
+After GDAL installation, be sure that GDAL_DATA and GDAL_DRIVER_PATH are installed in the User Variables. For example:
 
   - variable = GDAL_DATA, value = C:\Program Files\GDAL\gdal-data
   - variable = GDAL_DRIVER_PATH, value = C:\Program Files\GDAL\gdalplugins
 
+In System Variables, add GDAL path (ex. C:\Program Files\GDAL) to Path
 
 ### 3. PostgreSQL Required Extensions and Recommended Schemas
 
