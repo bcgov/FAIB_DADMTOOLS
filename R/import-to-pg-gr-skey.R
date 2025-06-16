@@ -215,6 +215,16 @@ import_to_pg_gr_skey <- function(
   if(overlap_ind){
     dst_gr_skey_tbl <- glue("{dst_gr_skey_tbl}_overlap")
   }
+  ##Check for Multisurface data/
+  if ((src_type %in% c("gdb"))) {
+    contains_multisurface <- dadmtools::check_multisurface_gdb(src_path,src_lyr)
+    if(contains_multisurface){
+      print(glue("ERROR: Invalid GEOMETRY in {src_path}/{src_lyr}. Please fix invalid geometry by removing arc,curves or other complex geometry. Hint exporting data to shapefile may help fix this issue"))
+      stop()
+    }else{
+        print("geometry check completed")
+      }
+  }
 
   pk_id = "pgid"
   no_data_value = 0
@@ -574,7 +584,8 @@ import_to_pg_gr_skey <- function(
         ## file.remove consistently ran into permission issues when ran on a gdb
         ## switched to gdalmanage
         print(system2('gdalmanage',args=c("delete", src_path), stderr = TRUE))
-      } else {
+      }
+      else {
         file.remove(src_path, recursive = TRUE)
       }
 

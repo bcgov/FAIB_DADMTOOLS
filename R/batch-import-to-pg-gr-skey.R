@@ -63,8 +63,8 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
       return()
     }
 
-    if (!(src_type %in% c("gdb", "oracle", "geopackage", "gpkg", "raster", "shp", "shapefile"))) {
-      print(glue("ERROR: Invalid src_type: {src_type}. Hint, provide one of: gdb, oracle, geopackage, gpkg, raster, shapefile or shp. Exiting script."))
+    if (!(src_type %in% c("gdb", "oracle", "geopackage", "gpkg", "raster", "shp", "shapefile", "postgres"))) {
+      print(glue("ERROR: Invalid src_type: {src_type}. Hint, provide one of: gdb, ,postgres,oracle, geopackage, gpkg, raster, shapefile or shp. Exiting script."))
       return()
     }
 
