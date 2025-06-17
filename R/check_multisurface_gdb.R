@@ -38,5 +38,5 @@ check_multisurface_gdb <- function(gdb_path, layer_name, nrow = 1000) {
     }
   }
 
-  stop("Could not read the layer with known geometry column names (Shape, geom).")
+  stop("WARNING: Could not find known geometry column names (shape, geom, geometry) in layer. Unable to check layer for invalid geometry. Review input feature class with geotiff specified in <out_tif_path>.")
 }

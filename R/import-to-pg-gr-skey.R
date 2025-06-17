@@ -215,15 +215,19 @@ import_to_pg_gr_skey <- function(
   if(overlap_ind){
     dst_gr_skey_tbl <- glue("{dst_gr_skey_tbl}_overlap")
   }
-  ##Check for Multisurface data/
+
+  ## ERROR CHECK: Review any gdb for Multisurface polygons as they are known geometry type that GDAL library will not import
+  ## If a multisurface geometry type is found, kick out an error, continue on, and then spew out error again in error summary
+
+  multisurface_error <- NULL
   if ((src_type %in% c("gdb"))) {
     contains_multisurface <- dadmtools::check_multisurface_gdb(src_path,src_lyr)
     if(contains_multisurface){
-      print(glue("ERROR: Invalid GEOMETRY in {src_path}/{src_lyr}. Please fix invalid geometry by removing arc,curves or other complex geometry. Hint exporting data to shapefile may help fix this issue"))
-      stop()
-    }else{
-        print("geometry check completed")
-      }
+      multisurface_error <- glue("ERROR: Invalid GEOMETRY in {src_path} | layername = {src_lyr}. Layer was not imported. Please fix invalid geometry by fixing or removing arc, curves or other complex geometry. Hint exporting data to shapefile may help fix this issue.")
+      print(multisurface_error)
+      cat('Carrying on to next import...\n')
+      return(multisurface_error)
+    }
   }
 
   pk_id = "pgid"
@@ -695,6 +699,5 @@ if(!overlap_ind){
   )
 
   terra::tmpFiles(remove=TRUE)
-
 }
 
