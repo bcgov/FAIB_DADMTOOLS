@@ -3,6 +3,7 @@
 export(add_fields_to_resultant)
 export(batch_add_fields_to_resultant)
 export(batch_import_to_pg_gr_skey)
+export(check_multisurface_gdb)
 export(create_mask_tif)
 export(create_new_resultant_pg)
 export(df_to_pg)

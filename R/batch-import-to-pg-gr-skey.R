@@ -45,6 +45,7 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
   print(glue("Script started at {format(start_time, '%Y-%m-%d %I:%M:%S %p')}"))
   in_file <- read.csv(in_csv)
   in_file <- in_file[in_file$include == 1,]
+  ms_errors <- list()
   for (row in 1:nrow(in_file)) {
     src_type      <- gsub("[[:space:]]","",tolower(in_file[row, "src_type"])) ##format of data source i.e. gdb,oracle, postgres, geopackage, raster
     src_path      <- gsub("[[:space:]]","",tolower(in_file[row, "src_path"])) ## path to input data. Note use bcgw for whse
@@ -69,7 +70,7 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
     }
 
 
-    dadmtools::import_to_pg_gr_skey(
+    ms_error <- dadmtools::import_to_pg_gr_skey(
                                     src_type             = src_type,
                                     src_path             = src_path,
                                     src_lyr              = src_lyr,
@@ -91,9 +92,25 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
                                     import_rast_to_pg    = import_rast_to_pg,
                                     grskey_schema        = grskey_schema
                                     )
+    if (!is.null(ms_error)) {
+      if (startsWith(ms_error[1], "ERROR:")) {
+        ms_errors <- append(ms_errors, ms_error)  # append to list
+      }
+    }
   }
   end_time <- Sys.time()
   duration <- difftime(end_time, start_time, units = "mins")
-  print(glue("Script started at {format(end_time, '%Y-%m-%d %I:%M:%S %p')}"))
-  print(glue("Script duration: {duration} minutes\n"))
+  cat('\n********************************************************************************\n')
+  cat(glue("Script finished. Duration: {round(duration, 1)} minutes, script started at {format(start_time, '%Y-%m-%d %I:%M:%S %p')}, ended at {format(end_time, '%Y-%m-%d %I:%M:%S %p')}\n"))
+  cat('\n********************************************************************************\n')
+  if (length(ms_errors) > 0) {
+    if (length(ms_errors) == 1) {
+      cat(glue("\033[31m{length(ms_errors)} ERROR found:\033[0m\n\n\n"))
+    } else {
+    cat(glue("\033[31m{length(ms_errors)} ERROR's found:\033[0m\n\n\n"))
+    }
+  }
+  for (error in ms_errors) {
+    cat(glue("\033[31m{error}\033[0m\n\n\n"))
+  }
 }
