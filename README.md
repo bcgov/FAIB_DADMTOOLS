@@ -4,7 +4,7 @@ Package of common FAIB Data Analysis and Data Management team functions, focusin
 ### 1. Install supporting software on PC
 
 #### Postgres
- - Requires PostgreSQL database (version 12 or above). During installation, be sure to install the dependancies for `postgis` and `postgis_raster`. 
+ - Requires PostgreSQL database (version 12 or above). During installation, be sure to install the dependencies for `postgis` and `postgis_raster`. 
 
 #### Oracle Instant Client
  - Follow instructions provided here to install Oracle Instant client (see  [installation instructions](oracle_fdw_install.md) ) in order to get dependencies required for PostgreSQL Oracle Foreign Data Wrapper extension: `oracle_fdw`. 
@@ -37,7 +37,7 @@ After GDAL installation, be sure that GDAL_DATA and GDAL_DRIVER_PATH are install
 
 ### 3. PostgreSQL Required Extensions and Recommended Schemas
 
-1. Once PostgreSQL and dependancies are installed, enable database with the following extensions enabled:
+1. Once PostgreSQL and dependencies are installed, enable database with the following extensions enabled:
  ```
 CREATE EXTENSION postgis;
 CREATE EXTENSION postgis_raster;
@@ -175,9 +175,71 @@ import_gr_skey_tif_to_pg_rast(
  - It allows for easy SQL joins using `gr_skey` with other tables imported using the same process and rasterized to the same grid.
 
 
-### 6 b-1) dadmtool library function: import_to_pg_gr_skey (import single layer)
-Now that you've imported a gr_skey table (step 6a), you can import other types of spatial layers such as rasters, feature classes within gdb's, geopackages, shapefiles etc. The function: `import_to_pg_gr_skey` imports input vector or raster layer into PostgreSQL in gr_skey format.
+### 6 b-1) dadmtool library function: batch_import_to_pg_gr_skey (batch import)
 
+Now that you've imported a gr_skey table (step 6a), you can import other types of spatial layers such as rasters, feature classes within gdb's, geopackages, shapefiles etc. To import spatial layers, use the batch function: `batch_import_to_pg_gr_skey` which requires populating a configuration input csv file (i.e. see example [config_parameters.csv](config_parameters.csv))
+
+It is recommended that you edit the provided example configuration file for your usage. 
+
+**Data Dictionary:** 
+
+- `include` : Required argument whether to include layer when script is ran. 
+    - 0 = exclude
+    - 1 = include
+- `overlap_ind` : TRUE or FALSE.  If TRUE, it indicates that the input spatial layer has overlaps and imported <dst_tbl>_gr_skey table will duplicate gr_skey records where spatial overlaps occur.  If FALSE, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)
+- `src_type`: Format of data source. Raster option will only work when the raster matches the spatial resolution (100x100), alignment and projection (BC Albers) of the gr_skey grid (specified by `template_tif` argument) imported using `import_gr_skey_tif_to_pg_rast`.
+    - Options: `gdb, oracle, raster, geopackage, gpkg, shapefile, shp`
+- `src_path`: Source path.
+    - When `srctype = oracle` then `bcgw`
+    - When `srctype = gdb or raster or shp or geopackage` then full path and filename
+- `src_lyr` : Layer name
+    - When `src_type = oracle`, provide oracle schema and layer name, e.g. `WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly`
+    - When `src_type = gdb`, provide layername within the file geodatabase, e.g. `tsa_boundaries_2020`
+    - When `src_type = shp|shapefile`, provide the shapefile name without extension, e.g. `k3o_cfa`
+    - When `src_type = gpkg|geopackage`, provide the layername within the geopackage, e.g. `FireSeverity_Final`
+    - When `src_type = raster`, argument not used in import. It is imported into metadata table.
+- `dst_schema` : Postgres destination schema name.
+    - E.g. `whse`
+- `dst_tbl` : Name of imported non spatial table in PostgreSQL
+    - E.g. `forest_harvesting_restrictions_july2023`
+- `query` : Optional argument to filter source layer. Where clause used to filter input dataset.
+    - E.g. `rr_restriction is not null` OR `rr_restriction = '01_National Park'` OR `strgc_land_rsrce_plan_name like '%Klappan%'`
+- `flds_to_keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
+    - E.g. `REGEN_OBLIGATION_IND,FREE_GROW_DECLARED_IND,OBJECTID`
+- `overlap_group_fields` : The field groupings that will be used to handle spatial overlaps. I.e. each unique combination of the specified fields will be rasterized separately.
+- `notes` : Notes
+    - E.g. `Downloaded layer from URL.. etc.`
+
+**Function Example**
+
+`batch_import_to_pg_gr_skey` takes the following inputs. Default values listed below:
+
+```
+batch_import_to_pg_gr_skey(
+    in_csv            = 'config_parameters.csv',
+    pg_conn_param     = dadmtools::get_pg_conn_list(),
+    ora_conn_param    = dadmtools::get_ora_conn_list(),
+    crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
+    gr_skey_tbl       = 'whse.all_bc_gr_skey',
+    raster_schema     = 'raster',
+    template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+    mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
+    data_src_tbl      = 'whse.data_sources',
+    out_tif_path      = ## no default
+    import_rast_to_pg = FALSE
+)
+```
+
+Example usage using defaults: 
+```
+batch_import_to_pg_gr_skey(
+    in_csv            = 'C:\\projects\\data\\config_parameters.csv',
+    out_tif_path      = 'C:\\projects\\data\\'
+)
+```
+
+### 6 b-2) dadmtool library function: import_to_pg_gr_skey (import single layer)
+It is recommended that you use the above described batch function: `batch_import_to_pg_gr_skey` when importing spatial layers. The batch function calls the following function: `import_to_pg_gr_skey` which is described below. 
 **Function description**
 
 *Vector Import*
@@ -328,69 +390,6 @@ import_to_pg_gr_skey(
  
 <span style="color: red;">Note: In order to import more than one layer at a time, use the batch import function which is explained next.!</span>
 
-
-### 6 b-2) dadmtool library function: batch_import_to_pg_gr_skey (batch import)
-
-To import many spatial layers using the `import_to_pg_gr_skey` function - use the batch function: `batch_import_to_pg_gr_skey` which requires populating a configuration input csv file (i.e. see example [config_parameters.csv](config_parameters.csv))
-
-It is recommended that you edit the provided example configuration file for your usage. 
-
-**Data Dictionary:** 
-
-- `include` : Required argument whether to include layer when script is ran. 
-    - 0 = exclude
-    - 1 = include
-- `overlap_ind` : TRUE or FALSE.  If TRUE, it indicates that the input spatial layer has overlaps and imported <dst_tbl>_gr_skey table will duplicate gr_skey records where spatial overlaps occur.  If FALSE, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)
-- `src_type`: Format of data source. Raster option will only work when the raster matches the spatial resolution (100x100), alignment and projection (BC Albers) of the gr_skey grid (specified by `template_tif` argument) imported using `import_gr_skey_tif_to_pg_rast`.
-    - Options: `gdb, oracle, raster, geopackage, gpkg, shapefile, shp`
-- `src_path`: Source path.
-    - When `srctype = oracle` then `bcgw`
-    - When `srctype = gdb or raster or shp or geopackage` then full path and filename
-- `src_lyr` : Layer name
-    - When `src_type = oracle`, provide oracle schema and layer name, e.g. `WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly`
-    - When `src_type = gdb`, provide layername within the file geodatabase, e.g. `tsa_boundaries_2020`
-    - When `src_type = shp|shapefile`, provide the shapefile name without extension, e.g. `k3o_cfa`
-    - When `src_type = gpkg|geopackage`, provide the layername within the geopackage, e.g. `FireSeverity_Final`
-    - When `src_type = raster`, argument not used in import. It is imported into metadata table.
-- `dst_schema` : Postgres destination schema name.
-    - E.g. `whse`
-- `dst_tbl` : Name of imported non spatial table in PostgreSQL
-    - E.g. `forest_harvesting_restrictions_july2023`
-- `query` : Optional argument to filter source layer. Where clause used to filter input dataset.
-    - E.g. `rr_restriction is not null` OR `rr_restriction = '01_National Park'` OR `strgc_land_rsrce_plan_name like '%Klappan%'`
-- `flds_to_keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
-    - E.g. `REGEN_OBLIGATION_IND,FREE_GROW_DECLARED_IND,OBJECTID`
-- `overlap_group_fields` : The field groupings that will be used to handle spatial overlaps. I.e. each unique combination of the specified fields will be rasterized separately.
-- `notes` : Notes
-    - E.g. `Downloaded layer from URL.. etc.`
-
-**Function Example**
-
-`batch_import_to_pg_gr_skey` takes the following inputs. Default values listed below:
-
-```
-batch_import_to_pg_gr_skey(
-    in_csv            = 'config_parameters.csv',
-    pg_conn_param     = dadmtools::get_pg_conn_list(),
-    ora_conn_param    = dadmtools::get_ora_conn_list(),
-    crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5), ## c(xmin,xmax,ymin,ymax)
-    gr_skey_tbl       = 'whse.all_bc_gr_skey',
-    raster_schema     = 'raster',
-    template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-    mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
-    data_src_tbl      = 'whse.data_sources',
-    out_tif_path      = ## no default
-    import_rast_to_pg = FALSE
-)
-```
-
-Example usage using defaults: 
-```
-batch_import_to_pg_gr_skey(
-    in_csv            = 'C:\\projects\\data\\config_parameters.csv',
-    out_tif_path      = 'C:\\projects\\data\\'
-)
-```
 
 ### 7. Creating resultant table (create_new_resultant_pg)
 Once layers have been imported, to build a flat, denormalized table, also known as a resultant table, use the batch function `create_new_resultant_pg` to create a resultant table. It requires populating a configuration input csv file (i.e. see example [create_new_resultant_inputs.csv](create_new_resultant_inputs.csv))
