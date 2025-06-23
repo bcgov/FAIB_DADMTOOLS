@@ -1,7 +1,7 @@
 Package: dadmtools
 Type: Package
 Title: Faib Data Management Common Functions
-Version: v4.0.2
+Version: 4.0.2
 Author: Iaian McDougall
 Description: Common functions used in by the FAIB Data Management and Analysis Team
 License: None
