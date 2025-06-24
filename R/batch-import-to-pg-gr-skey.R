@@ -92,7 +92,7 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
                                     import_rast_to_pg    = import_rast_to_pg,
                                     grskey_schema        = grskey_schema
                                     )
-    if (!is.null(ms_error)) {
+    if (!is.null(ms_error) && length(ms_error) > 0) {
       if (startsWith(ms_error[1], "ERROR:")) {
         ms_errors <- append(ms_errors, ms_error)  # append to list
       }
@@ -101,7 +101,7 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
   end_time <- Sys.time()
   duration <- difftime(end_time, start_time, units = "mins")
   cat('\n********************************************************************************\n')
-  cat(glue("Script finished. Duration: {round(duration, 1)} minutes, script started at {format(start_time, '%Y-%m-%d %I:%M:%S %p')}, ended at {format(end_time, '%Y-%m-%d %I:%M:%S %p')}\n"))
+  cat(glue("Script finished. Duration: {round(duration, 1)} min(s), script started at {format(start_time, '%Y-%m-%d %I:%M:%S %p')}, ended at {format(end_time, '%Y-%m-%d %I:%M:%S %p')}\n"))
   cat('\n********************************************************************************\n')
   if (length(ms_errors) > 0) {
     if (length(ms_errors) == 1) {
