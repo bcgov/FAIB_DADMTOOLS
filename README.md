@@ -29,11 +29,12 @@ After installed the Oracle Instant Client, ensure to follow the instructions in 
   - C:\Data\localApps\OCI
   - C:\Data\localApps\OCI\instant_client_23_4
 
-After GDAL installation, be sure that GDAL_DATA and GDAL_DRIVER_PATH are installed in the System Variables. For example:
+After GDAL installation, be sure that GDAL_DATA and GDAL_DRIVER_PATH are installed in the User Variables. For example:
 
   - variable = GDAL_DATA, value = C:\Program Files\GDAL\gdal-data
   - variable = GDAL_DRIVER_PATH, value = C:\Program Files\GDAL\gdalplugins
 
+In System Variables, add GDAL path (ex. C:\Program Files\GDAL) to Path
 
 ### 3. PostgreSQL Required Extensions and Recommended Schemas
 
@@ -495,5 +496,19 @@ batch_add_fields_to_resultant(
 )
 ```
 
+
+Copyright 2025 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 [![Lifecycle:Experimental](https://img.shields.io/badge/Lifecycle-Experimental-339999)](<Redirect-URL>)
