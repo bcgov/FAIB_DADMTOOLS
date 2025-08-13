@@ -1131,7 +1131,7 @@ Update the database name below (**unit_dbname**) and then run the chunk to creat
 unit_dbname <- "pgtsr"
 #===============================================
 
-pg_conn_param = dadmtools::get_pg_conn_list()
+pg_conn_param <- dadmtools::get_pg_conn_list()
 # the database name is removed data base creation
 row_index <- which(names(pg_conn_param) == "dbname") 
 row_index <- row_index*-1
@@ -1154,10 +1154,10 @@ whse_schema <- "sbx_whse"
 # whse_schema <- "flp_whse"
 #===============================================
 
-pg_conn_param = dadmtools::get_pg_conn_list()
-dadmtools:: run_sql_r(glue("CREATE SCHEMA ",raster_schema,
+pg_conn_param <- dadmtools::get_pg_conn_list()
+dadmtools::run_sql_r(glue("CREATE SCHEMA ",raster_schema,
                         ";"), pg_conn_param)
-dadmtools:: run_sql_r(glue("CREATE SCHEMA ", whse_schema,
+dadmtools::run_sql_r(glue("CREATE SCHEMA ", whse_schema,
                            ";"), pg_conn_param)
 
 
@@ -1534,7 +1534,7 @@ utils::browseURL("C:/sandbox")
 In this workflow, the resultant table is created in a schema `rslt` using the `dadmtools` function `create_new_resultant_pg`. The `sbx_rslt` schema is created below.
 
 ```{r, echo=TRUE, eval=FALSE}
-pg_conn_param = dadmtools::get_pg_conn_list()
+pg_conn_param <- dadmtools::get_pg_conn_list()
 dadmtools::run_sql_r("CREATE SCHEMA sbx_rslt;", pg_conn_param)
 
 ```
@@ -2073,8 +2073,8 @@ key_skgeo_tbl <- "gr_skey"
 key_attskey_tbl <- "pgid"
 geom_field <- "geom_square"
 dst_ha_field <- "polygon_ha"
-query = "timber_harvest_code is not null"
-dst_gdb_name = "wha.gdb"
+query <- "timber_harvest_code is not null"
+dst_gdb_name <- "wha.gdb"
 out_gdb_path <- "C:/sandbox/data/gdbs"
 
 #==============================================
@@ -2294,8 +2294,8 @@ key_skgeo_tbl <- "gr_skey"
 key_attskey_tbl <- "pgid"
 geom_field <- "geom_square"
 dst_ha_field <- "polygon_ha"
-query = "aflb_fact > 0"
-dst_gdb_name = "aflb_thlb.gdb"
+query <- "aflb_fact > 0"
+dst_gdb_name <- "aflb_thlb.gdb"
 out_gdb_path <- "C:/sandbox/data/gdbs"
 
 #==============================================
@@ -2419,13 +2419,13 @@ The `localpsql` connection is used to drop the database `pgtsr`. Disconnect the 
 drop_dbname <- "pgtsr"
 
 # this call uses your localpsql credentials created with Keyring above
-pg_conn_param = dadmtools::get_pg_conn_list()
+pg_conn_param <- dadmtools::get_pg_conn_list()
 # the database name is removed 
 row_index <- which(names(pg_conn_param) == "dbname") 
 row_index <- row_index*-1
 pg_conn_param_nodb <- pg_conn_param[row_index]
 sql_drop <- glue("DROP DATABASE IF EXISTS ", drop_dbname, ";")
-dadmtools:: run_sql_r(sql_drop,pg_conn_param_nodb)
+dadmtools::run_sql_r(sql_drop,pg_conn_param_nodb)
 
 ```
 
@@ -2446,7 +2446,7 @@ db_dump <- "pgtsr.sql"
 db_name <- "pgtsr"
 #=============================================================
 
-pg_conn_param = dadmtools::get_pg_conn_list()
+pg_conn_param <- dadmtools::get_pg_conn_list()
 user <- pg_conn_param$user
 port <- pg_conn_param$port
 host <- pg_conn_param$host
@@ -2467,7 +2467,7 @@ The following code chunk lists the databases in *localpsql*.
 
 ```{r, echo=TRUE, eval=FALSE}
 
-pg_conn_param = dadmtools::get_pg_conn_list()
+pg_conn_param <- dadmtools::get_pg_conn_list()
 driver <- pg_conn_param["driver"][[1]]
 host <- pg_conn_param["host"][[1]]
 user <- pg_conn_param["user"][[1]]
