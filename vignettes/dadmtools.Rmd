@@ -864,24 +864,24 @@ Create a directory for your project. In the following workflow, the directory is
 
 `C:\sandbox`
 
-Download the following csv files into the directory just created. Right click on the csv name below, select *Save Link As*, then save in your project directory. **Be sure to save as a csv, not txt, file**.
+Download the following csv files into the directory just created. Click on the links below to open the webpage with the **Preview**. The right corner above the preview, in the toolbar with the **Raw** button, is a download icon *Download raw file*. Click on that to download and open then save in your project directory. 
 
-* [config_parameters.csv](https://raw.githubusercontent.com/bcgov/FAIB_DADMTOOLS/refs/heads/main/config_parameters.csv)
+* [config_parameters.csv](https://github.com/bcgov/FAIB_DADMTOOLS/blob/main/config_parameters.csv)
 
-* [create_new_resultant_inputs.csv](https://raw.githubusercontent.com/bcgov/FAIB_DADMTOOLS/refs/heads/main/create_new_resultant_inputs.csv)
+* [create_new_resultant_inputs.csv](https://github.com/bcgov/FAIB_DADMTOOLS/blob/main/create_new_resultant_inputs.csv)
 
-* [batch_add_fields_to_resultant.csv](https://raw.githubusercontent.com/bcgov/FAIB_DADMTOOLS/refs/heads/main/batch_add_fields_to_resultant.csv)
+* [batch_add_fields_to_resultant.csv](https://github.com/bcgov/FAIB_DADMTOOLS/blob/main/batch_add_fields_to_resultant.csv)
 
-* [batch_pg_to_seles_tif.csv](https://raw.githubusercontent.com/bcgov/FAIB_DADMTOOLS/refs/heads/main/batch_pg_to_seles_tif.csv)
+* [batch_pg_to_seles_tif.csv](https://github.com/bcgov/FAIB_DADMTOOLS/blob/main/batch_pg_to_seles_tif.csv)
 
 Download the zipped **sandbox** GDB. Select *Save Link As* when downloading from the FAIB data directory ([local tsa99.zip](
-S:\FOR\VIC\HTS\ANA\workarea\AR2024\units\training\tsa99\tsa99.zip)) or GitHub ([Git tsa99.zip](https://github.com/bcgov/FAIB_DADMTOOLS/blob/vignettes/data/tsa99.zip)). 
+S:\FOR\VIC\HTS\ANA\workarea\AR2024\units\training\tsa99\tsa99.zip)) or save the raw file (same process as above for csv files) from GitHub ([Git tsa99.zip](https://github.com/bcgov/FAIB_DADMTOOLS/blob/vignettes/data/tsa99.zip)). 
 
 In this example, the test GDB is saved to:
 
 `C:\sandbox\data`
 
-Download the **sandbox** area of interest shapefile. Select *Save Link As* when downloading from the FAIB data directory  ([local aoi.zip](S:\FOR\VIC\HTS\ANA\workarea\AR2024\units\training\tsa99\aoi.zip)) or GitHub ([Git aoi.zip](https://github.com/bcgov/FAIB_DADMTOOLS/blob/vignettes/data/aoi.zip)).
+Download the **sandbox** area of interest shapefile. Select *Save Link As* when downloading from the FAIB data directory ([local aoi.zip](S:\FOR\VIC\HTS\ANA\workarea\AR2024\units\training\tsa99\aoi.zip)) or save the raw file (same process as above for csv files) from GitHub ([Git aoi.zip](https://github.com/bcgov/FAIB_DADMTOOLS/blob/vignettes/data/aoi.zip)).
 
 In this example the shapefile is saved to:
 
