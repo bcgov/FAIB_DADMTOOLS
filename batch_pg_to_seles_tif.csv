@@ -1,0 +1,3 @@
+include,pg_att_table,pg_attskey_table,pg_skgeom_table,geom_field,field_to_tif,key_skgeo_tbl,key_attskey_tbl,dst_tif_name,d_multiplier,query,notes
+0,sandbox.tsa_resultant,,sandbox.tsa_gr_skey,geom,own,gr_skey,,own.tif,,,
+0,whse.all_thlb_jan_2025,whse.all_thlb_gr_skey_jan_2025,whse.tsa_gr_skey,geom,thlb_fact,gr_skey,pgid,thlb_2025.tif,1000,thlb_fact>0,
