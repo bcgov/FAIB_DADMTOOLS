@@ -89,6 +89,7 @@ library(keyring)
 library(sf)
 library(devtools)
 library(dadmtools)
+
 ```
 [Back to Top](#introduction)
 
@@ -1222,7 +1223,8 @@ dadmtools::import_gr_skey_tif_to_pg_rast(
     out_crop_tif_name = skey_tif,
     template_tif = template_tif,
     mask_tif = mask_tif,
-    crop_extent = get_gr_skey_extent(dsn = dsn, layer=layer),
+    crop_extent = get_gr_skey_extent(dsn = dsn, layer=layer, 
+                                     template_tif =template_tif),
     pg_conn_param = dadmtools::get_pg_conn_list(),
     dst_tbl = skey_table,
     rast_sch = rast_schema
