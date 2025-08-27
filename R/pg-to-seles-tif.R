@@ -39,7 +39,9 @@ pg_to_seles_tif <- function(pg_conn_param,
                             bnd)
 {
 
-
+  data_type_handled <- glue("'smallint', ", "'integer', ", "'boolean', ",
+                            "'double precision', ",
+                            "'character varying', ", "'text'")
 
   driver <- pg_conn_param["driver"][[1]]
   host <- pg_conn_param["host"][[1]]
@@ -56,92 +58,124 @@ pg_to_seles_tif <- function(pg_conn_param,
                               dbname=dbname)
   on.exit(RPostgres::dbDisconnect(con))
 
-  where_clause <- ""
-  if ( (is.null(query)) || (nchar(query) == 0)) {
-    where_clause <- ";"
+  # check GDB and bnd feature classes exist
+  cmd <- glue("ogrinfo --quiet -so -geom=NO {gdb} {bnd}")
+  ret <- system(command = cmd)
+
+  if (ret[1] == 0){
+    print('success')
+  }else{
+    print(glue("Feature class '{bnd}' not found in GDB '{gdb}'"))
+  }
+  tb_schema <- gsub("\\..*","",pg_att_table)
+  tb_table <- gsub(".*\\.", "", pg_att_table)
+  sql_tb <- glue("SELECT data_type
+                       FROM information_schema.columns
+                       WHERE table_schema = '{tb_schema}'
+                        AND table_name = '{tb_table}'
+                      and column_name = '{field_to_tif}'")
+  tb_type_df <- dadmtools::sql_to_df(sql_tb, pg_conn_param)
+
+  if (length(tb_type_df$data_type) == 0){
+    return_msg <- glue("No table rows returned.
+                        Check if the database {pg_conn_param$dbname}
+                        has the table {pg_att_table}
+                        with the field {field_to_tif}.")
+  } else if (!(tb_type_df$data_type %in% c("smallint", "character varying",
+                                           "integer", "boolean", "double precision",
+                                           "text")))
+  {
+    return_msg <- glue("Unhandled dataype {tb_type_df$data_type}.
+                       Convert field '{field_to_tif}' to one of the
+                       following PostgreSQL data types:
+                       {data_type_handled}.")
+  } else if (!(ret[1] == 0))
+  {
+    return_msg <- glue("Feature class '{bnd}' not found in GDB '{gdb}'")
   } else {
-    where_clause <- glue(" where ", query, ";")
-  }
-
-  # find att_sk table
-  as_sk <- 'as a '
-  if (!(is.null(pg_attskey_table) || (nchar(pg_attskey_table) == 0))){
-    as_sk <- glue(as_sk, 'left join ',
-                  pg_attskey_table,
-                  ' as sk ',
-                  'on (a.',key_attskey_tbl, '=sk.', key_attskey_tbl, ') ')
-  }
-
-  # find geom table
-  g <- 'a.'
-  as_b <- ''
-
-  if (!(is.null(pg_skgeom_table) || (nchar(pg_skgeom_table) == 0))){
-    g <- "b."
-    if (is.null(pg_attskey_table) || (nchar(pg_attskey_table) == 0)){
-      as_b <- glue("left join ", pg_skgeom_table,
-                   " as b on (b.", key_skgeo_tbl, "=a.",key_skgeo_tbl, ") ")
+    where_clause <- ""
+    if ( (is.null(query)) || (nchar(query) == 0)) {
+      where_clause <- ";"
     } else {
-      as_b <- glue("left join ", pg_skgeom_table,
-                   " as b on (b.", key_skgeo_tbl, "=sk.",key_skgeo_tbl, ") ")
+      where_clause <- glue(" where ", query, ";")
     }
+
+    # find att_sk table
+    as_sk <- 'as a '
+    if (!(is.null(pg_attskey_table) || (nchar(pg_attskey_table) == 0))){
+      as_sk <- glue(as_sk, 'left join ',
+                    pg_attskey_table,
+                    ' as sk ',
+                    'on (a.',key_attskey_tbl, '=sk.', key_attskey_tbl, ') ')
+    }
+
+    # find geom table
+    g <- 'a.'
+    as_b <- ''
+
+    if (!(is.null(pg_skgeom_table) || (nchar(pg_skgeom_table) == 0))){
+      g <- "b."
+      if (is.null(pg_attskey_table) || (nchar(pg_attskey_table) == 0)){
+        as_b <- glue("left join ", pg_skgeom_table,
+                     " as b on (b.", key_skgeo_tbl, "=a.",key_skgeo_tbl, ") ")
+      } else {
+        as_b <- glue("left join ", pg_skgeom_table,
+                     " as b on (b.", key_skgeo_tbl, "=sk.",key_skgeo_tbl, ") ")
+      }
+    }
+
+    build_sql <- glue("select a.", field_to_tif, ", ", g,
+                      geom_field, " as geometry ",
+                      "from ", pg_att_table, " ", as_sk, as_b,
+                      where_clause)
+    # get sf object
+    src_sf_1 <- sf::st_read(con, query=build_sql)
+    src_sf <- src_sf_1[!st_is_empty(src_sf_1), ]
+    src_sf_convert <- NULL
+    field_convert <- field_to_tif
+    return_msg <- "starting..."
+
+    if (tb_type_df$data_type %in% c("character varying", "text")){
+      src_sf_cat <- as.data.frame(unique(src_sf[[1]]))
+      src_sf_cat$val <- src_sf_cat[[1]]
+      seq_count <- length(src_sf_cat$val)
+      src_sf_cat$cat <- seq(1,seq_count)
+      src_sf_cat_merge <- subset(src_sf_cat, select=c(2,3))
+      src_sf_cat$cat_val <- paste0(" ", src_sf_cat$cat, ":",src_sf_cat$val)
+      src_sf_save <- subset(src_sf_cat, select=c(4))
+      cat_name <- gsub("\\.tif", "", dst_tif_name)
+      cat_filepath <- glue(out_cat_path, "/",cat_name)
+      write.table(src_sf_save, file = cat_filepath,
+                  sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+      src_sf_wcat <- merge(src_sf, src_sf_cat_merge,
+                           by.x = field_to_tif, by.y='val')
+      src_sf_convert <- subset(src_sf_wcat, select=c(2,3))
+      field_convert <- "cat"
+      return_msg <- "Created cat for text field and converted to raster."
+    } else if (tb_type_df$data_type %in% c("double precision")) {
+      src_sf_double <- src_sf
+      src_sf_double$val1 <- src_sf_double[[1]] * d_multiplier
+      src_sf_double$val <- round(src_sf_double[[3]], 0)
+      src_sf_convert <- subset(src_sf_double, select=c(4,2))
+      field_convert <- "val"
+      return_msg <- "Multiplied field and converted to raster."
+    } else if (tb_type_df$data_type %in% c("integer", "smallint", "boolean")) {
+      src_sf_convert <- src_sf
+      return_msg <- "Converted integer to raster."
+    }
+
+    dadmtools::rasterize_terra(src_sf = src_sf_convert,
+                               field = field_convert,
+                               template_tif = template_tif,
+                               crop_extent = get_gr_skey_extent(dsn = gdb,
+                                                                layer=bnd,
+                                                                template_tif=template_tif),
+                               src_lyr = NULL,
+                               out_tif_path = out_tif_path,
+                               out_tif_name = dst_tif_name,
+                               datatype ='INT4S',
+                               nodata = 0)
+
   }
-
-  build_sql <- glue("select a.", field_to_tif, ", ", g,
-                    geom_field, " as geometry ",
-                    "from ", pg_att_table, " ", as_sk, as_b,
-                    where_clause)
-  # get sf object
-  src_sf_1 <- sf::st_read(con, query=build_sql)
-  src_sf <- src_sf_1[!st_is_empty(src_sf_1), ]
-  src_sf_convert <- NULL
-  field_convert <- field_to_tif
-  return_msg <- "starting..."
-  type_field <- typeof(src_sf[[1]])
-  if (type_field == "character"){
-    src_sf_cat <- as.data.frame(unique(src_sf[[1]]))
-    src_sf_cat$val <- src_sf_cat[[1]]
-    seq_count <- length(src_sf_cat$val)
-    src_sf_cat$cat <- seq(1,seq_count)
-    src_sf_cat_merge <- subset(src_sf_cat, select=c(2,3))
-    src_sf_cat$cat_val <- paste0(" ", src_sf_cat$cat, ":",src_sf_cat$val)
-    src_sf_save <- subset(src_sf_cat, select=c(4))
-    cat_name <- gsub("\\.tif", "", dst_tif_name)
-    cat_filepath <- glue(out_cat_path, "/",cat_name)
-    write.table(src_sf_save, file = cat_filepath,
-                sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
-    src_sf_wcat <- merge(src_sf, src_sf_cat_merge,
-                         by.x = field_to_tif, by.y='val')
-    src_sf_convert <- subset(src_sf_wcat, select=c(2,3))
-    field_convert <- "cat"
-    return_msg <- "Created cat for text field and converted to raster."
-  } else if (type_field == "double") {
-    src_sf_double <- src_sf
-    src_sf_double$val1 <- src_sf_double[[1]] * d_multiplier
-    src_sf_double$val <- round(src_sf_double[[3]], 0)
-    src_sf_convert <- subset(src_sf_double, select=c(4,2))
-    field_convert <- "val"
-    return_msg <- "Multiplied field and converted to raster."
-  } else if (type_field == "integer") {
-    src_sf_convert <- src_sf
-    return_msg <- "Converted integer to raster."
-  } else {
-    print("Unhandled dataype. Convert field to convert to integer, text or double.")
-  }
-
-
-
-  dadmtools::rasterize_terra(src_sf = src_sf_convert,
-                             field = field_convert,
-                             template_tif = template_tif,
-                             crop_extent = get_gr_skey_extent(dsn = gdb,
-                                                              layer=bnd),
-                             src_lyr = NULL,
-                             out_tif_path = out_tif_path,
-                             out_tif_name = dst_tif_name,
-                             datatype ='INT4S',
-                             nodata = 0)
-
-  return(return_msg)
-
+  print (return_msg)
 }
