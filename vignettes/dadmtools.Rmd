@@ -1,0 +1,2608 @@
+---
+title: "dadmtools"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{dadmtools}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval=FALSE
+)
+```
+
+```{r setup, message=FALSE, warning=FALSE}
+library(dadmtools)
+```
+
+# Introduction 
+
+The [`dadmtools`](https://github.com/bcgov/FAIB_DADMTOOLS) package supports the analysis and modelling workflow used for timber supply review [(TSR)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut) and forest landscape planning [(FLP)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-landscape-plans). This process was developed by the Forest Analysis and Inventory Branch (FAIB).
+
+The workflow in this vignette focuses on using [`dadmtools`](https://github.com/bcgov/FAIB_DADMTOOLS) in an example TSR project, from initial project start-up and installation of R packages through to importing vector and raster data into [PostgreSQL](https://www.postgresql.org/) database tables, adding additional data layers, creating resultants and finally exporting the PostgreSQL tables to different spatial data formats.
+
+Once the data is in PostgreSQL, the landbase netdowns can be defined using [`SQL`](https://www.postgresql.org/docs/current/sql.html) resulting in the analysis forest landbase (AFLB) and timber harvesting land base (THLB). This vignette does not cover that process.
+
+In addition to the workflow example, there is a section on [Additional Functionality](#additional-functionality) that highlights other functions in [`dadmtools`](https://github.com/bcgov/FAIB_DADMTOOLS) frequently used in TSR and FLP projects.
+
+# Overview
+
+After following the example workflow, using a small area with test data (*sandbox*) available [TO BE ADDED](.\data), you will have completed the process to create PostgreSQL relational database ready for analysis and produced data exports ready for forest modelling.
+
+Several applications are needed prior to beginning the workflow. The requirements, and instructions for installation, are described on the DADMTOOLS [github](https://github.com/bcgov/FAIB_DADMTOOLS). 
+
+The workflow assumes you have installed the following:
+
+* PostgresQL database version 12 or above
+* Oracle Instant Client
+* GDAL
+* R Version 4 or above
+* RStudio
+
+PostgreSQL can be accessed using the command line interface, [pgAdmin](https://www.pgadmin.org/) or [dBeaver](https://dbeaver.io/download/). 
+
+The workflow will start with installing the R packages, adding the libraries, and downloading the test data. A PostgreSQL database is created with the needed schemas and extensions.
+
+The test data will be imported into the PostgreSQL database created, ready for analysis and modelling. A `gr_skey` TIF of the area of interest boundary along with a `gr_skey` PostgreSQL table will be created. These are needed to clip other data layers.
+
+`dadmtools` uses csv configuration files in the process of importing data to PostgreSQL and creating and adding to resultants. These csv files will be downloaded, updated, and used in the example workflow. A resultant table will be created and fields from the resultant will be exported to a TIF in the data type needed by the Seles timber supply model, a shapefile, and a geodatabase.
+
+Additional functionality that will be useful as a project develops is added under the [Additional Functionality](#additional-functionality) Section.
+
+[Back to Top](#introduction)
+
+# Workflow
+
+## R Packages and Libraries
+
+Install the following R packages. 
+
+```{r installPackages, eval=FALSE}
+install.packages("RPostgres")
+install.packages("glue")
+install.packages("terra")
+install.packages("keyring")
+install.packages("sf")
+install.packages("devtools")
+library(devtools)
+install_github("bcgov/FAIB_DADMTOOLS")
+devtools::install(build_vignettes = TRUE)
+
+```
+
+## Run Libraries Each Time
+
+The libraries will need to be added again in each new session.
+
+```{r libinstall}
+library(RPostgres)
+library(glue)
+library(terra)
+library(keyring)
+library(sf)
+library(devtools)
+library(dadmtools)
+
+```
+[Back to Top](#introduction)
+
+## DADMTOOLS Functions in Development 
+
+The following funcions will be included in future versions of `dadmtools`. These draft functions are included here as the vignette workflow requires them. 
+To use in your own script, run the code chunk below to load the functions into your current R environment.
+
+### pg_to_seles_tif
+
+The function `pg_to_seles_tif` exports a Postgres table to a TIF file in the data format required by seles. It handles 3 data types:
+
+* text
+  * every unique occurrence is assigned an integer
+  * the integer is converted to a TIF
+  * the text-integer pair is saved as a `cat` file
+
+* double
+  * the value is multiplied by the parameter `d_mulitiplier`
+  * the rounded result is converted to an integer
+  * the integer is converted to a TIF
+  * summing the area in the resulting TIF requires dividing by the value of `d_multiplier`
+  
+* integer
+  * the integer is converted to a TIF
+  
+The function takes up to 3 tables. 
+
+If only **one table** is used (`pg_att_table`), the attribute field to convert to TIF (`field_to_tif`) and the geometry field (`geom_field`) is required.
+
+The following function call is an example for the one table option.
+
+`pg_to_seles_tif(pg_conn_param, field_to_tif, pg_att_table, geom_field, template_tif, result_tif_path,result_tif_name, out_cat_path, d_multiplier, query,gdb,bnd)`
+
+If **two tables** are used, the attribute table (`pg_att_table`) with the field to convert (`field_to_tif`) and the table with geometry (`pg_skgeom_table`) are required. Both tables require the join field `key_skgeo_tbl` (e.g. gr_skey).
+
+The following function call is an example is for the two table option.
+
+`pg_to_seles_tif(pg_conn_param, field_to_tif, pg_att_table, pg_skgeom_table, key_skgeo_tbl,geom_field, template_tif, result_tif_path, result_tif_name, out_cat_path, d_multiplier, query,gdb,bnd)` 
+
+**Three tables** are required when the attribute table does not have a join field to the geometry table. The third table, `pg_attskey_table`, joins to the attribute table with the field `key_attskey_tbl` (e.g. pgid), and both the attribute table (`pg_att_table`) and third table (`pg_attskey_table`) require that field. The third table (`pg_attskey_table`) also joins to the geometry table (`pg_skgeom_table`) and must have the field `key_skgeo_tbl` (e.g. gr_skey) to join to it, and that field must be in the geometry table. 
+
+The three table option is the one to use if the PostgreSQL tables were imported using DADM Tools.
+
+The following function call is an example is for the three table option.
+                 
+`pg_to_seles_tif(pg_conn_param, field_to_tif, pg_att_table, pg_skgeom_table, key_skgeo_tbl, pg_attskey_table, key_attskey_tbl, geom_field, template_tif, result_tif_path, result_tif_name, out_cat_path, d_multiplier, query,gdb,bnd)` 
+
+In all the examples above, `out_cat_path` is only necessary if a TEXT data type is being converted. Including `out_cat_path` for other data types will be ignored and can be left out or included in the parameter list used in the function call.
+
+
+```{r, echo=TRUE, eval=FALSE}
+#' Rasterize Field in Postgres Table (dataypes: integer, decimal, text)
+#' Seles only uses integer rasters.
+#' If the field is an integer, a TIF file is created with the integer value
+#' If the field is a text field, a CAT file will be created, a
+#' value - integer pairing. The TIF file will be created from the integer.
+#' The CAT file is used in Seles to display the legend.
+#' If the filed file is a decimal, it will be multiplied by the parameter d_multiplier, then converted
+#' to an integer. A TIF file will be created from the integer.
+#'
+#' @param pg_conn_param named (required): list - connection parameters (returned by dadmtools::get_pg_conn_list)
+#' @param field_to_tif (required): string - field name in pg_table_with_geom to convert to raster
+#' @param pg_att_table (required): string - name of Postgres schema.table with field to convert. Optionally can have geometry field
+#' @param pg_attskey_table (optional): string - name of Postgres schema.table with key to geom and attribute tables (e.g. gr_skey or ogc_fid),   required if geometry not in attribute table
+#' @param pg_skgeom_table (optional): string - name of Postgres schema.table with geometry, if geometry not in attribute table
+#' @param geom_field (required): string - name of geometry field in pg_table_with_geom
+#' @param key_skgeo_tbl (optional): string - name of join field to join pg_skey_table and pg_geom_table (e.g. gr_skey), required if joining 3 tables.
+#' @param key_attskey_tbl (optional): string - name of join field to join pg_att_table and pg_skey_table (e.g. pgid), required if joining 2 or 3 tables.
+#' @param template_tif (required): string - file path to template tif (e.g. skey.tif)
+#' @param out_tif_path (required): string - path to output rasters directory
+#' @param dst_tif_name (required): string - name of output tif saved to out_tif_path
+#' @param out_cat_path (optional): string - path to output cat files directory. Only used for text field types. Default NULL.
+#' @param d_mulitiplier (optional): integer multiplier to use for decimal datatypes. Only used for decimal data types. Default 1000
+#' @param query (optional): string SQL where clause used to filter input dataset, e.g. "thlb_fact > 0", "own is not null". Default NULL (no query applied).
+pg_to_seles_tif <- function(pg_conn_param,
+                            field_to_tif,
+                            pg_att_table,
+                            pg_attskey_table = NULL,
+                            pg_skgeom_table = NULL,
+                            geom_field,
+                            key_skgeo_tbl = NULL,
+                            key_attskey_tbl = NULL,
+                            template_tif,
+                            out_tif_path,
+                            dst_tif_name,
+                            out_cat_path = NULL,
+                            d_multiplier = 1000,
+                            query = NULL,
+                            gdb,
+                            bnd)
+{
+data_type_handled <- glue("'smallint', ", "'integer', ", "'boolean', ", 
+                          "'double precision', ",
+                          "'character varying', ", "'text'")
+
+  driver <- pg_conn_param["driver"][[1]]
+  host <- pg_conn_param["host"][[1]]
+  user <- pg_conn_param["user"][[1]]
+  password <- pg_conn_param["password"][[1]]
+  port <- pg_conn_param["port"][[1]]
+  dbname <- pg_conn_param["dbname"][[1]]
+
+  con <- RPostgres::dbConnect(driver,
+                                host=host,
+                                user = user,
+                                port = port,
+                                password=password,
+                                dbname=dbname)
+  on.exit(RPostgres::dbDisconnect(con))
+  
+  # check GDB and bnd feature classes exist
+  cmd <- glue("ogrinfo --quiet -so -geom=NO {gdb} {bnd}")
+  ret <- system(command = cmd)
+
+if (ret[1] == 0){
+  print('success')
+}else{
+  print(glue("Feature class '{bnd}' not found in GDB '{gdb}'"))
+}
+  tb_schema <- gsub("\\..*","",pg_att_table)
+  tb_table <- gsub(".*\\.", "", pg_att_table)
+  sql_tb <- glue("SELECT data_type 
+                       FROM information_schema.columns 
+                       WHERE table_schema = '{tb_schema}' 
+                        AND table_name = '{tb_table}'
+                      and column_name = '{field_to_tif}'")
+  tb_type_df <- dadmtools::sql_to_df(sql_tb, pg_conn_param)
+  
+  if (length(tb_type_df$data_type) == 0){
+    return_msg <- glue("No table rows returned. 
+                        Check if the database {pg_conn_param$dbname} 
+                        has the table {pg_att_table} 
+                        with the field {field_to_tif}.")
+  } else if (!(tb_type_df$data_type %in% c("smallint", "character varying",
+                                     "integer", "boolean", "double precision",
+                                    "text")))
+  {
+    return_msg <- glue("Unhandled dataype {tb_type_df$data_type}.
+                       Convert field '{field_to_tif}' to one of the 
+                       following PostgreSQL data types: 
+                       {data_type_handled}.")
+  } else if (!(ret[1] == 0))
+  {
+    return_msg <- glue("Feature class '{bnd}' not found in GDB '{gdb}'")
+  } else {
+    where_clause <- ""
+    if ( (is.null(query)) || (nchar(query) == 0)) {
+     where_clause <- ";"
+    } else {
+      where_clause <- glue(" where ", query, ";")
+    }
+
+    # find att_sk table
+    as_sk <- 'as a '
+    if (!(is.null(pg_attskey_table) || (nchar(pg_attskey_table) == 0))){
+      as_sk <- glue(as_sk, 'left join ',
+                  pg_attskey_table,
+                  ' as sk ',
+                  'on (a.',key_attskey_tbl, '=sk.', key_attskey_tbl, ') ')
+    }
+
+    # find geom table
+   g <- 'a.'
+    as_b <- ''
+
+   if (!(is.null(pg_skgeom_table) || (nchar(pg_skgeom_table) == 0))){
+     g <- "b."
+     if (is.null(pg_attskey_table) || (nchar(pg_attskey_table) == 0)){
+      as_b <- glue("left join ", pg_skgeom_table,
+                   " as b on (b.", key_skgeo_tbl, "=a.",key_skgeo_tbl, ") ")
+      } else {
+       as_b <- glue("left join ", pg_skgeom_table,
+                 " as b on (b.", key_skgeo_tbl, "=sk.",key_skgeo_tbl, ") ")
+      }
+    }
+
+   build_sql <- glue("select a.", field_to_tif, ", ", g,
+                       geom_field, " as geometry ",
+                       "from ", pg_att_table, " ", as_sk, as_b,
+                        where_clause)
+    # get sf object
+   src_sf_1 <- sf::st_read(con, query=build_sql) 
+   src_sf <- src_sf_1[!st_is_empty(src_sf_1), ]
+   src_sf_convert <- NULL
+   field_convert <- field_to_tif
+   return_msg <- "starting..."
+   
+   if (tb_type_df$data_type %in% c("character varying", "text")){
+      src_sf_cat <- as.data.frame(unique(src_sf[[1]]))
+      src_sf_cat$val <- src_sf_cat[[1]]
+      seq_count <- length(src_sf_cat$val)
+      src_sf_cat$cat <- seq(1,seq_count)
+      src_sf_cat_merge <- subset(src_sf_cat, select=c(2,3))
+      src_sf_cat$cat_val <- paste0(" ", src_sf_cat$cat, ":",src_sf_cat$val)
+      src_sf_save <- subset(src_sf_cat, select=c(4))
+      cat_name <- gsub("\\.tif", "", dst_tif_name)
+      cat_filepath <- glue(out_cat_path, "/",cat_name)
+      write.table(src_sf_save, file = cat_filepath,
+                  sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+      src_sf_wcat <- merge(src_sf, src_sf_cat_merge, 
+                           by.x = field_to_tif, by.y='val')
+      src_sf_convert <- subset(src_sf_wcat, select=c(2,3))
+      field_convert <- "cat"
+      return_msg <- "Created cat for text field and converted to raster."
+   } else if (tb_type_df$data_type %in% c("double precision")) {
+      src_sf_double <- src_sf
+      src_sf_double$val1 <- src_sf_double[[1]] * d_multiplier
+      src_sf_double$val <- round(src_sf_double[[3]], 0)
+      src_sf_convert <- subset(src_sf_double, select=c(4,2))
+      field_convert <- "val"
+      return_msg <- "Multiplied field and converted to raster."
+  } else if (tb_type_df$data_type %in% c("integer", "smallint", "boolean")) {
+      src_sf_convert <- src_sf
+      return_msg <- "Converted integer to raster."
+  }
+    
+    dadmtools::rasterize_terra(src_sf = src_sf_convert,
+                               field = field_convert,
+                               template_tif = template_tif,
+                               crop_extent = get_gr_skey_extent(dsn = gdb,
+                                                                layer=bnd,
+                                                    template_tif=template_tif),
+                               src_lyr = NULL,
+                               out_tif_path = out_tif_path,
+                               out_tif_name = dst_tif_name,
+                               datatype ='INT4S',
+                               nodata = 0)
+
+  }
+  print (return_msg)
+}
+```
+
+[Back to Top](#introduction)
+
+### batch_pg_to_seles_tif
+
+The following function batch exports Postgres tables to TFI, using the csv file `batch_pg_to_seles_tif.csv`. The column headings in the batch file match the parameters for the `pg_to_seles_tif` described above.
+
+```{r batch_pg2tif, echo=TRUE, eval=FALSE}
+
+#' Batch imports Postgres table fields (data types: integer | double | text) to TIFF. 
+#' Converts to an integer TIF. Double data types (decimals) are multiplied by the parameter d_mulitiplier, rounded and the result converted to an integer.
+#' Text is converted to a text:sequence pair and saved to a CAT file, and the sequence is converted to the TIF.
+#'
+#' @param in_csv File path to input configuration csv, defaults to "batch_pg_to_seles_tif.csv"
+#' @param pg_conn_param Keyring object of Postgres credentials, defaults to dadmtools::get_pg_conn_list()
+#' @param template_tif (required): string - file path to template tif (e.g. skey.tif)
+#' @param out_tif_path (required): string - path to output rasters directory
+#' @param out_cat_path (required): string - path to output cat files directory. Only used for text field types. Default NULL.
+#' @param gdb (required): string - path to GDB that contains the unit boundary feature class (e.g. bnd) - used to create extent
+#' @param bnd (required): string - boundary feature class name
+
+batch_pg_to_seles_tif <- function(in_csv = "batch_pg_to_seles_tif.csv",
+                                  pg_conn_param = get_pg_conn_list(),
+                                  template_tif,
+                                  out_tif_path,
+                                  out_cat_path,
+                                  gdb,
+                                  bnd)
+{
+  start_time <- Sys.time()
+  print(glue("Script started at {format(start_time, '%Y-%m-%d %I:%M:%S %p')}"))
+  in_file <- read.csv(in_csv)
+  in_file <- in_file[in_file$include == 1,]
+  for (row in 1:nrow(in_file)) {
+    pg_att_table <- gsub("[[:space:]]","",tolower(in_file[row, "pg_att_table"])) ## attribute table
+    pg_attskey_table <- gsub("[[:space:]]","",tolower(in_file[row, "pg_attskey_table"])) ## attribute skey table
+    pg_skgeom_table <- gsub("[[:space:]]","",tolower(in_file[row, "pg_skgeom_table"])) ## geometry table
+    geom_field <- gsub("[[:space:]]","",tolower(in_file[row, "geom_field"])) ## geometry field name
+    field_to_tif <- gsub("[[:space:]]","",tolower(in_file[row, "field_to_tif"])) ## name of field to convert to tif
+    key_skgeo_tbl <- gsub("[[:space:]]","",tolower(in_file[row, "key_skgeo_tbl"]))  ##key field between skey table and geometry table
+    key_attskey_tbl <- gsub("[[:space:]]","",tolower(in_file[row, "key_attskey_tbl"]))  ##key field between skey table and attribute table
+    dst_tif_name <- gsub("[[:space:]]","",tolower(in_file[row, "dst_tif_name"]))  ##Name of TIF being created
+    d_multiplier <- in_file[row, "d_multiplier"]  ##Multiplier used if data type is decimal
+    query <- in_file[row, "query"]  ##where clause used to filter input dataset
+    notes <- in_file[row, "notes"]  ##user notes field
+
+
+     ## checks
+    if (any(c(is_blank(pg_att_table), is_blank(geom_field), is_blank(field_to_tif), is_blank(dst_tif_name), is_blank(out_tif_path)))){
+      print("ERROR: Argument not provided, one of pg_att_table, geom_field, field_to_tif, dst_tif_name, out_tif_path was left blank. Exiting script.")
+      return()
+    }
+
+
+    pg_to_seles_tif(pg_conn_param = pg_conn_param,
+                    field_to_tif = field_to_tif,
+                    pg_att_table = pg_att_table,
+                    pg_attskey_table = pg_attskey_table,
+                    pg_skgeom_table = pg_skgeom_table,
+                    geom_field = geom_field,
+                    key_skgeo_tbl = key_skgeo_tbl,
+                    key_attskey_tbl = key_attskey_tbl,
+                    template_tif = template_tif,
+                    out_tif_path = out_tif_path,
+                    dst_tif_name = dst_tif_name,
+                    out_cat_path = out_cat_path,
+                    d_multiplier = d_multiplier,
+                    query = query,
+                    gdb = gdb,
+                    bnd = bnd)
+                                   
+  }
+  end_time <- Sys.time()
+  duration <- difftime(end_time, start_time, units = "mins")
+  print(glue("Script started at {format(end_time, '%Y-%m-%d %I:%M:%S %p')}"))
+  print(glue("Script duration: {duration} minutes\n"))
+}
+```
+
+[Back to Top](#introduction)
+
+### geom_square_from_point
+
+The default geometry used in `dadmtools` when adding spatial tables to Postgres is the centroid. When mapping, or exporting to shapfiles, having a a spatial square is preferable.
+
+In the following function a square geometry field `pg_add_geomName` is added to a PostgreSQL table.
+
+```{r addGeomSquare2tbl, echo=TRUE, eval=FALSE}
+
+#' Add a polyon geometry field (1 hectare squares) to
+#' a PostGres table and populate using a point geometry field.
+#'@param pg_conn_param named (optional): list - connection parameters (default returned by dadmtools::get_pg_conn_list)
+#' @param pg_geomTable  (required): string - PG table with point geometry
+#' @param pg_exisiting_geomPoint  (required): Name of point geometry field
+#' @param pg_add_geomName (required): string - name of new polygon geometry field
+#=================================================
+
+geom_square_from_point <- function(pg_conn_param = get_pg_conn_list(),
+                                   pg_geomTable,
+                                   pg_exisiting_geomPoint,
+                                   pg_add_geomName)
+{
+    alter_sql <- glue("alter table ", pg_geomTable, 
+                      " add column ", pg_add_geomName, 
+                      " geometry(Polygon, 3005);")
+
+    update_sql <- glue("update ", pg_geomTable,
+                  " set ", pg_add_geomName, " = st_buffer(",
+                    pg_exisiting_geomPoint, ", 50,
+                  'endcap=square');")
+
+    run_sql_r(alter_sql, pg_conn_param)
+
+    run_sql_r(update_sql, pg_conn_param)
+}
+
+```
+
+[Back to Top](#introduction)
+
+### pg_to_shapefile
+
+The function `pg_to_shapefile` exports selected PostgreSQL table fields to a shapefile. At least one field is required. Multiple fields can be chosen by separating each field name with a comma. 
+
+```{r createShapefile, echo=TRUE, eval=FALSE}
+
+#' Create a shapefile from fields in a Postgres Table 
+#' @param pg_conn_param named (optional): list - connection parameters (default is returned by dadmtools::get_pg_conn_list)
+#' @param fields_to_shape (required): string - field names to convert to shapefile - if more than one,must be separated by a comma
+#' @param pg_att_table (required): string - name of Postgres schema.table with field to convert. Optionally can have geometry field
+#' @param pg_attskey_table (optional): string - name of Postgres schema.table with key to geom and attribute tables (e.g. gr_skey or ogc_fid),   required if geometry not in attribute table
+#' @param pg_skgeom_table (optional): string - name of Postgres schema.table with geometry, if geometry not in attribute table
+#' @param geom_field (required): string - name of geometry field in pg_table_with_geom
+#' @param key_skgeo_tbl (optional): string - name of join field to join pg_skey_table and pg_geom_table (e.g. gr_skey), required if joining 3 tables.
+#' @param key_attskey_tbl (optional): string - name of join field to join pg_att_table and pg_skey_table (e.g. pgid), required if joining 2 or 3 tables.
+#' @param out_shapefile_path (required): string - path to output shapefile directory
+#' @param dst_shapefile_name (required): string - name of output shapefile saved to out_shapefile_path
+#' @param query (optional): string SQL where clause used to filter input dataset, e.g. "thlb_fact > 0", "own is not null". Default NULL (no query applied).
+
+pg_to_shapefile <- function(pg_conn_param = dadmtools::get_pg_conn_list(),
+                            fields_to_shape,
+                            pg_att_table,
+                            pg_attskey_table = NULL,
+                            pg_skgeom_table = NULL,
+                            geom_field,
+                            key_skgeo_tbl = NULL,
+                            key_attskey_tbl = NULL,
+                            out_shapefile_path,
+                            dst_shapefile_name,
+                            query)
+{
+  fld_count <- sum(gregexpr(',', fields_to_shape)[[1]] >0)
+  group_by <- " group by 1"
+  if(fld_count > 0){
+    nums <- 2
+    while(fld_count > 0){
+      group_by_nums <- glue(", ", as.character(nums))
+      nums <- nums + 1
+      fld_count <- fld_count -1
+    }
+    group_by <- glue(" group by 1", group_by_nums)
+  }
+
+  shape_name <- gsub("\\.shp", "", dst_shapefile_name)
+  temp_tblname <- glue('temp_', shape_name, format(Sys.time(), "%Y%m%d%H%M%S")) %>% tolower()
+
+  where_clause <- ""
+    if ( (is.null(query)) || (nchar(query) == 0)) {
+      where_clause <- glue(group_by, ");")
+    } else {
+      where_clause <- glue(" where ", query, " ", group_by, ");")
+  }
+
+  # find att_sk table
+  as_sk <- 'as a '
+  if (!(is.null(pg_attskey_table) || (nchar(pg_attskey_table) == 0))){
+    as_sk <- glue(as_sk, 'left join ',
+                  pg_attskey_table,
+                  ' as sk ',
+                  'on (a.',key_attskey_tbl, '=sk.', key_attskey_tbl, ') ')
+  }
+
+  # find geom table
+  g <- 'a.'
+  as_b <- ''
+  if (!(is.null(pg_skgeom_table) || (nchar(pg_skgeom_table) == 0))){
+    g <- "b."
+    if (is.null(pg_attskey_table) || (nchar(pg_attskey_table) == 0)){
+      as_b <- glue("left join ", pg_skgeom_table,
+                   " as b on (b.", key_skgeo_tbl, "=a.",key_skgeo_tbl, ") ")
+    } else {
+      as_b <- glue("left join ", pg_skgeom_table,
+                 " as b on (b.", key_skgeo_tbl, "=sk.",key_skgeo_tbl, ") ")
+    }}
+
+  
+  temp_tbl_sql <- glue("create table ", temp_tblname, 
+                        " as (select ", fields_to_shape, ", ", 
+                        "ST_Union(",g, geom_field, ") as singlegeom ", 
+                     "from ", pg_att_table, " ", as_sk, as_b,
+                        where_clause)
+
+  run_sql_r(temp_tbl_sql, pg_conn_param)
+
+  # makes shapefile sub-directory for file being created
+  if ( !(dir.exists(paste0(out_shapefile_path, "/", shape_name)))){
+    dir.create(paste0(out_shapefile_path, "/", shape_name))
+  }
+  
+  # set current directory to shapefile destination directory
+  setwd(paste0(out_shapefile_path, "/", shape_name))
+
+  hostname <- pg_conn_param["host"][[1]]
+  username <- pg_conn_param["user"][[1]]
+  pswrd <- pg_conn_param["password"][[1]]
+  port <- pg_conn_param["port"][[1]]
+  dbname <- pg_conn_param["dbname"][[1]]
+
+  path2shapefile <- paste0(out_shapefile_path, "/", shape_name, "/")
+  dst_shapefile_name_v0 <- glue(shape_name, '_v0', ".shp")
+  dst_shapefile_name_v1 <- glue(shape_name, '_v1', ".shp")
+
+  pgsql2shp_cmd <- glue("pgsql2shp",
+                      " -u ", username,
+                      " -h ", hostname,
+                      " -P ", pswrd,
+                      " -p ", port,
+                      " -g ", "singlegeom",
+                      " -f ", path2shapefile, dst_shapefile_name_v0, " ",
+                      dbname, " ", temp_tblname)
+
+  system(pgsql2shp_cmd, intern=FALSE, 
+         show.output.on.console = TRUE,
+         ignore.stderr = FALSE)
+
+  drop_tbl <- glue("drop table if exists ", temp_tblname, ";")
+  run_sql_r(drop_tbl, pg_conn_param)
+  
+  # project new shapefile
+  proj_cmd <- glue("ogr2ogr -t_srs EPSG:3005 ", dst_shapefile_name_v1, 
+                   " ", dst_shapefile_name_v0)
+  
+  system(proj_cmd, intern=FALSE, 
+         show.output.on.console = TRUE,
+         ignore.stderr = FALSE)
+  
+  # delete all rows where area is 0
+  area_cmd <- glue("ogr2ogr ", dst_shapefile_name, " ", dst_shapefile_name_v1,
+                   " -dialect SQLite -sql ", '"SELECT * FROM ', shape_name, "_v1", 
+                   ' where ST_Area(geometry) > 0"')
+                   
+  system(area_cmd, intern=FALSE, 
+         show.output.on.console = TRUE,
+         ignore.stderr = FALSE) 
+  
+  # Delete temporary shapefiles
+  shape_v0 <- list.files(pattern=paste0("\\", shape_name, "_v0."))
+  file.remove(shape_v0)
+  shape_v1 <- list.files(pattern=paste0("\\", shape_name, "_v1."))
+  file.remove(shape_v1)
+
+}
+
+```
+
+[Back to Top](#introduction)
+
+### pg_to_gdb
+
+The function `pg_to_gdb` exports a PostgreSQL table to a GDB. If the parameter `fields_to_gdb` is empty or NULL, all fields will be exported.
+
+The function takes up to 3 tables. 
+
+If only **one table** is used (`pg_att_table`), the attribute fields are converted to GDB (`fields_to_gdb`) and the geometry field (`geom_field`) is required.
+
+The following function call is an example for the one table option using all available defaults.
+
+`pg_to_gdb(pg_att_table, geom_field,dst_gdb_name, out_gdb_path)`
+
+If **two tables** are used, the attribute table (`pg_att_table`) with the field to convert (`fields_to_gdb`) and the table with geometry (`pg_skgeom_table`) are required. Both tables require the join field `key_skgeo_tbl` (e.g. gr_skey).
+
+The following function call is an example is for the two table option using all available defaults, including the default value for `key_skgeo_tbl` (gr_skey).
+
+`pg_to_gdb(pg_att_table, pg_skgeom_table, geom_field, dst_gdb_name, out_gdb_path)` 
+
+**Three tables** are required when the attribute table does not have a join field to the geometry table. The third table, `pg_attskey_table`, joins to the attribute table with the field `key_attskey_tbl` (e.g. pgid), and both the attribute table (`pg_att_table`) and third table (`pg_attskey_table`) require that field. The third table (`pg_attskey_table`) also joins to the geometry table (`pg_geom_table`) and must have the field `key_skgeo_tbl` (e.g. gr_skey) to join to it, and that field must be in the geometry table. 
+
+The three table option is the one to use if the PostgreSQL tables were imported using DADM Tools.
+
+The following function call is an example is for the three table option using all available defaults, including the default value for `key_skgeo_tbl` (gr_skey) and `key_attskey_tbl` (pgid).
+                 
+`pg_to_gdb(pg_att_table, pg_attskey_table, pg_skgeom_table, geom_field, dst_gdb_name, out_gdb_path)` 
+
+```{r pg2gdb, echo=TRUE, eval=FALSE}
+
+#' Convert a Postgres table to GDB
+#'@param pg_conn_param named (optional): list - connection parameters. Default is  dadmtools::get_pg_conn_list().
+#' @param fields_to_gdb (optional): string - comma separated list of fields to export. Default is all fields
+#' @param pg_att_table (required): string - name of Postgres table with fields to export to GDB
+#' @param pg_attskey_table (optional): string - name of Postgres table with join field to `pg_att_table` and table with geometry. 
+#' @param pg_skgeom_table (optional): string - name of Postgres table with geometry and join field to `pg_att_table` or `pg_attskey_table`.
+#' @param geom_field (required): string - name of geometry field
+#' @param dst_ha_field (optional): string - name of hectares field created in destination GDB. Default is `fid_ha`.
+#' @param key_skgeo_tbl (optional): string - name of key field (e.g. gr_skey) to join geometry table (`pg_skgeom_table`) with either `pg_att_table` or `pg_attskey_table`.
+#' @param key_attskey_tbl (optional): string - name of key field (e.g. pgid) to join attribute table (`pg_att_table`) with join table (`pg_attskey_table`).
+#' @param query (optional): string - SQL query to filter results (e.g. thlb_fact > 0). SQL statement placed after `where`. Default is all rows returned.
+#' @param dst_gdb_name (required): string - name of destination GDB being created.
+#' @param out_gdb_path (required): string - path to directory where GDB will be saved to.
+#=================================================
+
+pg_to_gdb <- function(pg_conn_param = dadmtools::get_pg_conn_list(),
+                      fields_to_gdb = NULL,
+                      pg_att_table,
+                      pg_attskey_table = NULL,
+                      pg_skgeom_table = NULL,
+                      geom_field,
+                      dst_ha_field = "fid_ha",
+                      key_skgeo_tbl = "gr_skey",
+                      key_attskey_tbl = "pgid",
+                      query = NULL,
+                      dst_gdb_name,
+                      out_gdb_path)
+{
+  
+  start_time <- Sys.time()
+  print(glue("Script started at {format(start_time, '%Y-%m-%d %I:%M:%S %p')}"))
+  
+  # set current directory to GDB destination directory
+  setwd(out_gdb_path)
+  
+  # set connection strings ready for export
+  driver <- pg_conn_param["driver"][[1]]
+  hostname <- pg_conn_param["host"][[1]]
+  username <- pg_conn_param["user"][[1]]
+  pswrd <- pg_conn_param["password"][[1]]
+  port <- pg_conn_param["port"][[1]]
+  dbname <- pg_conn_param["dbname"][[1]]
+
+  # get geometry type from geometry table
+  if(!(is.null(pg_skgeom_table) || (nchar(pg_skgeom_table)) == 0)){
+    sql_r <- glue("select distinct(ST_GeometryType(",
+                  geom_field, ")) as geom_type ",
+                  "from ", pg_skgeom_table)
+  # or attribute table
+  } else {
+    sql_r <- glue("select distinct(ST_GeometryType(", geom_field, ")) ",
+                  "as geom_type ",
+                  "from ", pg_att_table)  
+  }
+  # get all geometry types (e.g. Polygon and Multipolygon - this shouldn't happen!)
+  geom_type_rows <- sql_to_df(sql_r, pg_conn_param)
+  # just in case - warn user more than one geometry type
+  if (nrow(geom_type_rows) > 1){
+    print("Only first geometry type is being converted.")
+  }
+  # Get geometry type for conversion to GDB
+  geo_type <- sql_to_df(sql_r, pg_conn_param)[[1]][1]
+
+  # update fields_to_gdb if NULL (all fields)
+  if((is.null(fields_to_gdb)) || (nchar(fields_to_gdb)) == 0){
+    #select all fields except geometry
+    # remove schema
+    schema_tbl <- strsplit(pg_att_table, "\\.")[[1]]
+    tbl <- pg_att_table
+    if (length(schema_tbl) > 1){tbl=schema_tbl[2]}
+    sql_r <- glue("SELECT column_name ",
+                  "FROM information_schema.columns ",
+                  "WHERE table_name = '", tbl, "' ",
+                  "AND column_name != '", geom_field, "';")
+  
+    column_names <- dadmtools::sql_to_df(sql_r, pg_conn_param)
+    # get field count of all fields to convert for group by 
+    fld_count <- sum(gregexpr(',', column_names)[[1]] >0) 
+    if(fld_count > 0){
+      nums <- 2
+      fields_to_gdb <- column_names[[1]][1]
+      while(fld_count > 0){
+        fields_to_gdb <- glue(fields_to_gdb, ", ", column_names[[1]][nums])
+        nums <- nums + 1
+        fld_count <- fld_count -1
+      } # end while
+    } # end if fld_count > 0
+  } # end if fields_to_gdb is null
+  
+  fields_to_gdb_orig <- fields_to_gdb 
+  
+  # create the PG temp table to convert to GDB
+  gdb_name <- gsub("\\.gdb", "", dst_gdb_name)
+  temp_tblname <- glue('temp_', gdb_name, 
+                       format(Sys.time(), "%Y%m%d%H%M%S")) %>% 
+                          tolower()
+
+  # Create SQL joins - depends on whether `pg_attskey_table` is used
+  as_sk <- 'as a '
+  if (!(is.null(pg_attskey_table) || (nchar(pg_attskey_table) == 0))){
+    as_sk <- glue(as_sk, 'left join ',
+                  pg_attskey_table,
+                  ' as sk ',
+                  'on (a.',key_attskey_tbl, '=sk.', key_attskey_tbl, ') ')
+    # add correct table alias to `key_attskey_tbl`
+    fields_to_gdb <- gsub(key_attskey_tbl, glue("a.", key_attskey_tbl),
+                          fields_to_gdb)
+  } # end if
+
+  # find table that has geometry for SQL joins
+  g <- 'a.'
+  as_b <- ''
+  if (!(is.null(pg_skgeom_table) || (nchar(pg_skgeom_table) == 0))){
+    g <- "b."
+    # add table alias as prefix to field key_skgeo_tbl
+    fields_to_gdb <- gsub(key_skgeo_tbl, 
+                          glue(g, key_skgeo_tbl), fields_to_gdb)
+    if (is.null(pg_attskey_table) || (nchar(pg_attskey_table) == 0)){
+      as_b <- glue("left join ", pg_skgeom_table,
+                 " as b on (b.", key_skgeo_tbl, "=a.",key_skgeo_tbl, ") ")
+    } else {
+      as_b <- glue("left join ", pg_skgeom_table,
+                 " as b on (b.", key_skgeo_tbl, "=sk.",key_skgeo_tbl, ") ")
+    } # end if pg_attskey_table
+  } # end if  pg_skgeom_table ( pg_attribute has geometry)
+  
+  # only union polygons, adding new hectares field
+  # points are converted without unioning
+  if(geo_type == "ST_Polygon"){
+    st_union <- glue("ST_Union(", g, geom_field, ") as geometry, ",
+                     "ST_Area(ST_Union(", g, geom_field, "))/10000.0 as ",
+                        dst_ha_field, " ")
+    fld_count <- sum(gregexpr(',', fields_to_gdb)[[1]] >0)
+    # build group by statement
+    group_by <- " group by "
+    if(fld_count > 0){
+      nums <- 2
+      group_by_nums <- "1"
+      while(fld_count > 0){
+        group_by_nums <- glue(group_by_nums, ", ", as.character(nums))
+        nums <- nums + 1
+        fld_count <- fld_count -1
+      }
+      group_by <- glue(group_by, group_by_nums)
+    } else { # only one field for export
+      group_by <- " group by 1"
+      # nums is updated - for future geometry grouping
+      nums <- 2
+    }
+    
+  }else{ # point geometry - not unioned, not grouped
+    st_union <- glue(g, geom_field, " as geometry ")
+    group_by <- ""
+  }
+
+  # building where clause
+  where_clause <- ""
+  # exclude all rows without geometry
+  if ( (is.null(query)) || (nchar(query) == 0)) {
+    where_clause <- glue(" where ", geom_field, " is not null ", group_by, ");")
+  } else { # add user query - and group by statement created above
+    where_clause <- glue(" where ", query, " and ", geom_field, 
+                         " is not null ", group_by, ");")
+  }
+  
+  # buid SQL statement to create temporary Postgres table
+  temp_tbl_sql <- glue("create table ", temp_tblname,
+                       " as (select ", fields_to_gdb, 
+                       ", ", st_union,
+                       "from ", pg_att_table, " ", 
+                       as_sk, as_b, where_clause)
+  
+  # run SQL statement to reate temporary Postgres table
+  run_sql_r(temp_tbl_sql, pg_conn_param)
+  
+  # add a unique id for each feature - required to convert to GDB
+  # build fid in case the id exists in PostGres attributes being converted
+  num <- 1
+  fid <- "fid"
+  while (fid %in% fields_to_gdb_orig){
+    fid <- glue(fid, as.character(num))
+    num <- num+1  
+  }
+  sql_r <- glue("alter table ", temp_tblname, 
+                " add column ", fid, 
+                " serial primary key;")
+  
+  run_sql_r(sql_r, pg_conn_param)
+  
+  # make GDB pat if it doesn't exist
+  if ( !(dir.exists(out_gdb_path))){
+    dir.create(out_gdb_path)
+  }
+
+  
+  con <- RPostgres::dbConnect(drv = driver,
+                                host=hostname,
+                                user = username,
+                                port = port,
+                                password=pswrd,
+                                dbname=dbname)
+  on.exit(RPostgres::dbDisconnect(con))
+
+  # check resulting geometry type in temp table 
+  # can result in multipolygons and polygons - GDBs only accept one geometry type
+  sql_r <- glue("select distinct(ST_GeometryType(geometry)) as geom_type ",
+                "from ", temp_tblname)  
+
+  geom_type_rows <- sql_to_df(sql_r, pg_conn_param)
+
+  # if more than one type - convert all to multipolygons
+  if (nrow(geom_type_rows) > 1) {
+    temp_tblname_orig <- temp_tblname
+    temp_tblname <- glue(temp_tblname_orig, "_geo")
+    sql_r <- glue("create table ", temp_tblname, " as (",
+                    "SELECT ", fields_to_gdb_orig,
+                      ", ST_Multi(ST_CollectionExtract(geometry)) AS geometry, ",
+                      "ST_Area(ST_Multi(ST_CollectionExtract(geometry)))/10000.0 ",
+                      "as ", dst_ha_field,
+                      " FROM ", temp_tblname_orig, 
+                      " where geometry is not null ",
+                      group_by, ",", nums, ");")
+  
+    run_sql_r(sql_r, pg_conn_param)
+    sql_drop <- glue("DROP TABLE IF EXISTS ", temp_tblname_orig)
+    run_sql_r(sql_drop, pg_conn_param)
+  
+    # get geometry type of updated table  
+    sql_r <- glue("select geometry from ", temp_tblname)
+    sf_obj <- sf::st_read(con, query=sql_r)
+    geo_type <- as.character(sf::st_geometry_type(sf_obj)[[1]][1])
+  
+  }
+  # convert ST geometry types for GDB conversion
+  if (geo_type == 'ST_Point'){geo_type <- 'Point'}
+  if (geo_type == 'ST_Polygon'){geo_type <- 'Polygon'}
+
+  # Build ogr2ogr 
+  ogr2ogr_cmd <- glue('ogr2ogr -f "FileGDB" ',
+                    dst_gdb_name,
+                    ' PG:',
+                    '"host=', hostname,
+                    ' port= ', port,
+                    ' user=', username,
+                    ' dbname=', dbname,
+                    ' password=', pswrd,
+                    '" ', temp_tblname,
+                    ' -nln ', gdb_name,
+                    ' -nlt ', geo_type,
+                    ' -lco GEOMETRY_NAME=geometry ', 
+                    ' -lco FID=', fid)
+  
+  # Make the ogr2ogr system call to create GDB
+  system(ogr2ogr_cmd, intern=FALSE, 
+       show.output.on.console = TRUE,
+      ignore.stderr = FALSE)
+
+  # clean up - delete temporary Postgres table
+  sql_drop <- glue("DROP TABLE IF EXISTS ", temp_tblname)
+  run_sql_r(sql_drop, pg_conn_param)
+  
+  end_time <- Sys.time()
+  duration <- difftime(end_time, start_time, units = "mins")
+  print(glue("Script ended at {format(end_time, '%Y-%m-%d %I:%M:%S %p')}"))
+  print(glue("Script duration: {duration} minutes\n"))
+  
+  print(glue("CHECK results this is a generalized function for typical exports."))
+  print(glue("GDB ", dst_gdb_name, " created in directory ", out_gdb_path))
+}
+
+```
+
+[Back to Top](#introduction)
+
+## Downloads
+
+Create a directory for your project. In the following workflow, the directory is named after the *sandbox* area of interest, `sandbox`.
+
+`C:\sandbox`
+
+Download the following csv files into the directory just created. Click on the links below to open the webpage with the **Preview**. The right corner above the preview, in the toolbar with the **Raw** button, is a download icon *Download raw file*. Click on that to download and open then save in your project directory. 
+
+* [config_parameters.csv](https://github.com/bcgov/FAIB_DADMTOOLS/blob/main/config_parameters.csv)
+
+* [create_new_resultant_inputs.csv](https://github.com/bcgov/FAIB_DADMTOOLS/blob/main/create_new_resultant_inputs.csv)
+
+* [batch_add_fields_to_resultant.csv](https://github.com/bcgov/FAIB_DADMTOOLS/blob/main/batch_add_fields_to_resultant.csv)
+
+* [batch_pg_to_seles_tif.csv](https://github.com/bcgov/FAIB_DADMTOOLS/blob/main/batch_pg_to_seles_tif.csv)
+
+Download the zipped **sandbox** GDB. Select *Save Link As* when downloading from the FAIB data directory ([local tsa99.zip](
+S:\FOR\VIC\HTS\ANA\workarea\AR2024\units\training\tsa99\tsa99.zip)) or save the raw file (same process as above for csv files) from GitHub ([Git tsa99.zip](https://github.com/bcgov/FAIB_DADMTOOLS/blob/vignettes/data/tsa99.zip)). 
+
+In this example, the test GDB is saved to:
+
+`C:\sandbox\data`
+
+Download the **sandbox** area of interest shapefile. Select *Save Link As* when downloading from the FAIB data directory ([local aoi.zip](S:\FOR\VIC\HTS\ANA\workarea\AR2024\units\training\tsa99\aoi.zip)) or save the raw file (same process as above for csv files) from GitHub ([Git aoi.zip](https://github.com/bcgov/FAIB_DADMTOOLS/blob/vignettes/data/aoi.zip)).
+
+In this example the shapefile is saved to:
+
+`C:\sandbox\data`
+
+Extract the zipped files. 
+
+[Back to Top](#introduction)
+
+## Keyring Setup
+
+The dadmtools library accesses databases by using the credentials set up in [`keyring`](https://keyring.r-lib.org/index.html). Keyring uses the Windows Credential Manager to manage passwords. 
+
+The vignette workflow requires 2 keyrings: **localpsql** and **oracle**. **localpsql** has the accesses credentials for the postgreSQL database, and **oracle** has the access credentials for the BC Geographic Warehouse ([BCGW](https://www2.gov.bc.ca/gov/content/data/finding-and-sharing/bc-geographic-warehouse#about)). The two keyrings are created below.
+
+**NOTE:** The keyring name **localpsql**  is **hardcoded** in dadmtools as the default access to the local PostGres connection. 
+
+### Oracle Keyring
+
+The keyring for **oracle** is added.
+
+The first line creates the keyring. When run, you are asked for a password. This is the password you are CREATING for the **keyring** NOT the database. When you **unlock** the oracle keyring, you will be asked for this password.
+
+```{r koracle_create, echo=TRUE, eval=FALSE}
+
+# Creating an 'oracle' keyring
+keyring_create("oracle")
+
+```
+
+In the next few code chunks, the values for the keyring credentials are set.
+
+Enter your oracle username.
+For BC government employees, the default is your idir.
+
+```{r koracle_username, echo=TRUE, eval=FALSE}
+# Enter your username for your oracle/BCGW account (likely your IDIR username) 
+key_set("dbuser", keyring = "oracle", prompt = 'Oracle/BCGW/IDIR username:')
+
+```
+
+Enter your oracle password. Your oracle password is the one you use to access the BCGW, for example in Citrix (or Arc).
+
+```{r koracle_password, echo=TRUE, eval=FALSE}
+
+# Enter your oracle/BCGW password - the password you use to access BCGW
+key_set("dbpass", keyring = "oracle", prompt = 'Oracle/BCGW password:')
+
+```
+
+Enter the oracle host.
+Copy the default below (BCGW.BCGOV) and paste it into the window that opens after running chunk.
+The oracle (BCGW) host is BCGW.BCGOV
+
+```{r koracle_host, echo=TRUE, eval=FALSE}
+# The oracle/BCGW host is: BCGW.BCGOV
+key_set("dbhost", keyring = "oracle", prompt = 'Oracle/BCGW host:')
+```
+
+Enter the oracle servicename. 
+Copy the default below (IDWPROD1.BCGOV) and paste it into the window that opens after running chunk.
+The oracle (BCGW) servicename is IDWPROD1.BCGOV
+
+```{r koracle_servicename, echo=TRUE, eval=FALSE}
+
+# The oracle/BCGW servicename is: IDWPROD1.BCGOV
+key_set("dbservicename", keyring = "oracle", prompt = 'Oracle/BCGW serviceName:')
+
+```
+
+Enter the oracle server. 
+Copy the default below (//bcgw.bcgov/idwprod1.bcgov) and paste it into the window that opens after running chunk.
+The oracle (BCGW) server is //bcgw.bcgov/idwprod1.bcgov
+
+```{r koracel_server, echo=TRUE, eval=FALSE}
+
+# The oracle/BCGW server is: //bcgw.bcgov/idwprod1.bcgov
+key_set("dbserver", keyring = "oracle", prompt = 'Oracle keyring server:')
+
+```
+
+Unlock the keyring by entering the KEYRING PASSWORD you created above. 
+
+```{r oraclekr_unlock, echo=TRUE, eval=FALSE}
+
+keyring_unlock("oracle")
+
+```
+
+Once unlocked, you can check your credentials by running the following code chunk. 
+
+```{r oraclekr_get, echo=TRUE, eval=FALSE}
+
+key_get("dbuser", keyring = "oracle")
+key_get("dbpass", keyring = "oracle")
+key_get("dbhost", keyring = "oracle")
+key_get("dbservicename", keyring = "oracle")
+key_get("dbserver", keyring = "oracle")
+
+```
+
+[Back to Top](#introduction)
+
+### localpsql Keyring
+
+The keyring for **localpsql** is added.
+
+The first line creates the keyring. When run, you are asked for a password. This is the password you are CREATING for the **keyring** NOT the database. When you **unlock** the localpsql keyring, you will be asked for this password.
+
+```{r klocalpsql_create, echo=TRUE, eval=FALSE}
+
+# Creating an 'localpsql' keyring
+keyring_create("localpsql")
+
+```
+
+In the next few code chunks, the values for the keyring credentials are set.
+
+Enter the localpsql driver.
+Copy the default below (RPostgres::Postgres()) and paste it into the window that opens after running chunk.
+The default driver is RPostgres::Postgres()
+
+```{r klocalpsql_dbdriver, echo=TRUE, eval=FALSE}
+# Enter the postgres driver for your local postgres - default is: RPostgres::Postgres()
+key_set("dbDriver", keyring = "localpsql", prompt = 'localpsql dbDriver:')
+
+```
+
+Enter your localpsql dbuser name.
+Copy the default below (postgres) and paste it into the window that opens after running chunk.
+The default dbuser name is: postgres
+
+```{r klocalpsql_dbuser, echo=TRUE, eval=FALSE}
+# Enter your dbuser name for your local postgres 
+key_set("dbuser", keyring = "localpsql", prompt = 'localpsql dbuser name:')
+
+```
+
+Enter your localpsql password. 
+Copy the default below (postgres) and paste it into the window that opens after running chunk.
+The default dbuser name is: postgres
+
+```{r klocalpsql_password, echo=TRUE, eval=FALSE}
+
+# Enter your localpsql password
+key_set("dbpass", keyring = "localpsql", prompt = 'local postgres password:')
+
+```
+
+Enter the localpsql host.
+Copy the default below (localhost) and paste it into the window that opens after running chunk.
+The localpsql host default is: localhost
+
+```{r klocalpsql_host, echo=TRUE, eval=FALSE}
+# The localpsql host is: localhost
+key_set("dbhost", keyring = "localpsql", prompt = 'local postgres host:')
+```
+
+Enter the localpsql port.
+Copy the default below (5432) and paste it into the window that opens after running chunk.
+The localpsql port default is 5432
+
+```{r klocalpsql_port, echo=TRUE, eval=FALSE}
+# The localpsql host is: localhost
+key_set("dbport", keyring = "localpsql", prompt = 'local postgres port:')
+
+```
+
+Enter the localpsql database name.
+Copy the default below (pgtsr) and paste it into the window that opens after running chunk.
+The example workflow database name is `pgtsr`.
+
+```{r klocalpsql_dbname, echo=TRUE, eval=FALSE}
+
+key_set("dbname", keyring = "localpsql", prompt = 'local postgres dbname:')
+
+```
+
+Unlock the keyring by entering the KEYRING PASSWORD you created above for localpsql. 
+
+```{r localpsqlkr1_unlock, echo=TRUE, eval=FALSE}
+
+keyring_unlock("localpsql")
+
+```
+
+Once unlocked, you can check your credentials by running the following code chunk. 
+
+```{r localpsqlkr_get, echo=TRUE, eval=FALSE}
+
+key_get("dbDriver", keyring = "localpsql")
+key_get("dbuser", keyring = "localpsql")
+key_get("dbpass", keyring = "localpsql")
+key_get("dbhost", keyring = "localpsql")
+key_get("dbport", keyring = "localpsql")
+key_get("dbname", keyring = "localpsql")
+
+```
+
+[Back to Top](#introduction)
+
+## Create Database 
+
+The best practice is to create a **NEW** database in PostgreSQL rather than use the default PostGres database.  Using the default **postgres** database will work, but should it become corrupted, rather than uninstalling and re-installing PostgreSQL, you have the option to delete your own database and start again. 
+
+For individual projects, rather than adding additional databases, there is the option to add additional schemas. This makes querying across projects within your database manager (e.g. pgAdmin) easier. 
+
+If you create additional databases, querying across databases can be done either by bringing the data from both databases into R then querying in R, or by using foreign wrappers. This option is beyond the scope of this vignette.
+
+Additional functionality needed for database management is included in the [Database](#database) section, such as deleting (dropping) the database, archiving the database, and listing existing databases.
+
+The next step in the workflow is to create a new database, called **pgtsr**, for the data downloaded earlier (*sandbox*). `dadmtools` requires two schemas in addition to the default `public` schema, and 3 extensions. 
+
+Schemas:
+
+* sbx_raster
+* sbx_whse
+
+Extentions:
+
+* postgis
+* postgis_raster
+* oracle_fdw
+
+Additional schemas can be added to organize the tables. For example a `rslt` schema is added later in this workflow to hold resultants.
+
+The database is created, along with the required two schemas and three extensions, using the function `run_sql_r()`. This code chunk uses the keyring **localpsql** (created above), accessing those credentials using the function `pg_conn_param()`. 
+
+The Keyring **localpsql** is unlocked. 
+
+```{r, echo=TRUE, eval=FALSE}
+keyring_unlock("localpsql")
+```
+
+The database parameter in *localpsql* is checked to make sure it is correct. Update database if needed, see Section  [Update Keyring](#update-keyring)
+
+```{r localpsqlkr1_get, echo=TRUE, eval=FALSE}
+key_get("dbname", keyring = "localpsql")
+
+```
+
+Update the database name below (**unit_dbname**) and then run the chunk to create the database and add extensions.
+
+```{r faibDB, echo=TRUE, eval=FALSE}
+
+#============================= UPDATE Parameters 
+unit_dbname <- "pgtsr"
+#===============================================
+
+pg_conn_param <- dadmtools::get_pg_conn_list()
+# the database name is removed data base creation
+row_index <- which(names(pg_conn_param) == "dbname") 
+row_index <- row_index*-1
+pg_conn_param_nodb <- pg_conn_param[row_index]
+dadmtools:: run_sql_r(glue('CREATE DATABASE ', unit_dbname, ';'), pg_conn_param_nodb)
+dadmtools:: run_sql_r("CREATE EXTENSION postgis;", pg_conn_param)
+dadmtools:: run_sql_r("CREATE EXTENSION postgis_raster;", pg_conn_param)
+dadmtools:: run_sql_r("CREATE EXTENSION oracle_fdw;", pg_conn_param)
+
+```
+
+The schemas needed for the vignette are created below. To create schemas for other projects, update the schema name parameters below.
+
+```{r faibSchema, echo=TRUE, eval=FALSE}
+
+#============================= UPDATE Parameters 
+raster_schema <- "sbx_raster"
+whse_schema <- "sbx_whse"
+# raster_schema <- "flp_raster"
+# whse_schema <- "flp_whse"
+#===============================================
+
+pg_conn_param <- dadmtools::get_pg_conn_list()
+dadmtools::run_sql_r(glue("CREATE SCHEMA ",raster_schema,
+                        ";"), pg_conn_param)
+dadmtools::run_sql_r(glue("CREATE SCHEMA ", whse_schema,
+                           ";"), pg_conn_param)
+
+
+
+```
+[Back to Top](#introduction)
+
+### Output from Create Database
+
+The new database should now be in Postgres. Running the [List Databases]{#list-databases} code chunk will list out all databases. The newly created `pgtsr` should now be on the list.
+
+Check if it the database name is set in your *localpsql*. If it is not, use the function `key_set` to update it (see Section [Keyring Update](#update-keyring )).
+
+```{r localpsqlkr1_dbnameget, echo=TRUE, eval=FALSE}
+
+key_get("dbname", keyring = "localpsql")
+
+```
+
+
+If you are using a database management tool (e.g. [dBeaver](https://dbeaver.io/download/)) a connection to the new database will need to be added before it appears in the *Database Navigator*. 
+
+In the new `pgtsr` database, three schemas exist, public, raster, and whse. The last two have no tables yet, but the table `spatial_ref_sys` has been added in the public schema.
+
+[Back to Top](#introduction)
+
+## Create gr_skey Table and TIF
+
+The gr_skey table and TIF are used to import layers from other data formats to the PostgreSQL database. The schema is identified by adding it to the table name. Below, the *sbx_skey* table is identified as being in the *sbx_whse* schema.
+
+**sbx_whse.**sbx_skey
+
+The next step in the workflow is to create the skey tif (`C:/sandbox/data/sbx_skey.tif`) and skey table (`sbx_whse.sbx_skey`). 
+
+The code chunk below uses the directory paths and names shown above. Remember to **update** the parameters below to match your project directory and GDB prior to running to code chunk.
+
+```{r create_grskey, echo=TRUE, eval=FALSE}
+
+#============================= UPDATE Parameters 
+# The path to the GDB 
+dsn <- "C:/sandbox/data/tsa99_2024.gdb" 
+# The path to the boundary layer (bnd) in the GDB 
+layer <- "bnd" 
+# The path to the gr_skey template TIF 
+template_tif <- "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"
+# mask tif to include land but not ocean
+mask_tif <- "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif"
+# name of raster schema created above
+rast_schema <- "sbx_raster"
+
+# OUTPUT
+#The path to the gr_skey.tff created by function
+skey_tif <- "C:/sandbox/data/sbx_skey.tif"
+#The name of the gr_skey table created by function
+skey_table <- "sbx_whse.sbx_skey"
+
+#===================================================
+
+# Uses the localpsql keyring created above
+dadmtools::import_gr_skey_tif_to_pg_rast(
+    out_crop_tif_name = skey_tif,
+    template_tif = template_tif,
+    mask_tif = mask_tif,
+    crop_extent = get_gr_skey_extent(dsn = dsn, layer=layer, 
+                                     template_tif =template_tif),
+    pg_conn_param = dadmtools::get_pg_conn_list(),
+    dst_tbl = skey_table,
+    rast_sch = rast_schema
+    )
+
+```
+  
+[Back to Top](#introduction)
+
+### Output from Create gr_skey Table and TIF
+
+The **sbx_skey.tif** is now in `C:\sandbox\data`.
+
+The database `pgtsr` has  2 new tables, one a raster table in the `sbx_raster` schema, and the other an attribute schema in the `sbx_whse schema`.
+
+* sbx_raster.grskey_bc_land 
+* sbx_whse.sbx_skey
+
+[Back to Top](#introduction)
+
+## Import Data
+
+The easiest way to import data is to use the *config_parameters.csv* file downloaded earlier. It supports the following file formats:
+
+* gdb
+* shapefile
+* geopackage
+* raster
+
+Feature layers in the downloaded sandbox data are added to the database below.
+
+The different feature classes in the GDB can be checked using the command `ogrinfo`.
+
+Update *mydir* to be the directory *mygdb* is in and then run the code chunk below.
+
+```{r checkGDBfc, echo=TRUE, eval=FALSE}
+#============================= UPDATE Parameters 
+mydir <- 'C:/sandbox/data'
+mygdb <- 'tsa99_2024.gdb'
+#===============================================
+
+setwd(mydir)
+
+cmd <- glue('ogrinfo -so ', mygdb)
+system(command = cmd)
+```
+
+This workflow uses the batch import function from `dadmtools`, `batch_import_to_pg_gr_skey()`. That function uses the `config_parameters.csv` file. Before running the function, the config file is updated. The sandbox project directory in File Explorer directory is opened below, the config file can be opened from there.
+
+```{r openConfigDir1, echo=TRUE, eval=FALSE}
+utils::browseURL("C:/sandbox")
+```
+
+The first column in the config file is *include*. All rows for the default examples should be updated to 0, indicating they **will not** be included in the batch import.
+
+[Back to Top](#introduction)
+
+### Vector GDB Data
+
+Two feature layers `bnd` and `own` are imported by adding two rows to the config file.
+
+The first row added is `bnd`. The values for each of the columns are updated with the value in (parentheses). 
+
+**NOTE:** the single quotes around the path seen in the Rmd (but not in the html) are for `knit` and should not be used when updated the csv.
+
+* include (1) - will be included in import
+* overlap_ind (FALSE) - if overlaps exist, higher pgid value will be kept and other values lost
+* src_type (gdb) 
+* src_path (`C:\sandbox\data\tsa99_2024.gdb`) 
+* src_lyr (bnd)
+* dst_schema (sbx_whse) - destination schema
+* dst_tbl (bnd) - destination table name
+* query () - no query, all rows brought into PG table
+* flds_to_keep () - if no value, all fields brought in
+* overlap_group_fields () - empty, only one pgid rasterized for each 1 hectare cell
+* notes (tsa99 boundary) 
+
+The second row added is `own`. The values for each of the columns are updated, with the value in (parentheses).
+
+**NOTE:** the single quotes around the path seen in the Rmd (but not in the html) are for `knit` and should not be used when updated the csv.
+
+* include (1)
+* overlap_ind (FALSE) - if overlaps exist, higher pgid value will be kept and other values lost
+* src_type (gdb) 
+* src_path (`C:\sandbox\data\tsa99_2024.gdb`) 
+* src_lyr (own)
+* dst_schema (sbx_whse)
+* dst_tbl (own)
+* query () - no query, all rows brought into PG table
+* flds_to_keep () - if no value, all fields brought in
+* overlap_group_fields () - empty, only one pgid rasterized for each 1 hectare cell
+* notes (provincial ownership)
+
+[Back to Top](#introduction)
+
+### Shapefile
+
+The third row added is a shapefile.
+
+The shapefile `aoi` saved earlier will be added to the database.
+
+The third row added is `aoi`. The values for each of the columns are updated, with the value in (parentheses).
+
+**NOTE:** the single quotes around the path seen in the Rmd (but not in the html) are for `knit` and should not be used when updated the csv.
+
+* include (1)
+* overlap_ind (FALSE) 
+* src_type (shp) 
+* src_path (`C:\sandbox\data\aoi\aoi.shp`) 
+* src_lyr (aoi)
+* dst_schema (sbx_whse)
+* dst_tbl (aoi)
+* query () - no query, all rows brought into PG table
+* flds_to_keep () - if no value, all fields brought in
+* overlap_group_fields () - empty, only one pgid rasterized for each 1 hectare cell
+* notes (area of interest - local dataset)
+
+[Back to Top](#introduction)
+
+### Raster Data
+
+The fourth row added is a raster.
+
+The provincial slope raster will be added to the database. 
+
+The slope raster source is here: 
+
+`S:\FOR\VIC\HTS\ANA\workarea\PROVINCIAL\topography.slope.tif`
+
+If the S drive is not mapped, the following is the path with drive:
+
+`\\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\workarea\PROVINCIAL\topography.slope.tif`
+
+The third row added is `slope`. The values for each of the columns are updated, with the value in (parentheses).
+
+**NOTE:** the single quotes around the path seen in the Rmd (but not in the html) are for `knit` and should not be used when updated the csv.
+
+* include (1) 
+* overlap_ind (FALSE) 
+* src_type (raster)
+* src_path (`\\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\workarea\PROVINCIAL\topography.slope.tif`)
+* src_lyr (slope)
+* dts_schema (sbx_whse)
+* dst_tbl (slope)
+* query () 
+* flds_to_keep () 
+* overlap_group_fields ()
+* notes (from internal faib datasets)
+
+[Back to Top](#introduction)
+
+### BCGW Layer
+
+The fifth row added is sourced from the BCGW.
+
+The Wildlife Habitat areas have an attribute **TIMBER_HARVEST_CODE**. There are overlapping areas that are can have conditional or no harvest values. For tsa99, there are no conditional harvest polygons, and therefore the `overlap_ind` will be set to FALSE and no `overlap_group_fields` will be selected.
+
+The row added is `wha`. The values for each of the columns are updated, with the value in (parentheses).
+
+* include (1)
+* overlap_ind (FALSE) 
+* src_type (oracle)
+* src_path (bcgw) 
+* src_lyr (WHSE_WILDLIFE_MANAGEMENT.WCP_WILDLIFE_HABITAT_AREA_POLY)
+* dst_schema (sbx_whse)
+* dst_tbl (wha)
+* query () 
+* flds_to_keep () 
+* overlap_group_fields ()
+* notes(wildlife habitat areas)
+
+The config file is reviewed to make sure only the 5 additional rows being added are set to **1** in column **include**. All other rows should be 0.
+
+The config file is saved and closed.
+
+[Back to Top](#introduction)
+
+### Run Batch Import
+
+The connection string for the PostGres database used in this workflow  is accessed using the `localpsql` keyring. Below, it is unlocked.
+
+```{r, echo=TRUE, eval=FALSE}
+keyring_unlock("localpsql")
+```
+
+The values in *localpsql* are checked to make sure they are pointing to the right database and all other values are correct.
+
+```{r localpsqlkr2_get, echo=TRUE, eval=FALSE}
+
+key_get("dbDriver", keyring = "localpsql")
+key_get("dbuser", keyring = "localpsql")
+key_get("dbpass", keyring = "localpsql")
+key_get("dbhost", keyring = "localpsql")
+key_get("dbport", keyring = "localpsql")
+key_get("dbname", keyring = "localpsql")
+
+```
+Update any values that need updating.
+
+The imported data includes a BCGW data layer. To access the BCGW, the  `oracle` keyring is used. Below, it is unlocked.
+
+```{r, echo=TRUE, eval=FALSE}
+keyring_unlock("oracle")
+```
+
+The values in *oracle* are checked to make sure they are up to date.
+
+```{r oraclekr2_get, echo=TRUE, eval=FALSE}
+
+key_get("dbuser", keyring = "oracle")
+key_get("dbpass", keyring = "oracle")
+key_get("dbhost", keyring = "oracle")
+key_get("dbservicename", keyring = "oracle")
+key_get("dbserver", keyring = "oracle")
+
+```
+
+**Before** running the batch import function update the parameters to match your paths and file names. Add the `rasters` sub-directory. The other directories have already been created above.
+
+`C:\sandbox\data\rasters`
+
+Once the parameters are updated, the code chunk is run.
+
+```{r batchImport1, echo=TRUE, eval=FALSE}
+
+#--------------------------------Update Parameters
+
+# The path to the downloaded test GDB (will be used to create extent)
+dsn <- "C:/sandbox/data/tsa99_2024.gdb"
+# The path to the downloaded boundary layer (bnd) in test GDB (will be used to create extent)
+layer <- "bnd"
+template_tif <- "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif"
+mask_tif <- "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif"
+# The path to the updated config file
+config <-  "C:/sandbox/config_parameters.csv"
+#The name of the gr_skey table created by function  - MUST BE IN whse schema!
+skey_table <- "sbx_whse.sbx_skey"
+out_tif_path <- "C:/sandbox/data/rasters"
+raster_schema <- 'sbx_raster'
+data_src_tbl <- "sbx_whse.data_sources"
+#----------------------------------------------------------
+
+dadmtools::batch_import_to_pg_gr_skey(
+        in_csv = config,
+        pg_conn_param = dadmtools::get_pg_conn_list(), 
+        ora_conn_param = dadmtools::get_ora_conn_list(),
+        crop_extent = get_gr_skey_extent(dsn = dsn, layer=layer, 
+                                     template_tif =template_tif),
+        gr_skey_tbl = skey_table,
+        template_tif =template_tif,
+        mask_tif = mask_tif,
+        data_src_tbl = data_src_tbl,
+        raster_schema = raster_schema,
+        out_tif_path = out_tif_path
+    )
+
+```
+
+[Back to Top](#introduction)
+
+### Output from Batch Import
+
+After running the chunk above, 4 new TIFs are in `C:\sandbox\data\rasters`:
+
+* bnd.tif
+* own.tif
+* aoi.tif
+* wha.tif
+
+The database `pgtsr` has 10 new tables all in the `sbx_whse` schema, in addition to the existing `sbx_whse.sbx_skey` created earlier in `sbx_whse`.  
+
+A **data_sources** table that is created the first time `batch_import_to_pg_gr_skey()` is run. This table is the Postgres table version of the `config_parameters.csv` table, with one extra column.
+
+  * created_at - the date and time the data source layer was imported into PostGres.
+
+The new data layers are listed in the **data_sources** table.
+
+For each **raster** added, one table is added with the name given in the `dst_tbl` column in the `config_parameters.csv` file, with the suffix `_gr_skey` added. In this workflow, the table `slope_gr_skey` has been added to the `whse` schema. This table has 2 columns:
+
+  * gr_skey
+  * val
+  
+The val column contains the slope value.
+
+For each *gdb*, *shapefile* and *oracle* data sourced layer there are two tables created. One has the same name as the *dst_tbl* value from `config_parameters.csv`, the other has *_gr_skey* appended to the *dst_tbl* name. 
+
+The *dst_tbl* has *EVERY* attribute in the source data, as no fields were entered in *flds_to_keep*. Two additional attributes are added.
+
+  * ogc_fid - a unique incrementing integer [1..n] for each row in the attribute table. 
+
+  * pgid - a unique incrementing integer and primary key for the  attribute table
+
+The *dst_tbl* with the appended *_gr_skey* table has 2 columns and as a row for each hectare in the data layer.
+
+  * gr_skey - is the primary key for the table, and a link to the provincial spatial grid of one-hectare cells
+
+  * pgid - key that links the gr_skey table with the attribute table
+  
+In this workflow, for the `bnd` feature class, there is a table `bnd` with all attribute data, and `bnd_gr_skey` with the the `gr_skey` column and `pgid` key linking to the attribute table.
+
+Although having two tables for each data layer requires more joins, it allows for a more compact database as the attribute tables do not require one row for each hectare.
+
+
+[Back to Top](#introduction)
+
+## Create Resultant
+
+This workflow uses the function from `dadmtools`, `create_new_resultant_pg()` to create a resultant from several existing tables. That function uses the `create_new_resultant_inputs.csv` file. Before running the function, the create new resultant csv is updated. The sandbox project directory in File Explorer directory is opened below, the csv file can be opened from there.
+
+```{r openConfigDir2, echo=TRUE, eval=FALSE}
+utils::browseURL("C:/sandbox")
+```
+
+In this workflow, the resultant table is created in a schema `rslt` using the `dadmtools` function `create_new_resultant_pg`. The `sbx_rslt` schema is created below.
+
+```{r, echo=TRUE, eval=FALSE}
+pg_conn_param <- dadmtools::get_pg_conn_list()
+dadmtools::run_sql_r("CREATE SCHEMA sbx_rslt;", pg_conn_param)
+
+```
+
+The created resultant table will include fields from the following tables.
+
+  * `sbx_skey`
+  * `bnd`
+  * `own`
+  * `slope`
+  
+The downloaded file `C:\sandbox\create_new_resultant_inputs.csv` is opened and all example rows have their first value **include** set to 0. They will not be included.
+
+For each of the tables above, a row is added to the create new resultant file.
+
+The first row added is `sbx_skey`. The values for each of the columns are updated, with the value in (parentheses).
+
+* include (1)
+* input_gr_skey_table (sbx_whse.sbx_skey)
+* input_attribute_table ()
+* input_fields_to_include (geom)
+* output_field_names (geom)
+* prefix ()
+* key_field_grskey_table (gr_skey)
+* key_field_attribute_table ()
+* notes ()
+
+The `bnd` table will be added, with the following columns given the values in (parentheses) following the column name.
+
+* include (1)
+* input_gr_skey_table (sbx_whse.bnd_gr_skey)
+* input_attribute_table (sbx_whse.bnd)
+* input_fields_to_include (bnd_fid)
+* output_field_names ()
+* prefix ()
+* key_field (gr_skey)
+* key_field_attribute_table (pgid)
+* notes()
+
+The `own` table will be added, with the following columns given the values in (parentheses) following the column name.
+
+* include (1)
+* input_gr_skey_table (sbx_whse.own_gr_skey)
+* input_attribute_table (sbx_whse.own)
+* input_fields_to_include (f_own_code,f_own_schedule, f_own_desc)
+* output_field_names (code,sched,descrip)
+* prefix (own)
+* key_field (gr_skey)
+* key_field_attribute_table (pgid)
+* notes ()
+
+The `slope` table will be added, with the following columns given the values in (parentheses) following the column name.
+
+* include (1)
+* input_gr_skey_table (sbx_whse.slope_gr_skey)
+* input_attribute_table ()
+* input_fields_to_include (val)
+* output_field_names (slope)
+* prefix (topo)
+* key_field (gr_skey)
+* key_field_attribute_table ()
+* notes ()
+
+Save the file `create_new_resultant_inputs.csv` and close it.
+
+The `create_new_resultant_pg()` accesses the database using the `localpsql` keyring. It is first unlocked.
+
+```{r, echo=TRUE, eval=FALSE}
+keyring_unlock('localpsql')
+```
+
+The database for the `localpsql` keyring is checked to make sure it is `pgtsr`.
+
+
+```{r, echo=TRUE, eval=FALSE}
+key_get("dbname", keyring = "localpsql")
+```
+
+The parameters needed for the function `create_new_resultant_pg()` are filled out, and the function in run.
+
+```{r createRes1, echo=TRUE, eval=FALSE}
+
+#============= Parameters
+create_rslt_csv <- "C:/sandbox/create_new_resultant_inputs.csv"
+rslt_table_name <- "sbx_rslt.sbx_resultant"
+key_field_resultant_table <- "gr_skey"
+pg_conn_param <- dadmtools::get_pg_conn_list() 
+#========================
+
+create_new_resultant_pg(
+  in_csv= create_rslt_csv,
+  resultant_name = rslt_table_name,
+  key_field_resultant_table = key_field_resultant_table,
+  pg_conn_param = pg_conn_param
+)
+
+```
+\
+[Back to Top](#introduction)
+
+### Output from Create Resultant
+
+The schema `sbx_rslt` now has two new tables.
+
+  * sbx_resultant - table with the following fields
+    * gr_skey
+    * geom
+    * bnd_fid
+    * own_code
+    * own_sched
+    * own_descrip
+    * topo_slope
+      
+  * sbx_resultant_data_sources - table with the following fields
+    * field_name
+    * src_field_name
+    * src_attribute_table_name
+    * src_gr_skey_table
+
+[Back to Top](#introduction)
+
+## Add to Resultant
+
+This workflow uses the function from `dadmtools`, `batch_add_fields_to_resultant()`. That function uses the csv file downloaded earlier: `batch_add_fields_to_resultant.csv`. 
+
+Before running the function, the add to resultant csv is updated. The sandbox project directory in File Explorer directory is opened below, the csv file can be opened from there.
+
+```{r openConfigDir3, echo=TRUE, eval=FALSE}
+utils::browseURL("C:/sandbox")
+```
+
+The updated resultant table will include the field from the following table.
+
+  * `wha`
+
+The downloaded file `C:\sandbox\batch_add_fields_to_resultant.csv` is opened. All example rows have their first value **include** set to 0. They will not be included.
+
+A row is added to `batch_add_fields_to_resultant.csv`. The values for each of the columns are updated, with the value in (parentheses).
+
+* include (1)
+* overwrite_resultant_table (TRUE)
+* overwrite_fields (FALSE)
+* include_prefix (TRUE)
+* new_resultant_name (sbx_rslt.sbx_resultant)
+* gr_skey_table (sbx_whse.wha_gr_skey)
+* attribute_table (sbx_whse.wha)
+* current_resultant_table (sbx_rslt.sbx_resultant)
+* included_fields (common_species_name,timber_harvest_code,pgid)
+* update_field_names (species,timb_harv_cd,pgid)
+* prefix (wha)
+* key_resultant_tbl (gr_skey)
+* key_grskey_tbl (gr_skey)
+* key_join_tbl (pgid)
+* notes () 
+
+Save the file `batch_add_fields_to_resultant.csv` and close it.
+
+The `batch_add_fields_to_resultant()` accesses the database using the `localpsql` keyring. It is first unlocked.
+
+```{r, echo=TRUE, eval=FALSE}
+keyring_unlock('localpsql')
+```
+
+The database for the `localpsql` keyring is checked to make sure it is `pgtsr`.
+
+```{r, echo=TRUE, eval=FALSE}
+key_get("dbname", keyring = "localpsql")
+```
+\
+Update the parameters needed for the function `batch_add_fields_to_resultant()` before running the function below.
+
+```{r createRes2, echo=TRUE, eval=FALSE}
+
+#============= Parameters
+in_csv <- "C:/sandbox/batch_add_fields_to_resultant.csv"
+pg_conn_param <- dadmtools::get_pg_conn_list() 
+#========================
+
+batch_add_fields_to_resultant(
+            in_csv = in_csv,
+            pg_conn_param  = pg_conn_param
+)
+
+```
+
+[Back to Top](#introduction)
+
+### Output from Add to Resultant
+
+The table `rslt.sbx_resultant` now has 3 more fields:
+
+  * wha_species
+  * wha_timb_harv_cd
+  * wha_pgid
+  
+The table `sbx_rslt.sbx_resultant_data_sources` has NO new rows. The additional rows must be added manually.
+
+[Back to Top](#introduction)
+
+## Export PostgreSQL Table Fields
+
+Exporting PostgreSQL table fields to other data formats is often necessary. The timber supply models require a TIFF or other data format, stake holders request data in a format they can interact with, such as a shapefile, and FLP tables request GDBs to be used in mapping applications.
+
+The workflow in this vignette exports data in a seles compatable TIF format, shapefile, and geodatabase.
+
+[Back to Top](#introduction)
+
+### Export to TIF (and CAT)
+
+The Seles-STSM model uses integer TIFs for spatial input parameters. The `dadmtools` function `pg_to_seles_tif()` converts a field in a Postgres table to an integer TIF. This function handles the following data types: 
+
+* integer
+* text
+* double (decimal number)
+
+Any other datatype must be converted to an integer by the user.
+
+If the field is a **text** data type, it is converted into an integer first, and a `cat` file is created. In the `cat` file, every unique text value is paired with an integer value. 
+
+If the field is a **double** data type with a decimal portion, the value is multiplied by `d_multiplier`, a function input parameter. The multiplied value is rounded to a whole number and converted to an integer. Once converted to TIF, the values are then divided by the multiplier.
+
+Integers, along with two data types are created and then converted to TIF, with an additional CAT file created for text attributes, by the function `pg_to_seles_tif()`. 
+
+In this workflow, the wildlife habitat field *timber_harvest_code* from the `wha` table is exported to a TIF.
+
+The `result_tif_path` is needed, the sub-directory for the TIFs created for Seles. In this workflow, the following directory is created.
+
+`C:/sandbox/data/seles/grids`
+
+Because the timber harvest code is text, the `out_cat_path` is also needed. In this workflow, the following directory is created.
+
+`C:/sandbox/data/seles/cats`
+
+The connection string for the PostGres database used in this workflow  is accessed using the `localpsql` keyring. Below, it is unlocked.
+
+```{r, echo=TRUE, eval=FALSE}
+
+keyring_unlock("localpsql")
+
+```
+
+The database  in *localpsql* can be checked to ensure it points to the right database.
+
+```{r localpsqlkr3_get, echo=TRUE, eval=FALSE}
+
+key_get("dbname", keyring = "localpsql")
+
+```
+
+If the database needs to be updated, see Section [Update Keyring](#update-keyring).
+
+**Update parameters** below before running code chunk. Since the `field_to_tif` is not a double, the parameter `d_multiplier` is not needed. See Section [Add Layer to Export](#add-layer-to-export) for an example using `d_multiplier`.
+
+**The code chunk in `pg_to_seles_tif` must be run first**.
+
+
+```{r wha2tif, echo=TRUE, eval=FALSE}
+
+#=========== Parameters to update
+pg_conn_param <- get_pg_conn_list()
+field_to_tif <- "timber_harvest_code"
+pg_att_table <- "sbx_whse.wha"
+pg_attskey_table <- "sbx_whse.wha_gr_skey"
+key_attskey_tbl <- "pgid"
+pg_skgeom_table <- "sbx_whse.sbx_skey"
+key_skgeo_tbl <- "gr_skey"
+geom_field <- "geom"
+template_tif <- "C:/sandbox/data/sbx_skey.tif"
+out_tif_path <- "C:/sandbox/data/seles/grids"
+dst_tif_name <- "wha_tharv.tif"
+out_cat_path <- "C:/sandbox/data/seles/cats"
+query <- "timber_harvest_code is not null"
+gdb <- "C:/sandbox/data/tsa99_2024.gdb"
+bnd <- "bnd"
+
+#============================================
+
+pg_to_seles_tif(pg_conn_param = pg_conn_param,
+                field_to_tif = field_to_tif,
+                pg_att_table = pg_att_table,
+                pg_attskey_table = pg_attskey_table,
+                pg_skgeom_table = pg_skgeom_table,
+                geom_field = geom_field,
+                key_skgeo_tbl = key_skgeo_tbl,
+                key_attskey_tbl = key_attskey_tbl,
+                template_tif = template_tif,
+                out_tif_path = out_tif_path,
+                dst_tif_name = dst_tif_name,
+                out_cat_path = out_cat_path,
+                d_multiplier = d_multiplier,
+                query = query,
+                gdb = gdb,
+                bnd = bnd)
+
+```
+[Back to Top](#introduction)
+
+#### Output from Export to TIF (and CAT)
+
+The directory `C:/sandbox/data/seles/grids` now has a TIF, `wha_tharv.tif`.<br>
+The directory `C:/sandbox/data/seles/cats` now has a CAT file, `wha_tharv`.
+
+[Back to Top](#introduction)
+
+### Batch Export to TIF (and CAT)
+
+The easiest way to export to multiple TIFs is to use the `batch_pg_to_seles_tif` function and add each export to TIFF parameter values to the *batch_pg_to_seles_tif.csv* file downloaded earlier. 
+
+Before running the function, the *batch_pg_to_seles_tif.csv* file is updated. The sandbox project directory in File Explorer directory is opened below, the config file can be opened from there.
+
+```{r openConfigDir4, echo=TRUE, eval=FALSE}
+utils::browseURL("C:/sandbox")
+```
+
+The first column in the config file is *include*. All rows for the default examples should be updated to 0, indicating they **will not** be included in the batch import.
+
+This vignette adds 2 rows to the csv file. The first is a text data type and the second is an integer data type, from a PostGres table without geometry or a key field (gr_skey) that joins to a geometry table. 
+
+The first row added is `own_descrip`. 
+
+The values for each of the columns are updated with the value in (parentheses). 
+
+**NOTE:** the single quotes around the path seen in the Rmd (but not in the html) are for `knit` and should not be used when updated the csv.
+
+* include (1) 
+* pg_att_table (sbx_rslt.sbx_resultant) 
+* pg_attskey_table () 
+* pg_skgeom_table () 
+* geom_field (geom)
+* field_to_tif (own_descrip) 
+* key_skgeo_tbl ()
+* key_attskey_tbl ()
+* dst_tif_name (own_descrip.tif) - destination TIF name
+* d_multiplier ()
+* query () - no query, all rows brought into PG table
+* notes (ownership classification description) 
+
+The second row added is `habitat_area_id` from the `sbx_whse.wha` table. The values for each of the columns are updated with the value in (parentheses). 
+
+* include (1) 
+* pg_att_table (sbx_whse.wha)  
+* pg_attskey_table (sbx_whse.wha_gr_skey) 
+* pg_skgeom_table (sbx_whse.sbx_skey) 
+* geom_field (geom)
+* field_to_tif (habitat_area_id) 
+* key_skgeo_tbl (gr_skey)
+* key_attskey_tbl (pgid)
+* dst_tif_name (wha_hab_area_id.tif)
+* d_multiplier ()
+* query () 
+* notes () 
+
+Save the file `batch_pg_to_seles_tif.csv` and close it.
+
+The `batch_pg_to_seles_tif` function takes the following parameters.
+
+* in_csv - the `batch_pg_to_seles_tif.csv` file
+* pg_conn_param - the connection string returned from `get_pg_conn_list()`
+* template_tif - the `sbx_skey.tif` TIFF created in Section [Create gr_skey Table and TIF](#create-gr_skey-table-and-tif)
+* out_tif_path - the directory the output TIFF will be saved to
+* out_cat_path - the directory the output CAT file will be saved to when a TEXT data type is converted
+* gdb - the geodatabase the boundary feature class is save to
+* bnd - the name of the features class of the boundary, used to find the extent 
+
+The connection string for the PostGres database used in this workflow  is accessed using the `localpsql` keyring. Below, it is unlocked.
+
+```{r, echo=TRUE, eval=FALSE}
+
+keyring_unlock("localpsql")
+
+```
+
+The database  in *localpsql* can be checked to ensure it points to the right database.
+
+```{r localpsqlkr4_get, echo=TRUE, eval=FALSE}
+
+key_get("dbname", keyring = "localpsql")
+
+```
+
+In this vignette, the output TIFs are saved to the directory:
+
+`C:/sandbox/data/seles/grids`
+
+The output CAT files are saved to the directory:
+
+`C:/sandbox/data/seles/cats`
+
+The `batch_pg_to_seles_tif` function is run below.
+
+**The code chunk in `batch_pg_to_seles_tif` must be run first**.
+
+```{r}
+
+#=========== Parameters to update
+in_csv <- "C:/sandbox/batch_pg_to_seles_tif.csv"
+pg_conn_param <- get_pg_conn_list()
+template_tif <- "C:/sandbox/data/sbx_skey.tif"
+out_tif_path <- "C:/sandbox/data/seles/grids"
+out_cat_path <- "C:/sandbox/data/seles/cats"
+gdb <- "C:/sandbox/data/tsa99_2024.gdb"
+bnd <- "bnd"
+
+batch_pg_to_seles_tif(in_csv = in_csv,
+                      pg_conn_param = get_pg_conn_list(),
+                      template_tif = template_tif,
+                      out_tif_path = out_tif_path ,
+                      out_cat_path = out_cat_path,
+                      gdb = gdb,
+                      bnd = bnd)
+
+```
+\
+[Back to Top](#introduction)
+
+#### Output from Batch Export to TIF (and CAT)
+
+The directory `C:/sandbox/data/seles/grids` now has two more TIFs, `own_descrip.tif` and `wha_hab_area_id.tif`.<br>
+The directory `C:/sandbox/data/seles/cats` now has one more CAT file, `own_descrip`.
+
+
+[Back to Top](#introduction)
+
+### Export to Shapefile & Create Geom Square
+
+A shapefile is created from the `wha` table fields common species name and timber harvest code. 
+
+The default geometry used by `dadmtools` is a centroid. Prior to creating the shapefile, a square geometry is created, `geom_square`, using the function  in `geom_square_from_point`. See Section [DADMTOOLS Functions in Development ](#dadmtools-functions-in-development). The square geometry is exported to shapefile.
+
+The `localpsql` keyring is unlocked.
+
+```{r, echo=TRUE, eval=FALSE}
+keyring_unlock('localpsql')
+```
+
+The database for the `localpsql` keyring is checked to make sure it is `pgtsr`.
+
+```{r, echo=TRUE, eval=FALSE}
+key_get("dbname", keyring = "localpsql")
+```
+
+The shapefile is created in a sub-directory of the `shape_path` directory. The `shape_path` must exist. In the vignette workflow, it is created as:
+
+`C:/sandbox/data/shapefiles`
+
+Both the `geom_square_from_point` and `pg_to_shapefile` function definitions in Section [DADMTOOLS Functions in Development ](#dadmtools-functions-in-development) need to be run before the following chunk.
+
+```{r runCreateShapefile, echo=TRUE, eval=FALSE}
+
+pg_conn_param <- dadmtools::get_pg_conn_list()
+fields_to_shape <- "timber_harvest_code,common_species_name"
+pg_att_table <- "sbx_whse.wha"
+pg_skgeom_table <- "sbx_whse.sbx_skey"
+pg_attskey_table <- "sbx_whse.wha_gr_skey"
+key_skgeo_tbl <- "gr_skey"
+key_attskey_tbl <- "pgid"
+out_shapefile_path <- "C:/sandbox/data/shapefiles"
+dst_shapefile_name <- "wha_harv_sp.shp"
+query <- "timber_harvest_code is not null"
+
+geom_square_from_point(pg_add_geomName = "geom_square",
+                       pg_geomTable = pg_skgeom_table,
+                       pg_exisiting_geomPoint = "geom")
+
+geom_field <- "geom_square"
+
+pg_to_shapefile(pg_conn_param = pg_conn_param,
+                fields_to_shape = fields_to_shape,
+                pg_att_table = pg_att_table,
+                pg_skgeom_table = pg_skgeom_table,
+                key_skgeo_tbl = key_skgeo_tbl,
+                pg_attskey_table = pg_attskey_table,
+                key_attskey_tbl = key_attskey_tbl,
+                geom_field = geom_field,
+                out_shapefile_path = out_shapefile_path,
+                dst_shapefile_name = dst_shapefile_name,
+                query = query)
+
+```
+
+[Back to Top](#introduction)
+
+#### Output from Export to Shapefile & Create Geom Square
+
+The PostgreSQL table `sbx_whse.sbx_skey` now has another geometry field `geom_square`.
+
+The directory `C:/sandbox/data/shapefiles` now has a sub-directory `wha_harv_sp`. Within that sub-directory there is a projected shapefile `wha_harv_sp.shp`. It has the two attributes:
+
+* `TIMBER_HAR`
+* `COMMON_SPE`
+
+Shapefiles have more limitations on field size than does PostgreSQL resulting in shortened attribute names. Every unique combination has been unioned and is represented by 1 feature in the shapefile.
+
+Only those areas with a `TIMBER_HAR` value within TSA 99 is included in the shapefile.
+
+[Back to Top](#introduction)
+
+### Export to GDB
+
+A GDB feature class is created for the `wha` table, including common species name and timber harvest code. 
+
+The default geometry used by `dadmtools` is a centroid. Prior to creating the shapfile, a square geometry is created `geom_square` using the function  in [Adding geom square](#adding-geom-square). The square geometry will be used to create the GDB.
+
+The `localpsql` keyring is unlocked.
+
+```{r, echo=TRUE, eval=FALSE}
+keyring_unlock('localpsql')
+```
+
+The database for the `localpsql` keyring is checked to make sure it is `pgtsr`.
+
+```{r, echo=TRUE, eval=FALSE}
+key_get("dbname", keyring = "localpsql")
+#
+```
+
+The `common_species_name` and `timber_harvest_code` fields from `whse.wha` are converted into a feature class. All distinct rows with the same value are unioned into one feature.
+
+The GDB is created in a sub-directory of the `gdbs` directory. The `out_gdb_path` must exist. In the vignette workflow, it is created as:
+
+`C:/sandbox/data/gdbs`
+
+
+```{r createGDBfc, echo=TRUE, eval=FALSE}
+
+#======================================== Parameters to update
+
+fields_to_gdb <- "timber_harvest_code,common_species_name"
+pg_att_table <- "sbx_whse.wha"
+pg_skgeom_table <- "sbx_whse.sbx_skey"
+pg_attskey_table <- "sbx_whse.wha_gr_skey"
+key_skgeo_tbl <- "gr_skey"
+key_attskey_tbl <- "pgid"
+geom_field <- "geom_square"
+dst_ha_field <- "polygon_ha"
+query <- "timber_harvest_code is not null"
+dst_gdb_name <- "wha.gdb"
+out_gdb_path <- "C:/sandbox/data/gdbs"
+
+#==============================================
+pg_to_gdb(fields_to_gdb = fields_to_gdb,
+          pg_att_table = pg_att_table,
+          pg_attskey_table = pg_attskey_table,
+          pg_skgeom_table = pg_skgeom_table,
+          geom_field = geom_field,
+          dst_ha_field = dst_ha_field,
+          key_skgeo_tbl = key_skgeo_tbl,
+          key_attskey_tbl = key_attskey_tbl,
+          query = query,
+          dst_gdb_name = dst_gdb_name,
+          out_gdb_path = out_gdb_path)
+
+```
+
+[Back to Top](#introduction)
+
+#### Output from Export to GDB
+
+The directory `C:/sandbox/data/gdbs` now has a GDB `wha.gdb`. Within that GDB there is feature class with the *fc_name* `wha_fc`. The feature class has three columns:
+
+* fid (Object ID Column)
+* geometry (Geometry Column)
+* common_species_name (String)
+* timber_harvest_code (String)
+
+[Back to Top](#introduction)
+
+## Adding Layer to Export {#add-layer-to-export}
+
+This section combines the steps required to bring one feature class into the Postgres, add it to a resultant, and export it to TIF.
+
+In this workflow, the layer `thlb_2024` is added to the resultant `rslt.sbx_resultant` and then exported to an integer TIF.
+
+The project directory is opened ready for each input parameter csv to be opened.
+
+```{r openConfigDir5, echo=TRUE, eval=FALSE}
+utils::browseURL("C:/sandbox")
+```
+
+The `localpsql` keyring is unlocked.
+
+```{r, echo=TRUE, eval=FALSE}
+keyring_unlock('localpsql')
+```
+
+The database for the `localpsql` keyring is checked to make sure it is `pgtsr`.
+
+```{r, echo=TRUE, eval=FALSE}
+key_get("dbname", keyring = "localpsql")
+```
+
+The row for the `thlb_2024` input is added to `config_parameters.csv`, and the `include` value for all other rows is **changed to 0**.
+
+* include (1) - will be included in import
+* overlap_ind (FALSE) - no overlaps
+* src_type (gdb) 
+* src_path (`C:\sandbox\data\tsa99_2024.gdb`) 
+* src_lyr (thlb_2024)
+* dst_schema (sbx_whse) - destination schema
+* dst_tbl (thlb2024) - destination table name
+* query () - 
+* flds_to_keep () 
+* overlap_group_fields () 
+* notes () 
+
+Once the parameters are updated, the code chunk is run. Note, if the template tiff used is not the default, that needs to be defined in the paramater list, and added to the call `get_gr_skey_extent`.
+
+```{r batchImport2, echo=TRUE, eval=FALSE}
+
+#--------------------------------Update Parameters
+
+# The path to the downloaded test GDB 
+dsn <- "C:/sandbox/data/tsa99_2024.gdb" 
+# The path to the downloaded boundary layer (bnd) in test GDB 
+layer <- "bnd" 
+# The path to the updated config file
+config <-  "C:/sandbox/config_parameters.csv"
+#The name of the gr_skey table created by function  - MUST BE IN whse schema!
+skey_table <- "sbx_whse.sbx_skey"
+out_tif_path <- "C:/sandbox/data/rasters"
+data_src_tbl <- "sbx_whse.data_sources"
+raster_schema <- 'sbx_raster'
+
+#----------------------------------------------------------
+
+dadmtools::batch_import_to_pg_gr_skey(
+        in_csv = config,
+        pg_conn_param = dadmtools::get_pg_conn_list(), 
+        ora_conn_param = dadmtools::get_ora_conn_list(),
+        crop_extent = get_gr_skey_extent(dsn = dsn, layer=layer),
+        gr_skey_tbl = skey_table,
+        data_src_tbl = data_src_tbl,
+        raster_schema = raster_schema,
+        out_tif_path = out_tif_path
+    )
+
+```
+
+The database `pgtsr` now has 2 new tables in the `sbx_whse` schema:
+
+  * thlb2024
+  * thlb2024_gr_skey
+  
+The `sbx_whse.data_sources` table has one new row for source layer `thlb_2024`.
+  
+Those tables will used to add another row to the csv `batch_add_fields_to_resultant.csv`. The  **include** values for all existing rows are changed to 0.
+
+* include (1)
+* overwrite_resultant_table (TRUE)
+* overwrite_fields (FALSE)
+* include_prefix (FALSE)
+* new_resultant_name (sbx_rslt.sbx_resultant)
+* gr_skey_table (sbx_whse.thlb2024_gr_skey)
+* attribute_table (sbx_whse.thlb2024)
+* current_resultant_table (sbx_rslt.sbx_resultant)
+* included_fields (thlb_fact,aflb_fact)
+* update_field_names ()
+* prefix ()
+* key_resultant_tbl (gr_skey)
+* key_grskey_tbl (gr_skey)
+* key_join_tbl (pgid)
+* notes () 
+
+Once the parameters are updated, the code chunk is run.
+
+```{r createRes3, echo=TRUE, eval=FALSE}
+
+#============= Parameters
+in_csv <- "C:/sandbox/batch_add_fields_to_resultant.csv"
+pg_conn_param <- dadmtools::get_pg_conn_list() 
+#========================
+
+batch_add_fields_to_resultant(
+            in_csv = in_csv,
+            pg_conn_param  = pg_conn_param
+)
+
+```
+\
+The two columns `thlb_fact` and `aflb_fact` have now been added to `rslt.sbx_resultant`.
+
+Next, the field `thlb_fact` is exported to TIF. Since the data type is a *decimal* type, the parameter `d_mulitiplier` is needed, and the parameter `cat_path` is not needed.
+
+The `d_mulitiplier` value of 1000 is used. The area summaries completed in STSTM will be divided by 1000.
+
+The `query` is changed to **" > 0;"**, to filter the results to only those cells with THLB.
+
+The `result_tif_path` already exists in this workflow, so does not need to be created. 
+
+`C:/sandbox/rasters/seles/grids`
+
+Once the parameters are updated, the code chunk is run to create the `thlb_int.tif`. The point geometry field `geom` used.
+
+
+```{r thlb2tif, echo=TRUE, eval=FALSE}
+
+#=========== Parameters to update
+pg_conn_param <- get_pg_conn_list()
+# to created below
+pg_att_table <- "sbx_rslt.sbx_resultant"
+field_to_tif <- "thlb_fact"
+geom_field <- "geom"
+template_tif <- "C:/sandbox/data/sbx_skey.tif"
+out_tif_path <- "C:/sandbox/data/seles/grids"
+dst_tif_name <- "thlb_int.tif"
+d_multiplier <- 1000
+query <- "thlb_fact > 0;"
+# gdb and bnd used to get bounding extent
+gdb <- "C:/sandbox/data/tsa99_2024.gdb"
+bnd <- "bnd"
+#============================================
+
+pg_to_seles_tif(pg_conn_param = pg_conn_param,
+                field_to_tif =field_to_tif,
+                pg_att_table = pg_att_table,
+                geom_field = geom_field,
+                template_tif = template_tif,
+                out_tif_path = out_tif_path,
+                dst_tif_name = dst_tif_name,
+                out_cat_path = out_cat_path,
+                d_multiplier = d_multiplier,
+                query = query,
+                gdb = gdb,
+                bnd = bnd)
+
+```
+\
+The directory `C:/sandbox/data/seles/grids` now has a TIF, `thlb_int.tif`.
+
+Opening the TIF in Seles and running a summarize values results in a total of 69544631.
+Dividing by the `d_multiplier` value of 1000:
+
+69544631 / 1000 =  69544.6
+
+In Postgres, running the query:
+
+`select sum(thlb_fact)`<br> 
+`from rslt.sbx_resultant`<br>
+`where thlb_fact > 0`<br>
+
+Results in a sum of 69544.8 hectares. 
+
+Finally, the two attributes `aflb_fact` and `thlb_fact` from the table `sbx_whse.thlb2024` are exported to a GDB. After the parameters below are checked and updated, the chunk is run.
+
+```{r createAFLBTHLBGDBfc, echo=TRUE, eval=FALSE}
+
+#======================================== Parameters to update
+
+fields_to_gdb <- "aflb_fact,thlb_fact"
+pg_att_table <- "sbx_whse.thlb2024"
+pg_skgeom_table <- "sbx_whse.sbx_skey"
+pg_attskey_table <- "sbx_whse.thlb2024_gr_skey"
+key_skgeo_tbl <- "gr_skey"
+key_attskey_tbl <- "pgid"
+geom_field <- "geom_square"
+dst_ha_field <- "polygon_ha"
+query <- "aflb_fact > 0"
+dst_gdb_name <- "aflb_thlb.gdb"
+out_gdb_path <- "C:/sandbox/data/gdbs"
+
+#==============================================
+pg_to_gdb(fields_to_gdb = fields_to_gdb,
+          pg_att_table = pg_att_table,
+          pg_attskey_table = pg_attskey_table,
+          pg_skgeom_table = pg_skgeom_table,
+          geom_field = geom_field,
+          dst_ha_field = dst_ha_field,
+          key_skgeo_tbl = key_skgeo_tbl,
+          key_attskey_tbl = key_attskey_tbl,
+          query = query,
+          dst_gdb_name = dst_gdb_name,
+          out_gdb_path = out_gdb_path)
+
+```
+The directory `C:/sandbox/data/gdbs` now has a GDB, `aflb_thlb.gdb`.
+
+[Back to Top](#introduction)
+
+# Additional Functionality
+
+This section covers additional functionality that was not part of the example workflow.
+
+[Back to Top](#introduction)
+
+## Keyring
+
+The keyring package has functionality to update and delete your keyring.
+
+[Back to Top](#introduction)
+
+### Update Keyring
+
+When you need to update one of your parameters, run the `key_set` function again.
+
+Running the code chunk below would open the password window where you could update your password for oracle.
+
+```{r koracle_password2, echo=TRUE, eval=FALSE}
+
+# Enter your oracle/BCGW password - the password you use to access BCGW
+key_set("dbpass", keyring = "oracle", prompt = 'Oracle/BCGW password:')
+
+```
+
+Running the code chunk below would open the dbname window where you could update your database name for your local PostgreSQL keyring. Note the database name is not set initially as you create your project database below.
+
+```{r klocalpsql_dbname2, echo=TRUE, eval=FALSE}
+
+key_set("dbname", keyring = "localpsql", prompt = 'local postgres dbname:')
+
+```
+
+[Back to Top](#introduction)
+
+### Deleting Keyring
+
+Use the `keyring` package to delete a keyring you created. The keyring **localpsql** is deleted below. First, each key is deleted, then the keyring itself.
+
+
+```{r klocalpsql_del, echo=TRUE, eval=FALSE}
+
+mykeyring <- "localpsql"
+
+services <- key_list(keyring=mykeyring)[1]
+count <- nrow(services)
+
+for (i in 1:count){
+  service <- as.character(services[i,1])
+  (key_delete(service, keyring = mykeyring))
+}
+
+keyring_delete(mykeyring)
+
+```
+\
+[Back to Top](#introduction)
+
+## Database
+
+Database management functions are covered below.
+
+[Back to Top](#introduction)
+
+### Archive Database
+
+An archive, or dump file, of the data base `pgtsr` is created and saved to:
+
+`C:\sandbox\archive`
+
+The function requires the `archive` directory to exist. Create it before running.
+
+The backslash is changed to a forward slash in R.
+
+```{r, echo=TRUE, eval=FALSE}
+# make your current working directory the archive directory
+setwd('C:/sandbox/archive')
+# name your archived file
+db_dump <- "pgtsr.sql"
+# the name of your database
+db_name <- "pgtsr"
+
+cmd <- glue('pg_dump -d ', db_name, ' -U postgres -f ', db_dump)
+system(command = cmd)
+
+```
+
+
+[Back to Top](#introduction)
+
+### Delete (drop) Database
+
+The data base `pgtsr` is deleted (dropped) from PostgreSQL. 
+
+The `localpsql` keyring credentials are used below, removing the database name.
+
+The `localpsql` connection is used to drop the database `pgtsr`. Disconnect the database or close any applications that have connections to the database (e.g. dBeaver) before running the code chunk.
+
+```{r, echo=TRUE, eval=FALSE}
+# Name of database to drop
+drop_dbname <- "pgtsr"
+
+# this call uses your localpsql credentials created with Keyring above
+pg_conn_param <- dadmtools::get_pg_conn_list()
+# the database name is removed 
+row_index <- which(names(pg_conn_param) == "dbname") 
+row_index <- row_index*-1
+pg_conn_param_nodb <- pg_conn_param[row_index]
+sql_drop <- glue("DROP DATABASE IF EXISTS ", drop_dbname, ";")
+dadmtools::run_sql_r(sql_drop,pg_conn_param_nodb)
+
+```
+
+[Back to Top](#introduction)
+
+### Restore Database Dump File
+
+Before restoring the database dumpfile [create a database](#create-database). In the workflow, we re-created the database *pgtsr* and we will use it when restoring the database we archived [above](#archive-database).
+
+
+```{r, echo=TRUE, eval=FALSE}
+#===================================== UPDATE Parameters
+# make your current working directory the archive directory your dump file is in
+setwd('C:/sandbox/archive')
+# name your archived file
+db_dump <- "pgtsr.sql"
+# the name of your database the tables will be restored to
+db_name <- "pgtsr"
+#=============================================================
+
+pg_conn_param <- dadmtools::get_pg_conn_list()
+user <- pg_conn_param$user
+port <- pg_conn_param$port
+host <- pg_conn_param$host
+
+cmd <- glue('psql -U ', user,
+            ' -p ', port, 
+            ' -h ', host, 
+            ' -d ', db_name, ' -f ', db_dump)
+system(command = cmd)
+
+```
+
+[Back to Top](#introduction)
+
+### List Databases
+
+The following code chunk lists the databases in *localpsql*.
+
+```{r, echo=TRUE, eval=FALSE}
+
+pg_conn_param <- dadmtools::get_pg_conn_list()
+driver <- pg_conn_param["driver"][[1]]
+host <- pg_conn_param["host"][[1]]
+user <- pg_conn_param["user"][[1]]
+password <- pg_conn_param["password"][[1]]
+port <- pg_conn_param["port"][[1]]
+
+con <- RPostgres::dbConnect(driver,
+                                host=host, 
+                                user = user,
+                                port = port,
+                                password=password)
+
+dbs <- dbGetQuery(con, "SELECT datname FROM pg_database WHERE datistemplate = FALSE")
+RPostgres::dbDisconnect(con)
+
+dbs
+
+```
+[1] "RPostgres::Postgres()"
+[1] "postgres"
+[1] "postgres"
+[1] "localhost"
+[1] "5432"
+[1] "pgtsr"
+
+[Back to Top](#introduction)
+
+### List Tables 
+
+The following code chunk lists the tables your *localpsql* database. Update the parameters if you are not using the *localpsql* keyring.
+
+```{r, echo=TRUE, eval=FALSE}
+#=============================================Using localpsql keyring
+pg_conn_param <- dadmtools::get_pg_conn_list()
+#=================================================
+
+driver <- pg_conn_param["driver"][[1]]
+host <- pg_conn_param["host"][[1]]
+user <- pg_conn_param["user"][[1]]
+password <- pg_conn_param["password"][[1]]
+port <- pg_conn_param["port"][[1]]
+dbname <- pg_conn_param["dbname"][[1]]
+
+con <- RPostgres::dbConnect(driver,
+                                host=host, 
+                                user = user,
+                                port = port,
+                                password=password,
+                                dbname=dbname)
+
+dbListTables(con)
+
+RPostgres::dbDisconnect(con)
+
+```
+\
+[Back to Top](#introduction)
+
+## Other
+
+Additional useful functionality is covered in this section.
+
+[Back to Top](#introduction)
+
+### Adding geom square
+
+The default geometry used in `dadmtools` when adding spatial tables to Postgres is the centroid. When mapping, or exporting to shapfiles, having a a spatial square is preferable.
+
+In the following function, the a square geometry field added to a Postgres table.
+
+The `localpsql` keyring is unlocked.
+
+```{r, echo=TRUE, eval=FALSE}
+keyring_unlock('localpsql')
+```
+
+The database for the `localpsql` keyring is checked to make sure it is `pgtsr`.
+
+```{r, echo=TRUE, eval=FALSE}
+key_get("dbname", keyring = "localpsql")
+```
+
+The code chunk below adds the spatial column `geom_square` to the table `rslt.sbx_resultant`.
+
+```{r addGeomSquare, echo=TRUE, eval=FALSE}
+
+#====================================PARAMETERS
+pg_add_geomName <- "geom_square"
+pg_geomTable <- "sbx_rslt.sbx_resultant"
+pg_exisiting_geomPoint <- "geom"
+#=================================================
+
+geom_square_from_point(pg_add_geomName = "geom_square",
+                       pg_geomTable = pg_geomTable,
+                       pg_exisiting_geomPoint = "geom")
+
+
+```
+\
+The table  `rslt.sbx_resultant` now has an additional geometry column `geom_square`.
+
+[Back to Top](#introduction)

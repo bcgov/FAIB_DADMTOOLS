@@ -10,3 +10,7 @@ LazyData: true
 Imports: billboard
 RoxygenNote: 7.3.2
 Depends: RPostgres, glue, terra, keyring, sf
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
