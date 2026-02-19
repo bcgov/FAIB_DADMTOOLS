@@ -20,6 +20,8 @@ get_sql_fdw_id_geom<- function(dst_tbl,
                           where          = NULL
                           )
 {
+
+
   if (grepl("\\.", ora_tbl)) {
     ora_tbl <- strsplit(ora_tbl, "\\.")[[1]][[2]]
   } else {
@@ -34,9 +36,11 @@ get_sql_fdw_id_geom<- function(dst_tbl,
       where <- substr(trimws(where), 6, nchar(where))
     }
     if (where == '') {
-      where <- glue("WHERE {geom_name} <> ''" )
+      where <- glue("WHERE {geom_name} IS NOT NULL
+  AND NOT ST_IsEmpty({geom_name})" )
     } else {
-      where <- glue::glue("WHERE {where} AND {geom_name} <> ''" )
+      where <- glue::glue("WHERE {where} AND {geom_name} IS NOT NULL
+  AND NOT ST_IsEmpty({geom_name})" )
     }
   }
 
@@ -61,6 +65,7 @@ get_sql_fdw_id_geom<- function(dst_tbl,
     fdw_w_geom_and_where_clause fdw_w_geom
   ON
     fdw_w_geom.objectid::integer = non_spatial.objectid::integer")
+  print(sqlstmt)
 
   return(sqlstmt)
 }
