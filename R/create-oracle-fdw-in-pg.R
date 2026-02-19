@@ -42,8 +42,9 @@ create_oracle_fdw_in_pg <- function(in_table, ora_conn_param, pg_conn_param, out
     dadmtools::run_sql_r(glue("CREATE SERVER {out_server_name} FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver '{ora_server}' );"), pg_conn_param)
     dadmtools::run_sql_r(glue("CREATE USER MAPPING FOR POSTGRES SERVER {out_server_name} OPTIONS (user '{idir}', password '{orapass}');"), pg_conn_param)
   } else {
-    ## update the USER MAPPING password for when your IDIR password changes
+    ## update the USER MAPPING username & password for when your IDIR password changes
     dadmtools::run_sql_r(glue("ALTER USER MAPPING FOR CURRENT_USER SERVER {out_server_name} OPTIONS (SET password '{orapass}');"), pg_conn_param)
+    dadmtools::run_sql_r(glue("ALTER USER MAPPING FOR CURRENT_USER SERVER {out_server_name} OPTIONS (SET user '{idir}');"), pg_conn_param)
   }
 
   print(glue('Creating PG FDW table: {out_schema}.{ora_tbl_no_schema} from Oracle table: {in_table}'))

@@ -66,8 +66,13 @@ rasterize_gdal <- function(
 
   ################## Old bug###
   #########################sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("With t1 as (SELECT ROW_NUMBER() OVER () AS {field}, * FROM {in_lyr}) select * from t1 {where}")))
-  ########################
-  sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT ROW_NUMBER() OVER () AS {field}, *  from {in_lyr} {where}")))
+  ################## Old bug###
+  ################## Old bug###
+  ################## Old bug###
+  ################## Old bug###sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT ROW_NUMBER() OVER () AS {field}, *  from {in_lyr} {where}")))
+
+   sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT * FROM (SELECT ROW_NUMBER() OVER () AS {field},* FROM {in_lyr} ) AS numbered {where}")))
+
 
   nodata <- glue('-a_nodata ', nodata)
   print(glue("Writing raster: {dst_ras_filename} using datatype: {datatype}"))

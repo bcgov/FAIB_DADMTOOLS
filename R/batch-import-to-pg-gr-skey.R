@@ -48,7 +48,7 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
   ms_errors <- list()
   for (row in 1:nrow(in_file)) {
     src_type      <- gsub("[[:space:]]","",tolower(in_file[row, "src_type"])) ##format of data source i.e. gdb,oracle, postgres, geopackage, raster
-    src_path      <- gsub("[[:space:]]","",tolower(in_file[row, "src_path"])) ## path to input data. Note use bcgw for whse
+    src_path      <- tolower(trimws(in_file[row, "src_path"])) ## path to input data. Note use bcgw for whse
     src_lyr       <- gsub("[[:space:]]","",tolower(in_file[row, "src_lyr"])) ## input layer name
     dst_schema    <- gsub("[[:space:]]","",tolower(in_file[row, "dst_schema"])) ## name of output non spatial table
     dst_tbl       <- gsub("[[:space:]]","",tolower(in_file[row, "dst_tbl"])) ## name of output non spatial table

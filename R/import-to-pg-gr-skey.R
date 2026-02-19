@@ -164,9 +164,7 @@ import_to_pg_gr_skey <- function(
 
 {
 
-
-
-
+#browser()
 
   cat("\n")
   cat(paste(rep("*", 80), collapse = ""), "\n")
@@ -221,6 +219,11 @@ import_to_pg_gr_skey <- function(
 
   multisurface_error <- NULL
   if ((src_type %in% c("gdb"))) {
+    ## check to ensure src_path exists
+    if (!(file.exists(src_path))) {
+      print(glue("ERROR: Source path does not exist: {src_path}, cannot import, moving on to next import layer. "))
+      return()
+    }
     contains_multisurface <- dadmtools::check_multisurface_gdb(src_path,src_lyr)
     if(contains_multisurface){
       multisurface_error <- glue("ERROR: Invalid GEOMETRY in {src_path} | layername = {src_lyr}. Layer was not imported. Please fix invalid geometry by fixing or removing arc, curves or other complex geometry. Hint exporting data to shapefile may help fix this issue.")
