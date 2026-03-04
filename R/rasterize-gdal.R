@@ -71,7 +71,7 @@ rasterize_gdal <- function(
   ################## Old bug###
   ################## Old bug###sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT ROW_NUMBER() OVER () AS {field}, *  from {in_lyr} {where}")))
 
-   sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT * FROM (SELECT ROW_NUMBER() OVER () AS {field},* FROM {in_lyr} ) AS numbered {where}")))
+   sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT * FROM (SELECT ROW_NUMBER() OVER () AS {field},* FROM {in_lyr} {where} ) AS numbered ")))
 
 
   nodata <- glue('-a_nodata ', nodata)
