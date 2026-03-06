@@ -14,6 +14,7 @@ rasterize_gdal(
   crop_extent = c(273287.5, 1870587.5, 367787.5, 1735787.5),
   nodata = 0,
   where = NULL,
+  overlap_where = NULL,
   datatype = "UInt32"
 )
 }
