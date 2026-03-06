@@ -515,14 +515,9 @@ import_to_pg_gr_skey <- function(
         overlap_groups_df[] <- lapply(overlap_groups_df, add_quotes)
 
         for (i in 1:nrow(overlap_groups_df)) {
+          where_clause_overlap <- NULL
           row <- overlap_groups_df[i, ,drop = FALSE]  # Get the row as a dataframe
           print(row)
-          if (is.null(where_claus)) {
-            where_clause_overlap <- NULL
-          } else {
-            where_clause_overlap <- glue("({where_claus})")
-          }
-
           for (col in names(row)) {
             value <- row[1,col]
             if (is.null(value) | is.na(value)) {
@@ -530,7 +525,7 @@ import_to_pg_gr_skey <- function(
             } else {
               colquery = glue("{col} = {value}")
             }
-            if(is.null(where_clause_overlap)){where_clause_overlap <- colquery}else{where_clause_overlap <- glue("{where_clause_overlap} and {colquery}")}
+            if(is.null(where_clause_overlap)){where_clause_overlap <- colquery}else{where_clause_overlap <- glue("{colquery}")}
           }
           print(where_clause_overlap)
 
@@ -550,7 +545,8 @@ import_to_pg_gr_skey <- function(
             pg_conn_param = NULL,
             crop_extent   = crop_extent,
             nodata        = no_data_value,
-            where         = where_clause_overlap
+            where         = where_claus,
+            overlap_where = where_clause_overlap,
           )
 
           in_df <- dadmtools::tif_to_gr_skey_tbl(
