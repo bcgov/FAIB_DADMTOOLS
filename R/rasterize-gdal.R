@@ -25,6 +25,7 @@ rasterize_gdal <- function(
     crop_extent = c(273287.5,1870587.5,367787.5,1735787.5),
     nodata = 0,
     where = NULL,
+    overlap_where = NULL,
     datatype = 'UInt32')
 {
     if(is.null(src_path) && is.null(pg_conn_param)){
@@ -51,6 +52,12 @@ rasterize_gdal <- function(
     where <- glue("WHERE {where}")
   }
 
+  if(is_blank(overlap_where)) {
+    overlap_where <- ''
+  } else {
+    overlap_where <- glue("WHERE {overlap_where}")
+  }
+
 
   value <- glue("-a {field}")
   comp <- '-co COMPRESS=LZW'
@@ -71,8 +78,8 @@ rasterize_gdal <- function(
   ################## Old bug###
   ################## Old bug###sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT ROW_NUMBER() OVER () AS {field}, *  from {in_lyr} {where}")))
 
-   sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT * FROM (SELECT ROW_NUMBER() OVER () AS {field},* FROM {in_lyr} {where} ) AS numbered ")))
-
+   sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT * FROM (SELECT ROW_NUMBER() OVER () AS {field},* FROM {in_lyr} ) AS numbered {overlap_where} ")))
+print(sql)
 
   nodata <- glue('-a_nodata ', nodata)
   print(glue("Writing raster: {dst_ras_filename} using datatype: {datatype}"))
