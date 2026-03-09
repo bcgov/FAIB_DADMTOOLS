@@ -525,19 +525,12 @@ import_to_pg_gr_skey <- function(
             } else {
               colquery = glue("{col} = {value}")
             }
-            if(is.null(where_clause_overlap)){where_clause_overlap <- colquery}else{where_clause_overlap <- glue("{colquery}")}
+            if(is.null(where_clause_overlap)){where_clause_overlap <- colquery}else{where_clause_overlap <- glue("{where_clause_overlap} and {colquery}")}
           }
           print(where_clause_overlap)
 
-
-          if(!dadmtools::is_blank(where_claus)){
-            src_lyr_rasterize <- glue("{src_lyr} where {where_claus}" )
-          } else {
-            src_lyr_rasterize <- src_lyr
-          }
-
           dst_ras_filename <- dadmtools:::rasterize_gdal(
-            in_lyr        = src_lyr_rasterize,
+            in_lyr        = src_lyr,
             field         = pk_id,
             out_tif_path  = out_tif_path,
             out_tif_name  = glue("{dst_tbl}.tif"),

@@ -83,7 +83,7 @@ ogr_to_tbl <- function(src,
     precision <- ''
   }
 
-  sql <- glue::double_quote(glue("SELECT {select}, ROW_NUMBER() OVER () AS {pk} FROM {lyr} {where}"))
+  sql <- glue::double_quote(glue("with t1 as (SELECT {select}, ROW_NUMBER() OVER () AS {pk} FROM {lyr}) select * from t1 {where}"))
   print(paste('ogr2ogr',
               '-nlt NONE',
               '-overwrite',
