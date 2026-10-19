@@ -25,6 +25,7 @@ fdw_to_tbl <- function(src_tbl,
                       flds_to_keep = NULL,
                       where        = '')
 {
+
   ## if source table has schema appended, strip it off and use src_schema argument
   if (grepl("\\.", src_tbl)) {
     src_tbl <- strsplit(src_tbl, "\\.")[[1]][[2]]
@@ -43,7 +44,7 @@ fdw_to_tbl <- function(src_tbl,
 
   if(is.null(flds_to_keep) || flds_to_keep == '' || is.na(flds_to_keep)) {
     ## Keep all attributes
-    query = glue("SELECT
+    query <- glue("SELECT
                     'SELECT ' || array_to_string(
                                                   ARRAY(
                                                       SELECT
@@ -60,6 +61,7 @@ fdw_to_tbl <- function(src_tbl,
                                       , ',') || '
                  FROM
                   {src_schema}.{src_tbl} AS o {where} ' As sqlstmt")
+    print(query)
 
     sqlstmt <- (dadmtools::sql_to_df(query, pg_conn_param))$sqlstmt
 

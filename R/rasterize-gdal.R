@@ -28,6 +28,13 @@ rasterize_gdal <- function(
     overlap_where = NULL,
     datatype = 'UInt32')
 {
+  # Escape apostrophes that sit inside a word (letter/digit on both sides),
+  # e.g. 'Coeur d'Alene' -> 'Coeur d''Alene'. Quotes that open or close a
+  # value are left alone, and already-escaped '' is not changed.
+  escape_apostrophes <- function(x) {
+    gsub("(?<=[\\p{L}\\p{N}])'(?=[\\p{L}\\p{N}])", "''", enc2utf8(x), perl = TRUE)
+  }
+
     if(is.null(src_path) && is.null(pg_conn_param)){
       stop("Must have one src_path or pg_conn_param populated")
     } else if(!is.null(src_path) && !is.null(pg_conn_param)){
@@ -52,13 +59,13 @@ rasterize_gdal <- function(
   if(is_blank(where)) {
     where <- ''
   } else {
-    where <- glue("WHERE {where}")
+    where <- glue("WHERE {escape_apostrophes(where)}")
   }
 
   if(is_blank(overlap_where)) {
     overlap_where <- ''
   } else {
-    overlap_where <- glue("WHERE {overlap_where}")
+    overlap_where <- glue("WHERE {escape_apostrophes(overlap_where)}")
   }
 
 
@@ -80,9 +87,8 @@ rasterize_gdal <- function(
   ################## Old bug###
   ################## Old bug###
   ################## Old bug###sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT ROW_NUMBER() OVER () AS {field}, *  from {in_lyr} {where}")))
-
-   sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT * FROM (SELECT ROW_NUMBER() OVER () AS {field},* FROM {in_lyr} {where} ) AS numbered {overlap_where} ")))
-print(sql)
+#    sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT * FROM (SELECT ROW_NUMBER() OVER () AS {field},* FROM {in_lyr} {where} ) AS numbered {overlap_where} ")))
+# print(sql)
 
 sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("With t1 as (SELECT ROW_NUMBER() OVER () AS {field},* FROM {in_lyr}), t2 as (select * from t1 {where}) select * from t2 {overlap_where} ")))
 print(sql)
