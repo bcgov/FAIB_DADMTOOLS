@@ -2,19 +2,33 @@
 % Please edit documentation in R/check_multisurface_gdb.R
 \name{check_multisurface_gdb}
 \alias{check_multisurface_gdb}
-\title{Check for MULTISURFACE or other unsupported geometry types in a File Geodatabase.}
+\title{Check for MULTISURFACE geometry in a File Geodatabase feature class.}
 \usage{
 check_multisurface_gdb(gdb_path, layer_name, nrow = 1000)
 }
 \arguments{
-\item{gdb_path}{Character. The full file path to the File Geodatabase (.gdb).}
+\item{gdb_path}{Character. The full path to the File Geodatabase (.gdb).}
 
-\item{nrow}{Logical. Returns `TRUE` if unsupported geometry types like `MULTISURFACE` are detected; `FALSE` otherwise.}
+\item{layer_name}{Character. The name of the feature class (layer) within
+the geodatabase to check.}
 
-\item{Character.}{The name of the feature class (layer) within the geodatabase to check.}
+\item{nrow}{Integer. The maximum number of features to inspect.
+Defaults to 1000.}
+}
+\value{
+Logical. Returns `TRUE` if a `MULTISURFACE` geometry is detected
+  within the features inspected, and `FALSE` otherwise.
 }
 \description{
-Check for MULTISURFACE or other unsupported geometry types in a File Geodatabase.
+Reads a feature class directly from a File Geodatabase using
+`sf::st_read()` and checks the geometry types of the features.
+This function is used to identify `MULTISURFACE` geometries, which
+are not supported by the GDAL import workflow used by `dadmtools`.
+}
+\details{
+The layer is read directly rather than querying a specific geometry
+column name. This allows the GDAL/OpenFileGDB driver to handle the
+geometry field appropriately.
 }
 \examples{
 in_gdb <- "E:/data/indata.gdb"
@@ -27,8 +41,13 @@ check_geom <- check_multisurface_gdb(
 )
 
 if (!check_geom) {
-  message(glue::glue("No MULTISURFACE geometry found in {in_gdb}/{in_fc}"))
+  message(glue::glue(
+    "No MULTISURFACE geometry found in {in_gdb}/{in_fc}"
+  ))
 } else {
-  warning(glue::glue("MULTISURFACE geometry detected in {in_gdb}/{in_fc}. Data may not import correctly."))
+  warning(glue::glue(
+    "MULTISURFACE geometry detected in {in_gdb}/{in_fc}. ",
+    "Data may not import correctly."
+  ))
 }
 }
