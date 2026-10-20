@@ -13,7 +13,8 @@ ogr_to_tbl(
   select = NULL,
   where = NULL,
   dst_schema = NULL,
-  tbl_comment = NULL
+  tbl_comment = NULL,
+  keep_geom = FALSE
 )
 }
 \arguments{
@@ -34,6 +35,12 @@ ogr_to_tbl(
 \item{dst_schema}{default database schema}
 
 \item{tbl_comment}{Set to TRUE if GDAL is installed on machine e.g. TRUE}
+
+\item{keep_geom}{If TRUE, the table is imported WITH geometry (column "geom",
+multi-part, EPSG:3005, no spatial index) and all source fields, so it can be
+used as a staging table. pgid is numbered exactly as when keep_geom = FALSE
+(ROW_NUMBER() over the whole layer, before the where clause). `select` is
+ignored; fields are chosen later, see stage_to_attr_tbl(). Defaults to FALSE.}
 }
 \value{
 no return

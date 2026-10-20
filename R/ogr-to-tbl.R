@@ -9,6 +9,11 @@
 #' @param where sql where clause e.g. segment = 'highway2'
 #' @param dst_schema default database schema
 #' @param tbl_comment Set to TRUE if GDAL is installed on machine e.g. TRUE
+#' @param keep_geom If TRUE, the table is imported WITH geometry (column "geom",
+#'   multi-part, EPSG:3005, no spatial index) and all source fields, so it can be
+#'   used as a staging table. pgid is numbered exactly as when keep_geom = FALSE
+#'   (ROW_NUMBER() over the whole layer, before the where clause). `select` is
+#'   ignored; fields are chosen later, see stage_to_attr_tbl(). Defaults to FALSE.
 #'
 #' @return no return
 #'
@@ -22,8 +27,9 @@ ogr_to_tbl <- function(src,
                        select = NULL,
                        where = NULL,
                        dst_schema = NULL,
-                       tbl_comment = NULL
-                             )
+                       tbl_comment = NULL,
+                       keep_geom = FALSE
+)
 {
 
   dbname <- pg_conn_param["dbname"][[1]]
@@ -86,9 +92,20 @@ ogr_to_tbl <- function(src,
     precision <- ''
   }
 
-  sql <- glue::double_quote(glue("with t1 as (SELECT {select}, ROW_NUMBER() OVER () AS {pk} FROM {lyr}) select * from t1 {where}"))
+  if (isTRUE(keep_geom)) {
+    ## all fields + geometry; numbering is the same as the non-spatial version
+    sql <- glue::double_quote(glue("with t1 as (SELECT ROW_NUMBER() OVER () AS {pk}, * FROM {lyr}) select * from t1 {where}"))
+    geom_args <- c('-nlt PROMOTE_TO_MULTI',
+                   '-nlt CONVERT_TO_LINEAR',
+                   '-t_srs EPSG:3005',
+                   '-lco GEOMETRY_NAME=geom',
+                   '-lco SPATIAL_INDEX=NONE')
+  } else {
+    sql <- glue::double_quote(glue("with t1 as (SELECT {select}, ROW_NUMBER() OVER () AS {pk} FROM {lyr}) select * from t1 {where}"))
+    geom_args <- '-nlt NONE'
+  }
   print(paste('ogr2ogr',
-              '-nlt NONE',
+              paste(geom_args, collapse = ' '),
               '-overwrite',
               '-gt 200000',
               '-dialect sqlite',
@@ -105,7 +122,7 @@ ogr_to_tbl <- function(src,
                      ' password=', password, '"'),
               src))
 
-  print((system2('ogr2ogr',args=c('-nlt NONE',
+  print((system2('ogr2ogr',args=c(geom_args,
                                   '-overwrite',
                                   '-gt 200000',
                                   '-dialect sqlite',
@@ -149,17 +166,17 @@ ogr_to_tbl <- function(src,
   print(real_columns)
 
   if (nrow(real_columns) > 0) {
-  # Step 3: Loop over columns and convert them to NUMERIC
-  for (i in 1:nrow(real_columns)) {
-    column_name <- real_columns$column_name[i]
+    # Step 3: Loop over columns and convert them to NUMERIC
+    for (i in 1:nrow(real_columns)) {
+      column_name <- real_columns$column_name[i]
 
-    # Create the ALTER TABLE query
-    alter_query <- glue("ALTER TABLE {dst_schema}.{dst_tbl} ALTER COLUMN {column_name} SET DATA TYPE NUMERIC;")
+      # Create the ALTER TABLE query
+      alter_query <- glue("ALTER TABLE {dst_schema}.{dst_tbl} ALTER COLUMN {column_name} SET DATA TYPE NUMERIC;")
 
-    dadmtools::run_sql_r(alter_query,pg_conn_param)}}
-
-
+      dadmtools::run_sql_r(alter_query,pg_conn_param)}}
 
 
 
-  }
+
+
+}

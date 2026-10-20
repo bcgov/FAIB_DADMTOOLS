@@ -21,6 +21,11 @@
 #'   same SQL, so the field numbering is unchanged) and rasterized with
 #'   rasterize_r(). See rasterize_r() for the full rule. Polygons only. Cannot
 #'   be combined with touches.
+#' @param sql OPTIONAL - a complete SQL statement run against the source as-is
+#'   (native dialect, e.g. PostgreSQL when pg_conn_param is used). It must
+#'   return {field} and a geometry column. When supplied, in_lyr, where and
+#'   overlap_where are ignored and no ROW_NUMBER() id is generated, so {field}
+#'   comes straight from the source (e.g. the pgid of the attribute table).
 #'
 #' @return output tif name
 #'
@@ -39,7 +44,8 @@ rasterize_gdal <- function(
     overlap_where = NULL,
     datatype = 'UInt32',
     touches = FALSE,
-    largest_area = FALSE)
+    largest_area = FALSE,
+    sql = NULL)
 {
   # Escape apostrophes that sit inside a word (letter/digit on both sides),
   # e.g. 'Coeur d'Alene' -> 'Coeur d''Alene'. Quotes that open or close a
@@ -108,7 +114,13 @@ rasterize_gdal <- function(
   #    sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("SELECT * FROM (SELECT ROW_NUMBER() OVER () AS {field},* FROM {in_lyr} {where} ) AS numbered {overlap_where} ")))
   # print(sql)
 
-  sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("With t1 as (SELECT ROW_NUMBER() OVER () AS {field},* FROM {in_lyr}), t2 as (select * from t1 {where}) select * from t2 {overlap_where} ")))
+  if (!is_blank(sql)) {
+    # Caller-supplied SQL in the source's own dialect; {field} already exists.
+    # Collapse to one line so it survives being passed on the command line.
+    sql <- paste0('-sql ', glue::double_quote(trimws(gsub("\\s+", " ", sql))))
+  } else {
+    sql <- paste0('-dialect sqlite -sql ', glue::double_quote(glue("With t1 as (SELECT ROW_NUMBER() OVER () AS {field},* FROM {in_lyr}), t2 as (select * from t1 {where}) select * from t2 {overlap_where} ")))
+  }
   print(sql)
 
 
