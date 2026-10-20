@@ -259,6 +259,31 @@ import_to_pg_gr_skey <- function(
     query_escaped <- gsub("\'","\'\'", query)
   }
 
+  ## Describe how the data was rasterized, for the table comments
+  if (tolower(src_type) == 'raster') {
+    rast_method <- "none - source raster cell values used as-is (raster must match the gr_skey grid)"
+    rast_overlap <- "not applicable"
+  } else {
+    if (isTRUE(largest_area)) {
+      rast_method <- "largest area - each cell gets the polygon covering the largest share of it; the uncovered share competes as nodata (rasterize_r / exactextractr)"
+    } else if (isTRUE(touches)) {
+      rast_method <- "all touched - every cell touched by a feature is burned in (gdal_rasterize -at)"
+    } else {
+      rast_method <- "cell center - a feature gets a cell when it covers the cell center point (gdal_rasterize)"
+    }
+    if (overlap_ind) {
+      rast_overlap <- glue("kept - each unique combination of [{overlap_group_fields}] rasterized separately, so gr_skey can repeat")
+    } else if (isTRUE(largest_area)) {
+      rast_overlap <- "not kept - where features overlap, the one covering more of the cell wins"
+    } else {
+      rast_overlap <- "not kept - where features overlap, the higher pgid wins"
+    }
+  }
+  rast_comment <- glue("Rasterization details:
+                                              Method: {rast_method}
+                                              Overlaps: {rast_overlap}
+                                              Cell size: 100 m (1 ha) gr_skey grid")
+
   if(tolower(src_type) != 'raster') {
     dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                               TABLE relates to {grskey_schema}.{dst_gr_skey_tbl}
@@ -266,27 +291,31 @@ import_to_pg_gr_skey <- function(
                                               Source type: {src_type}
                                               Source path: {src_path}
                                               Source layer: {src_lyr}
-                                              Source where query: {query_escaped}';")
+                                              Source where query: {query_escaped}
+                                              {rast_comment}';")
     dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {grskey_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                               TABLE relates to {dst_schema}.{dst_tbl}
                                               Data source details:
                                               Source type: {src_type}
                                               Source path: {src_path}
                                               Source layer: {src_lyr}
-                                              Source where query: {query_escaped}';")
+                                              Source where query: {query_escaped}
+                                              {rast_comment}';")
   } else {
     dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                               Data source details:
                                               Source type: {src_type}
                                               Source path: {src_path}
                                               Source layer: {src_lyr}
-                                              Source where query: {query_escaped}';")
+                                              Source where query: {query_escaped}
+                                              {rast_comment}';")
     dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {grskey_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                               Data source details:
                                               Source type: {src_type}
                                               Source path: {src_path}
                                               Source layer: {src_lyr}
-                                              Source where query: {query_escaped}';")
+                                              Source where query: {query_escaped}
+                                              {rast_comment}';")
   }
 
   ## convert whitespace to null when where clause is null
@@ -390,7 +419,7 @@ import_to_pg_gr_skey <- function(
             crop_extent   = crop_extent,
             nodata        = no_data_value,
             touches       = touches,
-            sql           = qry
+            sql           = glue("SELECT * FROM ({qry}) AS q ORDER BY {pk_id}")  # burn in pgid order: higher pgid wins overlaps
           )
         }
       } else if (overlap_ind) {
@@ -434,7 +463,7 @@ import_to_pg_gr_skey <- function(
               crop_extent   = crop_extent,
               nodata        = no_data_value,
               touches       = touches,
-              sql           = group_qry)
+              sql           = glue("SELECT * FROM ({group_qry}) AS g ORDER BY {pk_id}"))  # higher pgid wins overlaps
           }
 
           in_df <- dadmtools::tif_to_gr_skey_tbl(
