@@ -13,7 +13,9 @@ batch_pg_to_seles_tif(
   out_tif_path,
   out_cat_path,
   gdb,
-  bnd
+  bnd,
+  touches = FALSE,
+  largest_area = FALSE
 )
 }
 \arguments{
@@ -30,6 +32,10 @@ batch_pg_to_seles_tif(
 \item{gdb}{(required): string - path to GDB that contains the unit boundary feature class (e.g. bnd) - used to create extent}
 
 \item{bnd}{(required): string - boundary feature class name}
+
+\item{touches}{(optional): logical - passed to pg_to_seles_tif for every row. Default FALSE.}
+
+\item{largest_area}{(optional): logical - passed to pg_to_seles_tif for every row. Default FALSE.}
 }
 \description{
 Batch imports Postgres table fields (data types: integer | double | text) to TIFF.

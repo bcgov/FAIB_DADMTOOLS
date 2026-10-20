@@ -15,6 +15,9 @@
 #' @param data_src_tbl Schema and table name of the metadata table in postgres that updates with any newly imported layer. Defaults to "whse.data_sources"
 #' @param out_tif_path Directory where output tif is exported and where vector is temporally stored prior to import
 #' @param import_rast_to_pg If TRUE, raster is imported into database in raster_schema. Defaults to FALSE
+#' @param grskey_schema Schema for the gr_skey tables. Defaults to NULL, which uses each row's dst_schema
+#' @param touches If TRUE, vector inputs burn in every cell touched by a line or polygon. If FALSE (default), a polygon only gets a cell when it covers the cell's center point. Applies to every row in in_csv.
+#' @param largest_area If TRUE, each cell gets the polygon that covers the largest area of it, where the part of the cell not covered by any polygon counts as nodata and competes like a polygon (see rasterize_r for details). Defaults to FALSE. Applies to every row in in_csv. Cannot be combined with touches.
 #'
 #'
 #' @return no return
@@ -28,18 +31,20 @@
 #' )
 
 batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv",
-                                      out_tif_path,
-                                      pg_conn_param     = dadmtools::get_pg_conn_list(),
-                                      ora_conn_param    = dadmtools::get_ora_conn_list(),
-                                      crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5),
-                                      gr_skey_tbl       = "whse.all_bc_gr_skey",
-                                      raster_schema     = "raster",
-                                      template_tif      = "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif",
-                                      mask_tif          = "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif",
-                                      data_src_tbl      = "whse.data_sources",
-                                      import_rast_to_pg = FALSE,
-                                      grskey_schema     = NULL
-                                      )
+                                       out_tif_path,
+                                       pg_conn_param     = dadmtools::get_pg_conn_list(),
+                                       ora_conn_param    = dadmtools::get_ora_conn_list(),
+                                       crop_extent       = c(273287.5,1870587.5,367787.5,1735787.5),
+                                       gr_skey_tbl       = "whse.all_bc_gr_skey",
+                                       raster_schema     = "raster",
+                                       template_tif      = "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif",
+                                       mask_tif          = "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif",
+                                       data_src_tbl      = "whse.data_sources",
+                                       import_rast_to_pg = FALSE,
+                                       grskey_schema     = NULL,
+                                       touches           = FALSE,
+                                       largest_area      = FALSE
+)
 {
   start_time <- Sys.time()
   print(glue("Script started at {format(start_time, '%Y-%m-%d %I:%M:%S %p')}"))
@@ -58,7 +63,7 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
     overlap_ind   <- as.logical(gsub("[[:space:]]","",toupper(in_file[row, "overlap_ind"])))
     group_field   <- gsub("[[:space:]]","",tolower(in_file[row, "overlap_group_fields"])) ## group field to be used in the resultant table
 
-     ## checks
+    ## checks
     if (any(c(is_blank(src_type), is_blank(src_path), is_blank(src_lyr), is_blank(dst_tbl), is_blank(out_tif_path)))){
       print("ERROR: Argument not provided, one of src_type, src_path, src_lyr, dst_tbl, out_tif_path was left blank. Exiting script.")
       return()
@@ -71,27 +76,29 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
 
 
     ms_error <- dadmtools::import_to_pg_gr_skey(
-                                    src_type             = src_type,
-                                    src_path             = src_path,
-                                    src_lyr              = src_lyr,
-                                    dst_tbl              = dst_tbl,
-                                    query                = query,
-                                    flds_to_keep         = flds_to_keep,
-                                    notes                = notes,
-                                    overlap_ind          = overlap_ind,
-                                    overlap_group_fields = group_field,
-                                    pg_conn_param        = pg_conn_param,
-                                    ora_conn_param       = ora_conn_param,
-                                    crop_extent          = crop_extent,
-                                    dst_schema           = dst_schema,
-                                    raster_schema        = raster_schema,
-                                    template_tif         = template_tif,
-                                    mask_tif             = mask_tif,
-                                    data_src_tbl         = data_src_tbl,
-                                    out_tif_path         = out_tif_path,
-                                    import_rast_to_pg    = import_rast_to_pg,
-                                    grskey_schema        = grskey_schema
-                                    )
+      src_type             = src_type,
+      src_path             = src_path,
+      src_lyr              = src_lyr,
+      dst_tbl              = dst_tbl,
+      query                = query,
+      flds_to_keep         = flds_to_keep,
+      notes                = notes,
+      overlap_ind          = overlap_ind,
+      overlap_group_fields = group_field,
+      pg_conn_param        = pg_conn_param,
+      ora_conn_param       = ora_conn_param,
+      crop_extent          = crop_extent,
+      dst_schema           = dst_schema,
+      raster_schema        = raster_schema,
+      template_tif         = template_tif,
+      mask_tif             = mask_tif,
+      data_src_tbl         = data_src_tbl,
+      out_tif_path         = out_tif_path,
+      import_rast_to_pg    = import_rast_to_pg,
+      grskey_schema        = grskey_schema,
+      touches              = touches,
+      largest_area         = largest_area
+    )
     if (!is.null(ms_error) && length(ms_error) > 0) {
       if (startsWith(ms_error[1], "ERROR:")) {
         ms_errors <- append(ms_errors, ms_error)  # append to list
@@ -107,7 +114,7 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
     if (length(ms_errors) == 1) {
       cat(glue("\033[31m{length(ms_errors)} ERROR found:\033[0m\n\n\n"))
     } else {
-    cat(glue("\033[31m{length(ms_errors)} ERROR's found:\033[0m\n\n\n"))
+      cat(glue("\033[31m{length(ms_errors)} ERROR's found:\033[0m\n\n\n"))
     }
   }
   for (error in ms_errors) {

@@ -27,7 +27,9 @@ pg_to_seles_tif(
   d_multiplier = 1000,
   query = NULL,
   gdb,
-  bnd
+  bnd,
+  touches = FALSE,
+  largest_area = FALSE
 )
 }
 \arguments{
@@ -56,6 +58,10 @@ pg_to_seles_tif(
 \item{out_cat_path}{(optional): string - path to output cat files directory. Only used for text field types. Default NULL.}
 
 \item{query}{(optional): string SQL where clause used to filter input dataset, e.g. "thlb_fact > 0", "own is not null". Default NULL (no query applied).}
+
+\item{touches}{(optional): logical - if TRUE, every cell touched by a line or polygon is burned in. Default FALSE (cell center rule).}
+
+\item{largest_area}{(optional): logical - if TRUE, each cell gets the value of the polygon covering the largest area of it, with the uncovered part of the cell competing as nodata (see rasterize_r). Default FALSE. Cannot be combined with touches.}
 
 \item{d_mulitiplier}{(optional): integer multiplier to use for decimal datatypes. Only used for decimal data types. Default 1000}
 }

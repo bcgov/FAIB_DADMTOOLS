@@ -7,9 +7,16 @@ Description: Common functions used in by the FAIB Data Management and Analysis T
 License: None
 Encoding: UTF-8
 LazyData: true
-Imports: billboard
+Imports: 
 RoxygenNote: 7.3.3
-Depends: RPostgres, glue, terra, keyring, sf
+Depends: 
+    billboard,
+    RPostgres,
+    glue,
+    terra,
+    keyring,
+    sf,
+    exactextractr
 Suggests: 
     knitr,
     rmarkdown

@@ -18,7 +18,9 @@ batch_import_to_pg_gr_skey(
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
   data_src_tbl = "whse.data_sources",
   import_rast_to_pg = FALSE,
-  grskey_schema = NULL
+  grskey_schema = NULL,
+  touches = FALSE,
+  largest_area = FALSE
 )
 }
 \arguments{
@@ -43,6 +45,12 @@ batch_import_to_pg_gr_skey(
 \item{data_src_tbl}{Schema and table name of the metadata table in postgres that updates with any newly imported layer. Defaults to "whse.data_sources"}
 
 \item{import_rast_to_pg}{If TRUE, raster is imported into database in raster_schema. Defaults to FALSE}
+
+\item{grskey_schema}{Schema for the gr_skey tables. Defaults to NULL, which uses each row's dst_schema}
+
+\item{touches}{If TRUE, vector inputs burn in every cell touched by a line or polygon. If FALSE (default), a polygon only gets a cell when it covers the cell's center point. Applies to every row in in_csv.}
+
+\item{largest_area}{If TRUE, each cell gets the polygon that covers the largest area of it, where the part of the cell not covered by any polygon counts as nodata and competes like a polygon (see rasterize_r for details). Defaults to FALSE. Applies to every row in in_csv. Cannot be combined with touches.}
 }
 \value{
 no return

@@ -21,6 +21,8 @@
 #' @param out_cat_path (optional): string - path to output cat files directory. Only used for text field types. Default NULL.
 #' @param d_mulitiplier (optional): integer multiplier to use for decimal datatypes. Only used for decimal data types. Default 1000
 #' @param query (optional): string SQL where clause used to filter input dataset, e.g. "thlb_fact > 0", "own is not null". Default NULL (no query applied).
+#' @param touches (optional): logical - if TRUE, every cell touched by a line or polygon is burned in. Default FALSE (cell center rule).
+#' @param largest_area (optional): logical - if TRUE, each cell gets the value of the polygon covering the largest area of it, with the uncovered part of the cell competing as nodata (see rasterize_r). Default FALSE. Cannot be combined with touches.
 pg_to_seles_tif <- function(pg_conn_param,
                             field_to_tif,
                             pg_att_table,
@@ -36,7 +38,9 @@ pg_to_seles_tif <- function(pg_conn_param,
                             d_multiplier = 1000,
                             query = NULL,
                             gdb,
-                            bnd)
+                            bnd,
+                            touches = FALSE,
+                            largest_area = FALSE)
 {
 
   data_type_handled <- glue("'smallint', ", "'integer', ", "'boolean', ",
@@ -164,17 +168,19 @@ pg_to_seles_tif <- function(pg_conn_param,
       return_msg <- "Converted integer to raster."
     }
 
-    dadmtools::rasterize_terra(src_sf = src_sf_convert,
-                               field = field_convert,
-                               template_tif = template_tif,
-                               crop_extent = get_gr_skey_extent(dsn = gdb,
-                                                                layer=bnd,
-                                                                template_tif=template_tif),
-                               src_lyr = NULL,
-                               out_tif_path = out_tif_path,
-                               out_tif_name = dst_tif_name,
-                               datatype ='INT4S',
-                               nodata = 0)
+    dadmtools::rasterize_r(src_sf = src_sf_convert,
+                           field = field_convert,
+                           template_tif = template_tif,
+                           crop_extent = get_gr_skey_extent(dsn = gdb,
+                                                            layer=bnd,
+                                                            template_tif=template_tif),
+                           src_lyr = NULL,
+                           out_tif_path = out_tif_path,
+                           out_tif_name = dst_tif_name,
+                           datatype ='INT4S',
+                           nodata = 0,
+                           touches = touches,
+                           largest_area = largest_area)
 
   }
   print (return_msg)

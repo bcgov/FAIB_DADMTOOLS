@@ -25,6 +25,9 @@
 #' @param mask_tif The file path to the geotiff to be used as a mask. Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif'
 #' @param data_src_tbl Schema and table name of the metadata table in postgres that updates with any newly imported layer. Defaults to 'whse.datasources'
 #' @param import_rast_to_pg If TRUE, raster is imported into database in raster_schema. Defaults to FALSE
+#' @param grskey_schema Schema for the gr_skey table. Defaults to NULL, which uses dst_schema
+#' @param touches If TRUE, vector inputs burn in every cell touched by a line or polygon. If FALSE (default), a polygon only gets a cell when it covers the cell's center point. Not used when src_type = 'raster'.
+#' @param largest_area If TRUE, each cell gets the polygon that covers the largest area of it, where the part of the cell not covered by any polygon counts as nodata and competes like a polygon (see rasterize_r for details). Defaults to FALSE (cell center rule). Polygons only; cannot be combined with touches. Not used when src_type = 'raster'. When overlap_ind = FALSE and polygons overlap, the polygon covering more of the cell wins (rather than the higher pgid).
 #'
 #'
 #' @return no return
@@ -139,32 +142,34 @@
 #'
 
 import_to_pg_gr_skey <- function(
-                                src_type,
-                                src_path,
-                                src_lyr,
-                                dst_tbl,
-                                query,
-                                flds_to_keep,
-                                notes,
-                                overlap_ind,
-                                overlap_group_fields,
-                                out_tif_path,
-                                pg_conn_param     = dadmtools::get_pg_conn_list(),
-                                ora_conn_param    = dadmtools::get_ora_conn_list(),
-                                crop_extent       = c(273287.5, 1870587.5, 367787.5, 1735787.5),
-                                dst_schema        = 'whse',
-                                raster_schema     = 'raster',
-                                fdw_schema        = 'load',
-                                template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
-                                mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
-                                data_src_tbl      = 'whse.data_sources',
-                                import_rast_to_pg = FALSE,
-                                grskey_schema = NULL
+    src_type,
+    src_path,
+    src_lyr,
+    dst_tbl,
+    query,
+    flds_to_keep,
+    notes,
+    overlap_ind,
+    overlap_group_fields,
+    out_tif_path,
+    pg_conn_param     = dadmtools::get_pg_conn_list(),
+    ora_conn_param    = dadmtools::get_ora_conn_list(),
+    crop_extent       = c(273287.5, 1870587.5, 367787.5, 1735787.5),
+    dst_schema        = 'whse',
+    raster_schema     = 'raster',
+    fdw_schema        = 'load',
+    template_tif      = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif',
+    mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
+    data_src_tbl      = 'whse.data_sources',
+    import_rast_to_pg = FALSE,
+    grskey_schema = NULL,
+    touches           = FALSE,
+    largest_area      = FALSE
 )
 
 {
 
-# browser()
+   # browser()
 
   cat("\n")
   cat(paste(rep("*", 80), collapse = ""), "\n")
@@ -183,6 +188,11 @@ import_to_pg_gr_skey <- function(
   ## checks
   if (any(c(is_blank(src_type), is_blank(src_path), is_blank(src_lyr), is_blank(dst_tbl), is_blank(out_tif_path),is_blank(overlap_ind)  ))){
     print("ERROR: Argument not provided, one of overlap_ind, src_type, src_path, src_lyr, dst_tbl, out_tif_path was left blank. Exiting script.")
+    return()
+  }
+
+  if (isTRUE(touches) && isTRUE(largest_area)) {
+    print("ERROR: touches and largest_area cannot both be TRUE. Exiting script.")
     return()
   }
 
@@ -237,11 +247,11 @@ import_to_pg_gr_skey <- function(
   no_data_value = 0
   today_date <- format(Sys.time(), "%Y-%m-%d %I:%M:%S %p")
   connz <- dbConnect(pg_conn_param["driver"][[1]],
-                    host     = pg_conn_param["host"][[1]],
-                    user     = pg_conn_param["user"][[1]],
-                    dbname   = pg_conn_param["dbname"][[1]],
-                    password = pg_conn_param["password"][[1]],
-                    port     = pg_conn_param["port"][[1]])
+                     host     = pg_conn_param["host"][[1]],
+                     user     = pg_conn_param["user"][[1]],
+                     dbname   = pg_conn_param["dbname"][[1]],
+                     password = pg_conn_param["password"][[1]],
+                     port     = pg_conn_param["port"][[1]])
 
   if(query == '' || is.null(query) || is.na(query)) {
     query_escaped <- ''
@@ -299,11 +309,11 @@ import_to_pg_gr_skey <- function(
       fklyr <- create_oracle_fdw_in_pg(src_lyr, ora_conn_param, pg_conn_param, 'oradb', fdw_schema)
 
       connz <- dbConnect(pg_conn_param["driver"][[1]],
-                       host     = pg_conn_param["host"][[1]],
-                       user     = pg_conn_param["user"][[1]],
-                       dbname   = pg_conn_param["dbname"][[1]],
-                       password = pg_conn_param["password"][[1]],
-                       port     = pg_conn_param["port"][[1]])
+                         host     = pg_conn_param["host"][[1]],
+                         user     = pg_conn_param["user"][[1]],
+                         dbname   = pg_conn_param["dbname"][[1]],
+                         password = pg_conn_param["password"][[1]],
+                         port     = pg_conn_param["port"][[1]])
       on.exit(RPostgres::dbDisconnect(connz))
       # =============================================================================
       # Create Non Spatial Table with attributes from FDW
@@ -334,12 +344,12 @@ import_to_pg_gr_skey <- function(
 
       ## Create a SQL query including the spatial field and primary key field of a Foreign Data Wrapper table
       qry <- dadmtools:::get_sql_fdw_id_geom(dst_tbl      = dst_tbl,
-                                dst_schema    = dst_schema,
-                                ora_tbl       = src_lyr,
-                                pk            = select_flds,
-                                pg_conn_param = pg_conn_param,
-                                fdw_schema    = fdw_schema,
-                                where         = query
+                                             dst_schema    = dst_schema,
+                                             ora_tbl       = src_lyr,
+                                             pk            = select_flds,
+                                             pg_conn_param = pg_conn_param,
+                                             fdw_schema    = fdw_schema,
+                                             where         = query
       )
 
       cast_list <- c("MULTIPOLYGON","MULTIPOINT","MULTILINE")
@@ -357,7 +367,7 @@ import_to_pg_gr_skey <- function(
 
       if(!overlap_ind) {
         ## Rasterize using TERRA
-        dst_ras_filename <- dadmtools::rasterize_terra(
+        dst_ras_filename <- dadmtools::rasterize_r(
           src_sf       = in_sf,
           field        = pk_id,
           template_tif = template_tif,
@@ -365,7 +375,9 @@ import_to_pg_gr_skey <- function(
           out_tif_path = out_tif_path,
           out_tif_name = glue("{dst_tbl}.tif"),
           datatype     = 'INT4U',
-          nodata       = no_data_value
+          nodata       = no_data_value,
+          touches      = touches,
+          largest_area = largest_area
         )
       } else if (overlap_ind) {
         ##Loop through rasterization, convert into a gr_skey, and append into pg table
@@ -387,7 +399,7 @@ import_to_pg_gr_skey <- function(
           filtered_df <- merge(in_sf, row, by = fields)
 
           ## Rasterize using TERRA
-          dst_ras_filename <- dadmtools::rasterize_terra(
+          dst_ras_filename <- dadmtools::rasterize_r(
             src_sf       = filtered_df,
             field        = pk_id,
             template_tif = template_tif,
@@ -395,7 +407,9 @@ import_to_pg_gr_skey <- function(
             out_tif_path = out_tif_path,
             out_tif_name = glue("{dst_tbl}.tif"),
             datatype     = 'INT4U',
-            nodata       = no_data_value)
+            nodata       = no_data_value,
+            touches      = touches,
+            largest_area = largest_area)
 
           in_df <- dadmtools::tif_to_gr_skey_tbl(
             src_tif_filename = dst_ras_filename,
@@ -453,16 +467,16 @@ import_to_pg_gr_skey <- function(
       # =============================================================================
       print(glue("Creating non-spatial PG table: {dst_schema}.{dst_tbl} from source: {src_path}|layername={src_lyr}"))
       dadmtools:::ogr_to_tbl(
-                            src           = src_path,
-                            dst_tbl       = dst_tbl,
-                            pg_conn_param = pg_conn_param,
-                            lyr           = src_lyr,
-                            pk            = pk_id,
-                            select        = flds_to_keep,
-                            where         = query,
-                            dst_schema    = dst_schema,
-                            tbl_comment   = dst_tbl_comment
-                            )
+        src           = src_path,
+        dst_tbl       = dst_tbl,
+        pg_conn_param = pg_conn_param,
+        lyr           = src_lyr,
+        pk            = pk_id,
+        select        = flds_to_keep,
+        where         = query,
+        dst_schema    = dst_schema,
+        tbl_comment   = dst_tbl_comment
+      )
 
 
 
@@ -472,15 +486,17 @@ import_to_pg_gr_skey <- function(
       if(!overlap_ind) {
         #Create tif from input
         dst_ras_filename <- dadmtools:::rasterize_gdal(
-                                    in_lyr        = src_lyr,
-                                    field         = pk_id,
-                                    out_tif_path  = out_tif_path,
-                                    out_tif_name  = glue("{dst_tbl}.tif"),
-                                    src_path      = src_path,
-                                    pg_conn_param = NULL,
-                                    crop_extent   = crop_extent,
-                                    nodata        = no_data_value,
-                                    where         = where_claus
+          in_lyr        = src_lyr,
+          field         = pk_id,
+          out_tif_path  = out_tif_path,
+          out_tif_name  = glue("{dst_tbl}.tif"),
+          src_path      = src_path,
+          pg_conn_param = NULL,
+          crop_extent   = crop_extent,
+          nodata        = no_data_value,
+          where         = where_claus,
+          touches       = touches,
+          largest_area  = largest_area
         )
         # =============================================================================
         # Remove locally created layer from out_tif_path
@@ -540,6 +556,8 @@ import_to_pg_gr_skey <- function(
             nodata        = no_data_value,
             where         = where_claus,
             overlap_where = where_clause_overlap,
+            touches       = touches,
+            largest_area  = largest_area
           )
 
           in_df <- dadmtools::tif_to_gr_skey_tbl(
@@ -592,7 +610,7 @@ import_to_pg_gr_skey <- function(
 
     if (overlap_ind) {
       print("ERROR: overlap_ind must be set to FALSE for rasters")
-            return()
+      return()
     }
 
 
@@ -604,52 +622,52 @@ import_to_pg_gr_skey <- function(
     dst_ras_filename <- file.path(out_tif_path, basename(src_path))
   }
 
-if(!overlap_ind){
-  ## Tif to PG Raster
-  if(import_rast_to_pg) {
-    raster_tbl <- glue("{raster_schema}.ras_{substr(basename(dst_ras_filename),1,nchar(basename(dst_ras_filename))-4)}")
-    cmd <- glue('raster2pgsql -s 3005 -d -C -r -P -I -M -N {no_data_value} -t 100x100 {dst_ras_filename} {raster_tbl} | psql -d {pg_conn_param["dbname"][[1]]}')
-    print(cmd)
-    shell(cmd)
-    print('Imported tif to PG')
-  }
+  if(!overlap_ind){
+    ## Tif to PG Raster
+    if(import_rast_to_pg) {
+      raster_tbl <- glue("{raster_schema}.ras_{substr(basename(dst_ras_filename),1,nchar(basename(dst_ras_filename))-4)}")
+      cmd <- glue('raster2pgsql -s 3005 -d -C -r -P -I -M -N {no_data_value} -t 100x100 {dst_ras_filename} {raster_tbl} | psql -d {pg_conn_param["dbname"][[1]]}')
+      print(cmd)
+      shell(cmd)
+      print('Imported tif to PG')
+    }
 
-  #Convert postgres raster to non-spatial table with gr_skey
-  dst_gr_skey_tbl_pg_obj <- RPostgres::Id(schema = grskey_schema, table = dst_gr_skey_tbl)
-  print(glue('Creating PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
-  dadmtools::run_sql_r(glue("DROP TABLE IF EXISTS {grskey_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
+    #Convert postgres raster to non-spatial table with gr_skey
+    dst_gr_skey_tbl_pg_obj <- RPostgres::Id(schema = grskey_schema, table = dst_gr_skey_tbl)
+    print(glue('Creating PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
+    dadmtools::run_sql_r(glue("DROP TABLE IF EXISTS {grskey_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
 
-  if (tolower(src_type) == 'raster') {
-    band_field_name <- 'val'
-  } else {
-    band_field_name <- pk_id
-  }
+    if (tolower(src_type) == 'raster') {
+      band_field_name <- 'val'
+    } else {
+      band_field_name <- pk_id
+    }
 
-  in_df <- dadmtools::tif_to_gr_skey_tbl(
-    src_tif_filename = dst_ras_filename,
-    crop_extent      = crop_extent,
-    template_tif     = template_tif,
-    mask_tif         = mask_tif,
-    val_field_name   = band_field_name
-  )
-  ## if the above function returned NULL - then the input raster had a problem - exit script safely.
-  if (is.null(in_df)){
-    return()
-  }
+    in_df <- dadmtools::tif_to_gr_skey_tbl(
+      src_tif_filename = dst_ras_filename,
+      crop_extent      = crop_extent,
+      template_tif     = template_tif,
+      mask_tif         = mask_tif,
+      val_field_name   = band_field_name
+    )
+    ## if the above function returned NULL - then the input raster had a problem - exit script safely.
+    if (is.null(in_df)){
+      return()
+    }
 
-  dadmtools::df_to_pg(
-                      pg_tbl = dst_gr_skey_tbl_pg_obj,
-                      in_df,
-                      pg_conn_param = pg_conn_param
-  )
-  print(glue('Created PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
-  if(tolower(src_type) == 'raster') {
-    if (dirname(src_path) != dirname(out_tif_path)) {
-      print(glue("Removing {basename(src_path)} from {out_tif_path}"))
-      file.remove(dst_ras_filename)
+    dadmtools::df_to_pg(
+      pg_tbl = dst_gr_skey_tbl_pg_obj,
+      in_df,
+      pg_conn_param = pg_conn_param
+    )
+    print(glue('Created PG table: {grskey_schema}.{dst_gr_skey_tbl} from values in tif and gr_skey'))
+    if(tolower(src_type) == 'raster') {
+      if (dirname(src_path) != dirname(out_tif_path)) {
+        print(glue("Removing {basename(src_path)} from {out_tif_path}"))
+        file.remove(dst_ras_filename)
+      }
     }
   }
-}
 
   ## Adding primary key to table
   if (!overlap_ind){

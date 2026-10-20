@@ -15,7 +15,9 @@ rasterize_gdal(
   nodata = 0,
   where = NULL,
   overlap_where = NULL,
-  datatype = "UInt32"
+  datatype = "UInt32",
+  touches = FALSE,
+  largest_area = FALSE
 )
 }
 \arguments{
@@ -31,13 +33,27 @@ rasterize_gdal(
 
 \item{pg_conn_param}{Named list with the following pg connection parameters Driver,host,user,dbname,password,port,schema}
 
-\item{crop_extent}{vector with extents in the following order  <xmin>,<ymax>,<ymin>,<xmax> default c(273287.5,1870587.5,367787.5,1735787.5)}
+\item{crop_extent}{vector with extents in the following order  <xmin>,<xmax>,<ymin>,<ymax> default c(273287.5,1870587.5,367787.5,1735787.5)}
 
 \item{nodata}{no data value of out tif default is 0}
 
 \item{where}{default NULL}
 
-\item{datatype}{default Int64}
+\item{overlap_where}{default NULL}
+
+\item{datatype}{default UInt32}
+
+\item{touches}{OPTIONAL - if TRUE, every cell touched by a line or polygon is
+burned in (gdal_rasterize -at). If FALSE (default), a polygon only gets a
+cell when it covers the cell's center point. Has no effect on point data.}
+
+\item{largest_area}{OPTIONAL - if TRUE, each cell gets the value of whatever
+covers the largest area of it, where the part of the cell not covered by
+any polygon counts as nodata and competes like a polygon. GDAL has no
+equivalent, so the selected features are exported with ogr2ogr (using the
+same SQL, so the field numbering is unchanged) and rasterized with
+rasterize_r(). See rasterize_r() for the full rule. Polygons only. Cannot
+be combined with touches.}
 }
 \value{
 output tif name

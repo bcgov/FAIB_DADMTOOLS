@@ -27,7 +27,11 @@ create_oracle_fdw_in_pg(
 string of output foreign table (schema.in_table)
 }
 \description{
-Create Oracle Foreign Data Wrapper Table in Postgres
+Imports an Oracle table as a foreign table via oracle_fdw. After import, any
+Oracle SDO_GEOMETRY column that oracle_fdw mapped to text (which happens when
+the column was declared through the PUBLIC synonym rather than
+MDSYS.SDO_GEOMETRY) is retyped to PostGIS geometry. Geometry column names are
+looked up from Oracle's data dictionary, so they don't need to be called SHAPE.
 }
 \examples{
 coming soon
