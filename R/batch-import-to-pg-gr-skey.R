@@ -4,7 +4,7 @@
 #'For raster data (e.g., geotiff), the raster is required to have BC Albers coordinate reference system, (Ie. EPSG: 3005), the same grid definition as the 'template_tif' and 'mask_tif' provided to the 'import_gr_skey_tif_to_pg_rast' function and only one band. For TSR, it is recommended to use the gr_skey grid. The function imports the raster as a single attribute table. The table includes 'gr_skey', unique global cell id and the input raster pixel value. Each record represent one pixel.
 #'
 #'
-#' @param in_csv File path to input configuration csv, defaults to "config_parameters.csv"
+#' @param in_csv File path to input configuration csv, defaults to "config_parameters.csv". The rasterization method can be set per dataset with the optional csv columns 'rasterization_touches' and 'rasterization_largest_area' (TRUE/FALSE, also accepts 1/0, T/F, yes/no). A blank cell, or a csv without the column, uses the touches / largest_area argument of this function.
 #' @param pg_conn_param Keyring object of Postgres credentials, defaults to dadmtools::get_pg_conn_list()
 #' @param ora_conn_param Keyring object of Oracle credentials, defaults to dadmtools::get_ora_conn_list()
 #' @param crop_extent list of c(ymin, ymax, xmin, xmax) in EPSG:3005, defaults to c(273287.5,1870587.5,367787.5,1735787.5)
@@ -16,8 +16,8 @@
 #' @param out_tif_path Directory where output tif is exported and where vector is temporally stored prior to import
 #' @param import_rast_to_pg If TRUE, raster is imported into database in raster_schema. Defaults to FALSE
 #' @param grskey_schema Schema for the gr_skey tables. Defaults to NULL, which uses each row's dst_schema
-#' @param touches If TRUE, vector inputs burn in every cell touched by a line or polygon. If FALSE (default), a polygon only gets a cell when it covers the cell's center point. Applies to every row in in_csv.
-#' @param largest_area If TRUE, each cell gets the polygon that covers the largest area of it, where the part of the cell not covered by any polygon counts as nodata and competes like a polygon (see rasterize_r for details). Defaults to FALSE. Applies to every row in in_csv. Cannot be combined with touches.
+#' @param touches Default for rows whose 'rasterization_touches' value in in_csv is blank or missing. If TRUE, vector inputs burn in every cell touched by a line or polygon. If FALSE (default), a polygon only gets a cell when it covers the cell's center point.
+#' @param largest_area Default for rows whose 'rasterization_largest_area' value in in_csv is blank or missing. If TRUE, each cell gets the polygon that covers the largest area of it, where the part of the cell not covered by any polygon counts as nodata and competes like a polygon (see rasterize_r for details). Defaults to FALSE. A row cannot have both touches and largest_area set to TRUE; such a row is skipped and reported as an error.
 #'
 #'
 #' @return no return
@@ -51,6 +51,16 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
   in_file <- read.csv(in_csv)
   in_file <- in_file[in_file$include == 1,]
   ms_errors <- list()
+
+  ## Read a TRUE/FALSE csv value; blank, NA or a missing column falls back to default
+  read_flag <- function(row, col, default) {
+    if (!(col %in% names(in_file))) return(default)
+    val <- toupper(trimws(as.character(in_file[row, col])))
+    if (is_blank(val)) return(default)
+    if (val %in% c("TRUE", "T", "1", "YES", "Y"))  return(TRUE)
+    if (val %in% c("FALSE", "F", "0", "NO", "N")) return(FALSE)
+    NA
+  }
   for (row in 1:nrow(in_file)) {
     src_type      <- gsub("[[:space:]]","",tolower(in_file[row, "src_type"])) ##format of data source i.e. gdb,oracle, postgres, geopackage, raster
     src_path      <- tolower(trimws(in_file[row, "src_path"])) ## path to input data. Note use bcgw for whse
@@ -62,6 +72,8 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
     flds_to_keep  <- gsub("[[:space:]]","",tolower(in_file[row, "flds_to_keep"])) ## fields to keep in non spatial table
     overlap_ind   <- as.logical(gsub("[[:space:]]","",toupper(in_file[row, "overlap_ind"])))
     group_field   <- gsub("[[:space:]]","",tolower(in_file[row, "overlap_group_fields"])) ## group field to be used in the resultant table
+    row_touches      <- read_flag(row, "rasterization_touches", touches) ## burn every cell touched (vector only)
+    row_largest_area <- read_flag(row, "rasterization_largest_area", largest_area) ## largest-area rasterization (polygons only)
 
     ## checks
     if (any(c(is_blank(src_type), is_blank(src_path), is_blank(src_lyr), is_blank(dst_tbl), is_blank(out_tif_path)))){
@@ -74,6 +86,22 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
       return()
     }
 
+
+    ## per-row rasterization checks: report and skip this dataset, carry on with the rest
+    if (is.na(row_touches) || is.na(row_largest_area)) {
+      ms_error <- glue("ERROR: {src_lyr} -> {dst_schema}.{dst_tbl}: rasterization_touches and rasterization_largest_area must be TRUE, FALSE or blank. Row skipped.")
+      print(ms_error); ms_errors <- append(ms_errors, ms_error)
+      next
+    }
+    if (row_touches && row_largest_area) {
+      ms_error <- glue("ERROR: {src_lyr} -> {dst_schema}.{dst_tbl}: rasterization_touches and rasterization_largest_area cannot both be TRUE. Row skipped.")
+      print(ms_error); ms_errors <- append(ms_errors, ms_error)
+      next
+    }
+    if (src_type != "raster") {
+      method <- if (row_largest_area) "largest area" else if (row_touches) "touches (all cells touched)" else "cell center"
+      print(glue("Rasterization method for {dst_schema}.{dst_tbl}: {method}"))
+    }
 
     ms_error <- dadmtools::import_to_pg_gr_skey(
       src_type             = src_type,
@@ -96,8 +124,8 @@ batch_import_to_pg_gr_skey <- function(in_csv           = "config_parameters.csv
       out_tif_path         = out_tif_path,
       import_rast_to_pg    = import_rast_to_pg,
       grskey_schema        = grskey_schema,
-      touches              = touches,
-      largest_area         = largest_area
+      touches              = row_touches,
+      largest_area         = row_largest_area
     )
     if (!is.null(ms_error) && length(ms_error) > 0) {
       if (startsWith(ms_error[1], "ERROR:")) {
