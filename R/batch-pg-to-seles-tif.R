@@ -1,26 +1,3 @@
-#' Batch imports Postgres table fields (data types: integer | double | text) to TIFF.
-#' Converts to an integer TIF. Double data types (decimals) are multiplied by the parameter d_mulitiplier, rounded and the result converted to an integer.
-#' Text is converted to a text:sequence pair and saved to a CAT file, and the sequence is converted to the TIF.
-#'
-#' @param in_csv File path to input configuration csv, defaults to "batch_pg_to_seles_tif.csv"
-#' @param pg_conn_param Keyring object of Postgres credentials, defaults to dadmtools::get_pg_conn_list()
-#' @param template_tif (required): string - file path to template tif (e.g. skey.tif)
-#' @param out_tif_path (required): string - path to output rasters directory
-#' @param out_cat_path (required): string - path to output cat files directory. Only used for text field types. Default NULL.
-#' @param gdb (required): string - path to GDB that contains the unit boundary feature class (e.g. bnd) - used to create extent
-#' @param bnd (required): string - boundary feature class name
-#' @param touches (optional): logical - passed to pg_to_seles_tif for every row. Default FALSE.
-#' @param largest_area (optional): logical - passed to pg_to_seles_tif for every row. Default FALSE.
-
-batch_pg_to_seles_tif <- function(in_csv = "batch_pg_to_seles_tif.csv",
-                                  pg_conn_param = get_pg_conn_list(),
-                                  template_tif,
-                                  out_tif_path,
-                                  out_cat_path,
-                                  gdb,
-                                  bnd,
-                                  touches = FALSE,
-                                  largest_area = FALSE)
   #' Batch imports Postgres table fields (data types: integer | double | text) to TIFF.
   #' Converts to an integer TIF. Double data types (decimals) are multiplied by the parameter d_mulitiplier, rounded and the result converted to an integer.
   #' Text is converted to a text:sequence pair and saved to a CAT file, and the sequence is converted to the TIF.

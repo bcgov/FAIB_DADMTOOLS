@@ -67,7 +67,7 @@ rasterize_pct_cover <- function(src_sf,
                                 template_tif = "S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif",
                                 crop_extent = c(273287.5,1870587.5,367787.5,1735787.5),
                                 nodata      = 0,
-                                overlap_free = TRUE,
+                                overlap_free = FALSE,
                                 tile_size   = 50000)
 {
   start_time <- Sys.time()
