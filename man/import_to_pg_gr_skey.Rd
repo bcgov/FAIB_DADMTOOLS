@@ -27,7 +27,9 @@ import_to_pg_gr_skey(
     "S:\\\\FOR\\\\VIC\\\\HTS\\\\ANA\\\\workarea\\\\PROVINCIAL\\\\BC_Boundary_Terrestrial.tif",
   data_src_tbl = "whse.data_sources",
   import_rast_to_pg = FALSE,
-  grskey_schema = NULL
+  grskey_schema = NULL,
+  touches = FALSE,
+  largest_area = FALSE
 )
 }
 \arguments{
@@ -95,13 +97,13 @@ Defaults to the provincial terrestrial boundary mask.}
 \item{data_src_tbl}{Metadata table updated after a successful import.
 Defaults to "whse.data_sources".}
 
-\item{import_rast_to_pg}{Logical value indicating whether to import the
-generated or input raster into PostgreSQL. Defaults to FALSE.}
+\item{import_rast_to_pg}{If TRUE, raster is imported into database in raster_schema. Defaults to FALSE}
 
-\item{grskey_schema}{Optional PostgreSQL schema for the gr_skey table.
-Defaults to NULL, which uses dst_schema. When supplied, dst_tbl is used
-as the gr_skey table name; otherwise, the gr_skey table name is derived
-from dst_tbl with the suffix "_gr_skey".}
+\item{grskey_schema}{Schema for the gr_skey table. Defaults to NULL, which uses dst_schema}
+
+\item{touches}{If TRUE, vector inputs burn in every cell touched by a line or polygon. If FALSE (default), a polygon only gets a cell when it covers the cell's center point. Not used when src_type = 'raster'.}
+
+\item{largest_area}{If TRUE, each cell gets the polygon that covers the largest area of it, where the part of the cell not covered by any polygon counts as nodata and competes like a polygon (see rasterize_r for details). Defaults to FALSE (cell center rule). Polygons only; cannot be combined with touches. Not used when src_type = 'raster'. When overlap_ind = FALSE and polygons overlap, the polygon covering more of the cell wins (rather than the higher pgid). For src_type = 'oracle', vector data is normally rasterized with gdal_rasterize directly from Postgres; when largest_area = TRUE only pgid and geometry (plus overlap_group_fields) are read into R and rasterized with rasterize_r. pgid always comes from the attribute table dst_tbl. For file sources (gdb, shp, gpkg) with largest_area = TRUE, the layer is imported once WITH geometry into a staging table <fdw_schema>.<dst_tbl>_stage, the attribute table is copied from it without geometry, only pgid and geometry are read into R for rasterize_r, and the staging table is dropped when the import finishes.}
 }
 \value{
 The function primarily operates through PostgreSQL tables and

@@ -74,6 +74,8 @@
 #'   Defaults to NULL, which uses dst_schema. When supplied, dst_tbl is used
 #'   as the gr_skey table name; otherwise, the gr_skey table name is derived
 #'   from dst_tbl with the suffix "_gr_skey".
+#' @param touches If TRUE, vector inputs burn in every cell touched by a line or polygon. If FALSE (default), a polygon only gets a cell when it covers the cell's center point. Not used when src_type = 'raster'.
+#' @param largest_area If TRUE, each cell gets the polygon that covers the largest area of it, where the part of the cell not covered by any polygon counts as nodata and competes like a polygon (see rasterize_r for details). Defaults to FALSE (cell center rule). Polygons only; cannot be combined with touches. Not used when src_type = 'raster'. When overlap_ind = FALSE and polygons overlap, the polygon covering more of the cell wins (rather than the higher pgid). For src_type = 'oracle', vector data is normally rasterized with gdal_rasterize directly from Postgres; when largest_area = TRUE only pgid and geometry (plus overlap_group_fields) are read into R and rasterized with rasterize_r. pgid always comes from the attribute table dst_tbl. For file sources (gdb, shp, gpkg) with largest_area = TRUE, the layer is imported once WITH geometry into a staging table <fdw_schema>.<dst_tbl>_stage, the attribute table is copied from it without geometry, only pgid and geometry are read into R for rasterize_r, and the staging table is dropped when the import finishes.
 #'
 #' @return The function primarily operates through PostgreSQL tables and
 #'   messages. It does not return a documented data object.
@@ -209,7 +211,9 @@ import_to_pg_gr_skey <- function(
     mask_tif          = 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif',
     data_src_tbl      = 'whse.data_sources',
     import_rast_to_pg = FALSE,
-    grskey_schema = NULL
+    grskey_schema = NULL,
+    touches           = FALSE,
+    largest_area      = FALSE
 )
 
 {
@@ -233,6 +237,11 @@ import_to_pg_gr_skey <- function(
   ## checks
   if (any(c(is_blank(src_type), is_blank(src_path), is_blank(src_lyr), is_blank(dst_tbl), is_blank(out_tif_path),is_blank(overlap_ind)  ))){
     print("ERROR: Argument not provided, one of overlap_ind, src_type, src_path, src_lyr, dst_tbl, out_tif_path was left blank. Exiting script.")
+    return()
+  }
+
+  if (isTRUE(touches) && isTRUE(largest_area)) {
+    print("ERROR: touches and largest_area cannot both be TRUE. Exiting script.")
     return()
   }
 
@@ -322,6 +331,31 @@ import_to_pg_gr_skey <- function(
     query_escaped <- gsub("\'","\'\'", query)
   }
 
+  ## Describe how the data was rasterized, for the table comments
+  if (tolower(src_type) == 'raster') {
+    rast_method <- "none - source raster cell values used as-is (raster must match the gr_skey grid)"
+    rast_overlap <- "not applicable"
+  } else {
+    if (isTRUE(largest_area)) {
+      rast_method <- "largest area - each cell gets the polygon covering the largest share of it; the uncovered share competes as nodata (rasterize_r / exactextractr)"
+    } else if (isTRUE(touches)) {
+      rast_method <- "all touched - every cell touched by a feature is burned in (gdal_rasterize -at)"
+    } else {
+      rast_method <- "cell center - a feature gets a cell when it covers the cell center point (gdal_rasterize)"
+    }
+    if (overlap_ind) {
+      rast_overlap <- glue("kept - each unique combination of [{overlap_group_fields}] rasterized separately, so gr_skey can repeat")
+    } else if (isTRUE(largest_area)) {
+      rast_overlap <- "not kept - where features overlap, the one covering more of the cell wins"
+    } else {
+      rast_overlap <- "not kept - where features overlap, the higher pgid wins"
+    }
+  }
+  rast_comment <- glue("Rasterization details:
+                                              Method: {rast_method}
+                                              Overlaps: {rast_overlap}
+                                              Cell size: 100 m (1 ha) gr_skey grid")
+
   if(tolower(src_type) != 'raster') {
     dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                               TABLE relates to {grskey_schema}.{dst_gr_skey_tbl}
@@ -329,27 +363,31 @@ import_to_pg_gr_skey <- function(
                                               Source type: {src_type}
                                               Source path: {src_path}
                                               Source layer: {src_lyr}
-                                              Source where query: {query_escaped}';")
+                                              Source where query: {query_escaped}
+                                              {rast_comment}';")
     dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {grskey_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                               TABLE relates to {dst_schema}.{dst_tbl}
                                               Data source details:
                                               Source type: {src_type}
                                               Source path: {src_path}
                                               Source layer: {src_lyr}
-                                              Source where query: {query_escaped}';")
+                                              Source where query: {query_escaped}
+                                              {rast_comment}';")
   } else {
     dst_tbl_comment <- glue("COMMENT ON TABLE {dst_schema}.{dst_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                               Data source details:
                                               Source type: {src_type}
                                               Source path: {src_path}
                                               Source layer: {src_lyr}
-                                              Source where query: {query_escaped}';")
+                                              Source where query: {query_escaped}
+                                              {rast_comment}';")
     dst_gr_skey_tbl_comment <- glue("COMMENT ON TABLE {grskey_schema}.{dst_gr_skey_tbl} IS 'Table created by the dadmtools R package at {today_date}.
                                               Data source details:
                                               Source type: {src_type}
                                               Source path: {src_path}
                                               Source layer: {src_lyr}
-                                              Source where query: {query_escaped}';")
+                                              Source where query: {query_escaped}
+                                              {rast_comment}';")
   }
 
   ## convert whitespace to null when where clause is null
@@ -415,60 +453,90 @@ import_to_pg_gr_skey <- function(
                                              where         = query
       )
 
-      cast_list <- c("MULTIPOLYGON","MULTIPOINT","MULTILINE")
-      print(glue('Converting SQL query which joins FDW table: {fdw_schema}.{fdw_tbl} and {dst_schema}.{dst_tbl} and WHERE query into R Simple Feature Collection'))
-      for (i in cast_list) {
-        #ERROR HANDLING
-        possible_error <- tryCatch(
-          in_sf <- st_cast(st_read(connz, query = qry, crs = 3005),i ),
-          error=function(e) e
-        )
-        if(inherits(possible_error, "error")) next else {
-          break
-        }
-      }
+      # -----------------------------------------------------------------------
+      # qry returns pgid (taken from {dst_schema}.{dst_tbl} via the objectid
+      # join, so it always matches the attribute table) plus the geometry, and
+      # the overlap group fields when overlap_ind = TRUE. Nothing else.
+      #
+      # largest_area = FALSE: gdal_rasterize reads qry straight from Postgres,
+      #                       nothing is loaded into R.
+      # largest_area = TRUE : GDAL cannot do largest-area, so only those
+      #                       columns are read into R and rasterize_r is used.
+      # -----------------------------------------------------------------------
 
       if(!overlap_ind) {
-        ## Rasterize using TERRA
-        dst_ras_filename <- dadmtools::rasterize_terra(
-          src_sf       = in_sf,
-          field        = pk_id,
-          template_tif = template_tif,
-          crop_extent  = crop_extent,
-          out_tif_path = out_tif_path,
-          out_tif_name = glue("{dst_tbl}.tif"),
-          datatype     = 'INT4U',
-          nodata       = no_data_value
-        )
-      } else if (overlap_ind) {
-        ##Loop through rasterization, convert into a gr_skey, and append into pg table
-        #dst_gr_skey_tbl <- glue("{dst_gr_skey_tbl}_overlap")
-        dst_gr_skey_tbl_pg_obj <- RPostgres::Id(schema = grskey_schema, table = dst_gr_skey_tbl )
-
-        ###Drop existing table
-        #####
-        dadmtools::run_sql_r(glue("DROP TABLE IF EXISTS {grskey_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
-
-        ###Loop through each group then create a raster for each group and append the results onto the final pg table#######
-        ####################
-        sql <- glue("select {overlap_group_fields} from {dst_schema}.{dst_tbl} group by {overlap_group_fields}" )
-        overlap_groups_df <-  dadmtools::sql_to_df(sql,pg_conn_param)
-        fields <- unlist(strsplit(overlap_group_fields, ","))
-        for (i in 1:nrow(overlap_groups_df)) {
-          row <- overlap_groups_df[i, , drop = FALSE]  # Get the row as a dataframe
-          print(row)
-          filtered_df <- merge(in_sf, row, by = fields)
-
-          ## Rasterize using TERRA
-          dst_ras_filename <- dadmtools::rasterize_terra(
-            src_sf       = filtered_df,
+        if (isTRUE(largest_area)) {
+          print(glue('Reading {pk_id} and geometry from FDW table: {fdw_schema}.{fdw_tbl} joined to {dst_schema}.{dst_tbl} into R for largest-area rasterization'))
+          in_sf <- dadmtools:::read_pgid_geom(qry, connz, pk_id)
+          dst_ras_filename <- dadmtools::rasterize_r(
+            src_sf       = in_sf,
             field        = pk_id,
             template_tif = template_tif,
             crop_extent  = crop_extent,
             out_tif_path = out_tif_path,
             out_tif_name = glue("{dst_tbl}.tif"),
             datatype     = 'INT4U',
-            nodata       = no_data_value)
+            nodata       = no_data_value,
+            largest_area = TRUE
+          )
+          rm(in_sf); invisible(gc())
+        } else {
+          print(glue('Rasterizing FDW table: {fdw_schema}.{fdw_tbl} joined to {dst_schema}.{dst_tbl} with gdal_rasterize'))
+          dst_ras_filename <- dadmtools:::rasterize_gdal(
+            in_lyr        = NULL,
+            field         = pk_id,
+            out_tif_path  = out_tif_path,
+            out_tif_name  = glue("{dst_tbl}.tif"),
+            pg_conn_param = pg_conn_param,
+            crop_extent   = crop_extent,
+            nodata        = no_data_value,
+            touches       = touches,
+            sql           = glue("SELECT * FROM ({qry}) AS q ORDER BY {pk_id}")  # burn in pgid order: higher pgid wins overlaps
+          )
+        }
+      } else if (overlap_ind) {
+        ##Loop through rasterization, convert into a gr_skey, and append into pg table
+        dst_gr_skey_tbl_pg_obj <- RPostgres::Id(schema = grskey_schema, table = dst_gr_skey_tbl )
+
+        ###Drop existing table
+        dadmtools::run_sql_r(glue("DROP TABLE IF EXISTS {grskey_schema}.{dst_gr_skey_tbl};"), pg_conn_param)
+
+        ###Loop through each group then create a raster for each group and append the results onto the final pg table
+        sql <- glue("select {overlap_group_fields} from {dst_schema}.{dst_tbl} group by {overlap_group_fields}" )
+        overlap_groups_df <-  dadmtools::sql_to_df(sql,pg_conn_param)
+        fields <- unlist(strsplit(overlap_group_fields, ","))
+
+        for (i in 1:nrow(overlap_groups_df)) {
+          row <- overlap_groups_df[i, , drop = FALSE]  # Get the row as a dataframe
+          print(row)
+          ## Only this group's features: pgid + geometry (+ group fields)
+          group_qry <- glue("SELECT * FROM ({qry}) AS q WHERE {dadmtools:::build_overlap_where(row)}")
+
+          if (isTRUE(largest_area)) {
+            in_sf <- dadmtools:::read_pgid_geom(group_qry, connz, pk_id)
+            dst_ras_filename <- dadmtools::rasterize_r(
+              src_sf       = in_sf[, pk_id],
+              field        = pk_id,
+              template_tif = template_tif,
+              crop_extent  = crop_extent,
+              out_tif_path = out_tif_path,
+              out_tif_name = glue("{dst_tbl}.tif"),
+              datatype     = 'INT4U',
+              nodata       = no_data_value,
+              largest_area = TRUE)
+            rm(in_sf); invisible(gc())
+          } else {
+            dst_ras_filename <- dadmtools:::rasterize_gdal(
+              in_lyr        = NULL,
+              field         = pk_id,
+              out_tif_path  = out_tif_path,
+              out_tif_name  = glue("{dst_tbl}.tif"),
+              pg_conn_param = pg_conn_param,
+              crop_extent   = crop_extent,
+              nodata        = no_data_value,
+              touches       = touches,
+              sql           = glue("SELECT * FROM ({group_qry}) AS g ORDER BY {pk_id}"))  # higher pgid wins overlaps
+          }
 
           in_df <- dadmtools::tif_to_gr_skey_tbl(
             src_tif_filename = dst_ras_filename,
@@ -479,7 +547,7 @@ import_to_pg_gr_skey <- function(
           )
 
           if (is.null(in_df)){
-            print("ERROR: Could not coonvert Raster to GR_SKEY table")
+            print("ERROR: Could not convert Raster to GR_SKEY table")
             return()
           }
 
@@ -524,37 +592,90 @@ import_to_pg_gr_skey <- function(
       # =============================================================================
       # Create Non Spatial Table with attributes from FDW
       # =============================================================================
-      print(glue("Creating non-spatial PG table: {dst_schema}.{dst_tbl} from source: {src_path}|layername={src_lyr}"))
-      dadmtools:::ogr_to_tbl(
-        src           = src_path,
-        dst_tbl       = dst_tbl,
-        pg_conn_param = pg_conn_param,
-        lyr           = src_lyr,
-        pk            = pk_id,
-        select        = flds_to_keep,
-        where         = query,
-        dst_schema    = dst_schema,
-        tbl_comment   = dst_tbl_comment
-      )
+      if (isTRUE(largest_area)) {
+        # ===========================================================================
+        # largest_area = TRUE: import once WITH geometry into a staging table.
+        # pgid is assigned a single time and stored on the same row as its
+        # geometry. The attribute table is copied from staging (no geometry), and
+        # only pgid + geometry are read from staging into R for rasterize_r.
+        # The staging table is dropped when the function exits.
+        # ===========================================================================
+        stage_schema <- fdw_schema
+        stage_tbl    <- glue("{dst_tbl}_stage")
+        on.exit(try(dadmtools::run_sql_r(glue("DROP TABLE IF EXISTS {stage_schema}.{stage_tbl};"), pg_conn_param), silent = TRUE), add = TRUE)
 
+        print(glue("Creating staging table with geometry: {stage_schema}.{stage_tbl} from source: {src_path}|layername={src_lyr}"))
+        dadmtools:::ogr_to_tbl(
+          src           = src_path,
+          dst_tbl       = stage_tbl,
+          pg_conn_param = pg_conn_param,
+          lyr           = src_lyr,
+          pk            = pk_id,
+          where         = query,
+          dst_schema    = stage_schema,
+          tbl_comment   = glue("COMMENT ON TABLE {stage_schema}.{stage_tbl} IS 'Temporary staging table for {dst_schema}.{dst_tbl} created by dadmtools; safe to drop.';"),
+          keep_geom     = TRUE
+        )
 
-
+        print(glue("Creating non-spatial PG table: {dst_schema}.{dst_tbl} from staging table: {stage_schema}.{stage_tbl}"))
+        dadmtools:::stage_to_attr_tbl(
+          stage_schema  = stage_schema,
+          stage_tbl     = stage_tbl,
+          dst_schema    = dst_schema,
+          dst_tbl       = dst_tbl,
+          pk            = pk_id,
+          pg_conn_param = pg_conn_param,
+          flds_to_keep  = flds_to_keep,
+          tbl_comment   = dst_tbl_comment
+        )
+      } else {
+        print(glue("Creating non-spatial PG table: {dst_schema}.{dst_tbl} from source: {src_path}|layername={src_lyr}"))
+        dadmtools:::ogr_to_tbl(
+          src           = src_path,
+          dst_tbl       = dst_tbl,
+          pg_conn_param = pg_conn_param,
+          lyr           = src_lyr,
+          pk            = pk_id,
+          select        = flds_to_keep,
+          where         = query,
+          dst_schema    = dst_schema,
+          tbl_comment   = dst_tbl_comment
+        )
+      }
 
       print("Table created successfully.")
 
       if(!overlap_ind) {
-        #Create tif from input
-        dst_ras_filename <- dadmtools:::rasterize_gdal(
-          in_lyr        = src_lyr,
-          field         = pk_id,
-          out_tif_path  = out_tif_path,
-          out_tif_name  = glue("{dst_tbl}.tif"),
-          src_path      = src_path,
-          pg_conn_param = NULL,
-          crop_extent   = crop_extent,
-          nodata        = no_data_value,
-          where         = where_claus
-        )
+        if (isTRUE(largest_area)) {
+          print(glue("Reading {pk_id} and geometry from {stage_schema}.{stage_tbl} into R for largest-area rasterization"))
+          in_sf <- dadmtools:::read_pgid_geom(glue("SELECT {pk_id}, geom FROM {stage_schema}.{stage_tbl}"), connz, pk_id)
+          dst_ras_filename <- dadmtools::rasterize_r(
+            src_sf       = in_sf,
+            field        = pk_id,
+            template_tif = template_tif,
+            crop_extent  = crop_extent,
+            out_tif_path = out_tif_path,
+            out_tif_name = glue("{dst_tbl}.tif"),
+            datatype     = 'INT4U',
+            nodata       = no_data_value,
+            largest_area = TRUE
+          )
+          rm(in_sf); invisible(gc())
+        } else {
+          #Create tif from input
+          dst_ras_filename <- dadmtools:::rasterize_gdal(
+            in_lyr        = src_lyr,
+            field         = pk_id,
+            out_tif_path  = out_tif_path,
+            out_tif_name  = glue("{dst_tbl}.tif"),
+            src_path      = src_path,
+            pg_conn_param = NULL,
+            crop_extent   = crop_extent,
+            nodata        = no_data_value,
+            where         = where_claus,
+            touches       = touches
+          )
+        }
         # =============================================================================
         # Remove locally created layer from out_tif_path
         # =============================================================================
@@ -584,6 +705,8 @@ import_to_pg_gr_skey <- function(
           }
         }
 
+        # Unquoted copy for the largest-area (staging table) path
+        overlap_groups_raw <- overlap_groups_df
         # Apply function to all columns
         overlap_groups_df[] <- lapply(overlap_groups_df, add_quotes)
 
@@ -602,18 +725,36 @@ import_to_pg_gr_skey <- function(
           }
           print(where_clause_overlap)
 
-          dst_ras_filename <- dadmtools:::rasterize_gdal(
-            in_lyr        = src_lyr,
-            field         = pk_id,
-            out_tif_path  = out_tif_path,
-            out_tif_name  = glue("{dst_tbl}.tif"),
-            src_path      = src_path,
-            pg_conn_param = NULL,
-            crop_extent   = crop_extent,
-            nodata        = no_data_value,
-            where         = where_claus,
-            overlap_where = where_clause_overlap,
-          )
+          if (isTRUE(largest_area)) {
+            ## this group's pgid + geometry only, straight from the staging table
+            group_qry <- glue("SELECT q.{pk_id}, q.geom FROM {stage_schema}.{stage_tbl} q WHERE {dadmtools:::build_overlap_where(overlap_groups_raw[i, , drop = FALSE])}")
+            in_sf <- dadmtools:::read_pgid_geom(group_qry, connz, pk_id)
+            dst_ras_filename <- dadmtools::rasterize_r(
+              src_sf       = in_sf,
+              field        = pk_id,
+              template_tif = template_tif,
+              crop_extent  = crop_extent,
+              out_tif_path = out_tif_path,
+              out_tif_name = glue("{dst_tbl}.tif"),
+              datatype     = 'INT4U',
+              nodata       = no_data_value,
+              largest_area = TRUE)
+            rm(in_sf); invisible(gc())
+          } else {
+            dst_ras_filename <- dadmtools:::rasterize_gdal(
+              in_lyr        = src_lyr,
+              field         = pk_id,
+              out_tif_path  = out_tif_path,
+              out_tif_name  = glue("{dst_tbl}.tif"),
+              src_path      = src_path,
+              pg_conn_param = NULL,
+              crop_extent   = crop_extent,
+              nodata        = no_data_value,
+              where         = where_claus,
+              overlap_where = where_clause_overlap,
+              touches       = touches
+            )
+          }
 
           in_df <- dadmtools::tif_to_gr_skey_tbl(
             src_tif_filename = dst_ras_filename,

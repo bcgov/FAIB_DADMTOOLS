@@ -208,6 +208,9 @@ It is recommended that you edit the provided example configuration file for your
 - `flds_to_keep` : By default, all fields are retained. Use this field to filter fields to keep. Format is comma separated list (no spaces)
     - E.g. `REGEN_OBLIGATION_IND,FREE_GROW_DECLARED_IND,OBJECTID`
 - `overlap_group_fields` : The field groupings that will be used to handle spatial overlaps. I.e. each unique combination of the specified fields will be rasterized separately.
+- `rasterization_touches` : `TRUE` or `FALSE`. Vector inputs only. If `TRUE`, every cell touched by a line or polygon is burned in. If `FALSE`, a polygon only gets a cell when it covers the cell's center point. Blank uses the `touches` argument of `batch_import_to_pg_gr_skey` (default `FALSE`).
+- `rasterization_largest_area` : `TRUE` or `FALSE`. Polygons only. If `TRUE`, each cell gets the polygon covering the largest area of it, where the uncovered part of the cell counts as nodata and competes like a polygon (see `rasterize_r`). Slower than the default cell center rule. Blank uses the `largest_area` argument of `batch_import_to_pg_gr_skey` (default `FALSE`).
+    - `rasterization_touches` and `rasterization_largest_area` cannot both be `TRUE` for the same row; that row is skipped and reported as an error at the end of the batch.
 - `notes` : Notes
     - E.g. `Downloaded layer from URL.. etc.`
 
