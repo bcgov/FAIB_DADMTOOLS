@@ -2,7 +2,7 @@
 % Please edit documentation in R/import-to-pg-gr-skey.R
 \name{import_to_pg_gr_skey}
 \alias{import_to_pg_gr_skey}
-\title{Imports spatial data into a gridded attribute format within PostgreSQL, structuring data according to the gr_skey grid system.}
+\title{Import spatial data into PostgreSQL using the gr_skey grid system}
 \usage{
 import_to_pg_gr_skey(
   src_type,
@@ -31,52 +31,105 @@ import_to_pg_gr_skey(
 )
 }
 \arguments{
-\item{src_type}{Format of data source. Raster option will only work when the raster matches the spatial resolution, alignment and projection (BC Albers) of the gr_skey grid (specified by 'template_tif' argument) imported using 'import_gr_skey_tif_to_pg_rast'. Options: gdb, oracle, raster, geopackage, gpkg, shapefile, shp}
+\item{src_type}{Source format. Supported values are gdb, oracle, raster,
+geopackage, gpkg, shapefile, shp, and postgres.}
 
-\item{src_path}{Path to input data. Note: use 'bcgw' when srctype = 'oracle' for whse oracle layers. Use full path and filename when srctype = 'gdb' or 'raster' or 'shp' or 'geopackage'}
+\item{src_path}{Path to the input file or directory. For Oracle sources,
+use the connection alias (e.g., "bcgw"). For file-based sources,
+provide the full path to the source.}
 
-\item{src_lyr}{Input layer name. Note: provide oracle schema and layer name, e.g. 'WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly' when src_type = 'oracle'. Provide layername within the file geodatabase, e.g. 'tsa_boundaries_2020' when src_type = 'gdb'. Provide the shapefile name without extension, e.g. 'k3o_cfa' when src_type = 'shp' or 'shapefile'. Provide the layername within the geopackage, e.g. 'FireSeverity_Final' when 'src_type = 'gpkg' or 'geopackage'. Argument is not used in import when src_type = 'raster' - though it is imported into metadata table.}
+\item{src_lyr}{Source layer name. For Oracle sources, provide the schema
+and table name (e.g., "WHSE_FOREST_VEGETATION.bec_biogeoclimatic_poly").
+For file geodatabases and GeoPackages, provide the layer name within
+the source. For Shapefiles, provide the filename without its extension.
+For raster sources, this argument is not used for reading the raster,
+although it is included in metadata.}
 
-\item{dst_tbl}{Name of imported non spatial table in PostgreSQL}
+\item{dst_tbl}{Name of the destination PostgreSQL attribute table.}
 
-\item{query}{Optional argument to filter source layer. Where clause used to filter input dataset, e.g., fire_year = 2023 and BURN_SEVERITY_RATING in ('High','Medium').}
+\item{query}{Optional SQL WHERE-clause expression used to filter the
+source features.}
 
-\item{flds_to_keep}{Optional argument. By default, all fields are retained. Use this argument to filter fields to keep in non spatial table, Eg. fid,tsa_number,thlb_fact,tsr_report_year,abt_name.}
+\item{flds_to_keep}{Optional comma-separated list of source attribute
+fields to retain. By default, all fields are retained.}
 
-\item{notes}{Optional argument. Notes field.}
+\item{notes}{Optional notes describing the imported dataset.}
 
-\item{overlap_ind}{TRUE or FALSE.  If TRUE, it indicates that the input spatial layer has overlaps and imported <dst_tbl>_gr_skey table will duplicate gr_skey records where spatial overlaps occur.  If FALSE, spatial overlaps will be ignored (i.e only the higher pgid value will be kept when overlaps occur)}
+\item{overlap_ind}{Logical value indicating whether overlapping vector
+features should be retained in the gr_skey table. If TRUE, multiple
+records may be created for the same grid cell. If FALSE, overlaps are
+resolved during rasterization. Must be FALSE for raster inputs.}
 
-\item{overlap_group_fields}{The field groupings that will be used to handle spatial overlaps. I.e. each unique combination of the specified fields will be rasterized separately.}
+\item{overlap_group_fields}{Optional comma-separated field names used to
+group features when processing overlapping vector data. Required when
+overlap_ind = TRUE.}
 
-\item{out_tif_path}{Directory where output tif is exported and where vector is temporally stored prior to import}
+\item{out_tif_path}{Directory used for temporary source files and generated
+raster outputs.}
 
-\item{pg_conn_param}{Keyring object of Postgres credentials. Defaults to dadmtools::get_pg_conn_list()}
+\item{pg_conn_param}{PostgreSQL connection parameters. Defaults to
+dadmtools::get_pg_conn_list().}
 
-\item{ora_conn_param}{Keyring object of Oracle credentials. Defaults to dadmtools::get_ora_conn_list()}
+\item{ora_conn_param}{Oracle connection parameters. Defaults to
+dadmtools::get_ora_conn_list().}
 
-\item{crop_extent}{Raster crop extent, list of c(xmin, xmax, ymin, ymax) in EPSG:3005. Defaults to c(273287.5, 1870587.5, 367787.5, 1735787.5)}
+\item{crop_extent}{Raster crop extent in EPSG:3005, specified as
+c(xmin, xmax, ymin, ymax). Defaults to
+c(273287.5, 1870587.5, 367787.5, 1735787.5).}
 
-\item{dst_schema}{Schema to insert the newly created gr_skey and dst_tbl (Eg. non spatial table). Defaults to "whse"}
+\item{dst_schema}{PostgreSQL schema for the destination attribute table.
+Defaults to "whse".}
 
-\item{raster_schema}{If import_rast_to_pg set to TRUE, the import schema for the raster. Defaults to "raster"}
+\item{raster_schema}{PostgreSQL schema used when importing raster data.
+Defaults to "raster".}
 
-\item{fdw_schema}{If src_type=oracle, the schema to load the foreign data wrapper table. Defaults to "load"}
+\item{fdw_schema}{PostgreSQL schema used for Oracle foreign data wrapper
+tables. Defaults to "load".}
 
-\item{template_tif}{The file path to the gr_skey template geotiff. Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\bc_01ha_gr_skey.tif'}
+\item{template_tif}{Path to the gr_skey template GeoTIFF defining the
+target grid. Defaults to the provincial one-hectare gr_skey template.}
 
-\item{mask_tif}{The file path to the geotiff to be used as a mask. Defaults to 'S:\\FOR\\VIC\\HTS\\ANA\\workarea\\PROVINCIAL\\BC_Boundary_Terrestrial.tif'}
+\item{mask_tif}{Path to the GeoTIFF used to mask the gr_skey grid.
+Defaults to the provincial terrestrial boundary mask.}
 
-\item{data_src_tbl}{Schema and table name of the metadata table in postgres that updates with any newly imported layer. Defaults to 'whse.datasources'}
+\item{data_src_tbl}{Metadata table updated after a successful import.
+Defaults to "whse.data_sources".}
 
-\item{import_rast_to_pg}{If TRUE, raster is imported into database in raster_schema. Defaults to FALSE}
+\item{import_rast_to_pg}{Logical value indicating whether to import the
+generated or input raster into PostgreSQL. Defaults to FALSE.}
+
+\item{grskey_schema}{Optional PostgreSQL schema for the gr_skey table.
+Defaults to NULL, which uses dst_schema. When supplied, dst_tbl is used
+as the gr_skey table name; otherwise, the gr_skey table name is derived
+from dst_tbl with the suffix "_gr_skey".}
 }
 \value{
-no return
+The function primarily operates through PostgreSQL tables and
+  messages. It does not return a documented data object.
 }
 \description{
-Function supports both vector and raster inputs. For vector data (e.g., Shapefile, FGDB, GeoPackage), the function imports the attribute table into PostgreSQL and generates a corresponding raster attribute table, where each record represents a raster pixel (one hectare). The gr_skey field acts as a globally unique primary key, while pgid links the raster attributes to the vector attributes. Each record within the raster attribute table represents one pixel.
-For raster data (e.g., geotiff), the raster is required to have BC Albers coordinate reference system, (Ie. EPSG: 3005), the same grid definition as the 'template_tif' and 'mask_tif' provided to the 'import_gr_skey_tif_to_pg_rast' function and only one band. For TSR, it is recommended to use the gr_skey grid. The function imports the raster as a single attribute table. The table includes 'gr_skey', unique global cell id and the input raster pixel value. Each record represent one pixel.
+Imports vector or raster data into PostgreSQL and generates a corresponding
+gr_skey attribute table. The function supports Oracle, file geodatabases,
+Shapefiles, GeoPackages, and raster files.
+}
+\details{
+For vector data, the function imports the source attributes into a
+non-spatial PostgreSQL table and rasterizes the spatial features against
+the gr_skey grid. The resulting gr_skey table contains one record per
+intersected grid cell, with gr_skey identifying the grid cell and pgid
+linking the record to the corresponding source feature. When overlapping
+features are retained, multiple records may exist for a single gr_skey.
+
+For raster data, the function creates a gr_skey attribute table containing
+the grid cell identifier (gr_skey) and the corresponding raster pixel
+value. Input rasters must use EPSG:3005, contain a single band, and match
+the resolution and alignment of the gr_skey template grid.
+
+File-based vector and raster sources are validated before import to ensure
+that their coordinate reference system can be identified as EPSG:3005
+(BC Albers). Sources with an unknown EPSG code or a different EPSG code
+are rejected. Oracle sources are assumed to use EPSG:3005 and bypass this
+source CRS validation.
 }
 \examples{
 ## Example of importing the vector: whse_admin_boundaries.adm_nr_districts_sp
