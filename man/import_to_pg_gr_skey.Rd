@@ -97,9 +97,13 @@ Defaults to the provincial terrestrial boundary mask.}
 \item{data_src_tbl}{Metadata table updated after a successful import.
 Defaults to "whse.data_sources".}
 
-\item{import_rast_to_pg}{If TRUE, raster is imported into database in raster_schema. Defaults to FALSE}
+\item{import_rast_to_pg}{Logical value indicating whether to import the
+generated or input raster into PostgreSQL. Defaults to FALSE.}
 
-\item{grskey_schema}{Schema for the gr_skey table. Defaults to NULL, which uses dst_schema}
+\item{grskey_schema}{Optional PostgreSQL schema for the gr_skey table.
+Defaults to NULL, which uses dst_schema. When supplied, dst_tbl is used
+as the gr_skey table name; otherwise, the gr_skey table name is derived
+from dst_tbl with the suffix "_gr_skey".}
 
 \item{touches}{If TRUE, vector inputs burn in every cell touched by a line or polygon. If FALSE (default), a polygon only gets a cell when it covers the cell's center point. Not used when src_type = 'raster'.}
 

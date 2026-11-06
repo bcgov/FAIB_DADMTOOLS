@@ -2,7 +2,7 @@
 % Please edit documentation in R/get-pg-conn-list.R
 \name{get_pg_conn_list}
 \alias{get_pg_conn_list}
-\title{Get named list of  postgres connection parameters}
+\title{Get named list of PostgreSQL connection parameters}
 \usage{
 get_pg_conn_list(
   driver = NULL,
@@ -10,28 +10,36 @@ get_pg_conn_list(
   user = NULL,
   dbname = NULL,
   password = NULL,
-  port = "5432"
+  port = "5432",
+  keyring_name = "localpsql"
 )
 }
 \arguments{
-\item{driver}{the database driver. Default is keyring value. E.g. dbDriver("PostgreSQL")}
+\item{driver}{Database driver. Defaults to RPostgres::Postgres().}
 
-\item{host}{pg database host. Default is localpsql keyring value.}
+\item{host}{PostgreSQL host. Defaults to the selected keyring.}
 
-\item{user}{pg database user. Default is localpsql keyring value.}
+\item{user}{PostgreSQL user. Defaults to the selected keyring.}
 
-\item{dbname}{pg database name. Default is localpsql keyring value.}
+\item{dbname}{PostgreSQL database name. Defaults to the selected keyring.}
 
-\item{password}{pg database password. Default is localpsql keyring value.}
+\item{password}{PostgreSQL password. Defaults to the selected keyring.}
 
-\item{port}{pg database port. Default '5432'.}
+\item{port}{PostgreSQL port. Defaults to "5432".}
+
+\item{keyring_name}{Character scalar identifying the keyring
+used to retrieve any connection parameters not explicitly
+supplied. Defaults to "localpsql".}
 }
 \value{
-returns named list of connection parameters
+A named list of PostgreSQL connection parameters.
 }
 \description{
-Get named list of  postgres connection parameters
+Get named list of PostgreSQL connection parameters
 }
 \examples{
-get_pg_conn_list(dbname = 'postgres', keyring::key_get('dbpass', keyring = 'localpsql'))
+\dontrun{
+local_cfg <- get_pg_conn_list()
+central_cfg <- get_pg_conn_list(keyring_name = "provpsql")
+}
 }

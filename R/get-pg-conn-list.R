@@ -1,23 +1,69 @@
-#' Get named list of  postgres connection parameters
-#' @param driver the database driver. Default is keyring value. E.g. dbDriver("PostgreSQL")
-#' @param host pg database host. Default is localpsql keyring value.
-#' @param user pg database user. Default is localpsql keyring value.
-#' @param dbname  pg database name. Default is localpsql keyring value.
-#' @param password pg database password. Default is localpsql keyring value.
-#' @param port pg database port. Default '5432'.
+
+#' Get named list of PostgreSQL connection parameters
 #'
-#' @return returns named list of connection parameters
+#' @param driver Database driver. Defaults to RPostgres::Postgres().
+#' @param host PostgreSQL host. Defaults to the selected keyring.
+#' @param user PostgreSQL user. Defaults to the selected keyring.
+#' @param dbname PostgreSQL database name. Defaults to the selected keyring.
+#' @param password PostgreSQL password. Defaults to the selected keyring.
+#' @param port PostgreSQL port. Defaults to "5432".
+#' @param keyring_name Character scalar identifying the keyring
+#'   used to retrieve any connection parameters not explicitly
+#'   supplied. Defaults to "localpsql".
+#'
+#' @return A named list of PostgreSQL connection parameters.
 #' @export
 #'
-#' @examples get_pg_conn_list(dbname = 'postgres', keyring::key_get('dbpass', keyring = 'localpsql'))
+#' @examples
+#' \dontrun{
+#' local_cfg <- get_pg_conn_list()
+#' central_cfg <- get_pg_conn_list(keyring_name = "provpsql")
+#' }
+get_pg_conn_list <- function(
+    driver = NULL,
+    host = NULL,
+    user = NULL,
+    dbname = NULL,
+    password = NULL,
+    port = "5432",
+    keyring_name = "localpsql"
+) {
+  driver <- if (is.null(driver)) {
+    RPostgres::Postgres()
+  } else {
+    driver
+  }
 
+  host <- if (is.null(host)) {
+    keyring::key_get("dbhost", keyring = keyring_name)
+  } else {
+    host
+  }
 
-get_pg_conn_list<-function(driver = NULL, host = NULL, user = NULL, dbname = NULL, password = NULL, port='5432'){
-  driver <- if (is.null(driver)) RPostgres::Postgres() else driver
-  host <- if (is.null(host)) keyring::key_get('dbhost', keyring = 'localpsql') else host
-  user <- if (is.null(user)) keyring::key_get('dbuser', keyring = 'localpsql') else user
-  dbname <- if (is.null(dbname)) keyring::key_get('dbname', keyring = 'localpsql') else dbname
-  password <- if (is.null(password)) keyring::key_get('dbpass', keyring = 'localpsql') else password
-  conn_list <- list(driver = driver, host = host, user = user, dbname = dbname, password = password, port = port)
-  return(conn_list)
+  user <- if (is.null(user)) {
+    keyring::key_get("dbuser", keyring = keyring_name)
+  } else {
+    user
+  }
+
+  dbname <- if (is.null(dbname)) {
+    keyring::key_get("dbname", keyring = keyring_name)
+  } else {
+    dbname
+  }
+
+  password <- if (is.null(password)) {
+    keyring::key_get("dbpass", keyring = keyring_name)
+  } else {
+    password
+  }
+
+  list(
+    driver = driver,
+    host = host,
+    user = user,
+    dbname = dbname,
+    password = password,
+    port = port
+  )
 }
